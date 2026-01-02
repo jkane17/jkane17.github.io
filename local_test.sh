@@ -11,3 +11,10 @@ done
 
 # Serve
 python3 -m http.server 8000
+
+# Clean-up
+for d in blog/*; do
+    if [ -d "$d" ]; then
+        rm -rf "$d"
+    fi
+done
