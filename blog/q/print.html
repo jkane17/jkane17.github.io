@@ -38,10 +38,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1ca3d8fa.js";
+            window.path_to_searchindex_js = "searchindex-ced79429.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a87f3b4a.js"></script>
+        <script src="toc-3135433e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,358 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="analysis-of-q-memory-allocation"><a class="header" href="#analysis-of-q-memory-allocation">Analysis of Q Memory Allocation</a></h1>
+                        <h1 id="the-little-q-keywords-that-could"><a class="header" href="#the-little-q-keywords-that-could">The Little Q Keywords That Could</a></h1>
+<p><img src="images/little_q_keywords_that_could.png" title="The Little Q Keywords That Could Cover Image" alt="The Little Q Keywords That Could Cover Image"></p>
+<p>In programming, keywords are predefined words with special meanings that form part of a language’s syntax. The Q programming language is rich with keywords, many of which were introduced to improve the readability of its predecessor, K4, by “wordifying” many primitive operations. In this blog, we’ll explore some of Q’s lesser-known or underutilised keywords that can be quite powerful when used effectively. We’ll also examine a few keywords whose usefulness might be questionable.</p>
+<h2 id="csv"><a class="header" href="#csv"><code>csv</code></a></h2>
+<p>The <code>csv</code> keyword is a synonym for <code>","</code>, often used to represent a comma delimiter.</p>
+<p><strong>Example Usage</strong></p>
+<p><code>csv</code> is primarily used when specifying a delimiter for preparing or saving text data:</p>
+<pre><code class="language-q">q)csv 0: ([] a:1 2 3; b:`a`b`c)
+"a,b"
+"1,a"
+"2,b"
+"3,c"
+
+q)"," 0: ([] a:1 2 3; b:`a`b`c)
+"a,b"
+"1,a"
+"2,b"
+"3,c"
+</code></pre>
+<p>In the past, <code>csv</code> was particularly useful for working with comma-separated values (CSV) files. However, other delimited file formats have become popular, and it’s now common to use different delimiters when preparing or saving text data:</p>
+<pre><code class="language-q">q)"|" 0: ([] a:1 2 3; b:`a`b`c)
+"a|b"
+"1|a"
+"2|b"
+"3|c"
+</code></pre>
+<p>Given this shift, <code>csv</code> is less useful than it once was. To maintain consistency, especially when using different delimiters, one should prefer to specify <code>","</code> explicitly.</p>
+<h2 id="dsave"><a class="header" href="#dsave"><code>dsave</code></a></h2>
+<p>Introduced in version 3.2, <code>dsave</code> is a convenient keyword used to write global tables to disk as splayed, enumerated, indexed KDB+ tables. It simplifies the process of saving data, especially when dealing with partitions.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">x dsave y
+</code></pre>
+<ul>
+<li><code>x</code> : The save path as a file symbol (atom or vector).</li>
+<li><code>y</code> : One or more table names as a symbol (atom or vector).</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<p>In a fresh Q session, let’s define simple <code>trade</code> and <code>quote</code> tables:</p>
+<pre><code class="language-q">q)trade:`sym xasc flip `sym`price`qty!5?/:(`3;100f;100)
+q)quote:`sym xasc flip `sym`ask`bid!10?/:(distinct trade`sym;100f;100f)
+</code></pre>
+<p>You can save these tables to disk using <code>dsave</code>:</p>
+<pre><code class="language-q">q)`:db1 dsave `trade`quote
+`trade`quote
+</code></pre>
+<p>The command above creates a new root directory named <em>db1</em>. Within this directory, two subdirectories, <em>trade</em> and <em>quote</em>, are created for the respective tables. Additionally, <code>dsave</code> automatically enumerates any symbol columns in the tables, resulting in the creation of a sym file under the root directory (e.g., <code>db1/sym</code>).</p>
+<p><code>dsave</code> will apply the <em>parted</em> attribute to the first column of the saved tables (<code>sym</code> in this case).</p>
+<pre><code class="language-q">q)\l db1 // Load db1
+::
+
+q)meta trade
+c    | t f a
+-----| -----
+sym  | s   p
+price| f    
+qty  | j 
+
+q)meta quote
+c  | t f a
+---| -----
+sym| s   p
+ask| f    
+bid| f    
+</code></pre>
+<p>You can also save to a specific partition by providing a two-item list as the left argument. In a fresh Q session, we define the <code>trade</code> and <code>quote</code> tables as before and then save them to a partition:</p>
+<pre><code class="language-q">q)`:db2`2024.01.17 dsave `trade`quote
+`trade`quote
+</code></pre>
+<p><strong>Comparison: <code>dsave</code> vs <code>.Q.en</code> &amp; <code>.Q.dpft</code></strong></p>
+<p>While similar results can be achieved using <code>set</code> combined with <code>.Q.en</code>, or <code>.Q.dpft</code>, <code>dsave</code> offers a simpler and more direct approach.</p>
+<p>Using <code>set</code> and <code>.Q.en</code> (fresh Q session):</p>
+<pre><code class="language-q">q)`:db3/trade/ set .Q.en[`:db3;update `p#sym from trade]
+`:db3/trade/
+
+q)`:db3/quote/ set .Q.en[`:db3;update `p#sym from quote]
+`:db3/quote/
+</code></pre>
+<p>Using <code>.Q.dpft</code> (fresh Q session):</p>
+<pre><code class="language-q">q).Q.dpft[`:db4;2024.01.17;`sym;] each `trade`quote
+`trade`quote
+</code></pre>
+<p><code>dsave</code> streamlines this process by combining these steps into a single, more intuitive operation.</p>
+<h2 id="next"><a class="header" href="#next"><code>next</code></a></h2>
+<p>The <code>next</code> keyword retrieves the next item in a list, returning null for the last item since it has no successor.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">next x
+</code></pre>
+<ul>
+<li><code>x</code> : A list from which to retrieve the next items.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)next 10 20 30
+20 30 0N
+</code></pre>
+<p>For mixed lists, the last item is an empty list of the same type as the first item:</p>
+<pre><code class="language-q">q)next (10 20 30f;"hello";`blah)
+"hello"
+`blah
+`float$()
+</code></pre>
+<p><code>next</code> is particularly useful when dealing with temporal types:</p>
+<pre><code class="language-q">q)quote:([] sym:6#`a`b; time:00:01:00.000+"j"$1e3*0 0 17 42 68 112)
+
+q)update next[time]-time by sym from quote // Duration of a quote
+sym time
+----------------
+a   00:00:17.000
+b   00:00:42.000
+a   00:00:51.000
+b   00:01:10.000
+a
+b
+</code></pre>
+<p><strong>Implementation</strong></p>
+<p>Conceptually, <code>next</code> performs the following operation:</p>
+<pre><code class="language-q">1_x,enlist x 0N
+</code></pre>
+<h2 id="prev"><a class="header" href="#prev"><code>prev</code></a></h2>
+<p>The <code>prev</code> keyword retrieves the previous item in a list, returning null for the first item since it has no predecessor.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">prev x
+</code></pre>
+<ul>
+<li><code>x</code> : A list from which to retrieve the previous items.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)prev 10 20 30
+0N 10 20
+</code></pre>
+<p>For mixed lists, the first item is an empty list of the same type as the first item in the original list:</p>
+<pre><code class="language-q">q)prev (10 20 30f;"hello";`blah)
+`float$()
+10 20 30f
+"hello"
+</code></pre>
+<p><strong>Implementation</strong></p>
+<p><code>prev</code> is effectively doing this:</p>
+<pre><code class="language-q">(enlist x 0N),-1_x
+</code></pre>
+<h2 id="xprev"><a class="header" href="#xprev"><code>xprev</code></a></h2>
+<p>The <code>xprev</code> keyword allows you to access the item <em>x</em> places before the current item in a list, padding with nulls where necessary.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">x xprev y
+</code></pre>
+<ul>
+<li><code>x</code> : The number of positions to look back.</li>
+<li><code>y</code> : The list from which to retrieve the previous items.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)2 xprev 10 20 30 40 50
+0N 0N 10 20 30
+</code></pre>
+<p>For mixed lists, the first <em>x</em> items are empty lists of the same type as the first item in the original list:</p>
+<pre><code class="language-q">q)2 xprev (10 20 30f;"hello";`blah;1 2 3f;101b)
+`float$()
+`float$()
+10 20 30f
+"hello"
+`blah
+</code></pre>
+<p><strong>Implementation</strong></p>
+<p>Conceptually, <code>xprev</code> performs the following:</p>
+<pre><code class="language-q">y (til count y)-x
+</code></pre>
+<h2 id="rand"><a class="header" href="#rand"><code>rand</code></a></h2>
+<p>The <code>rand</code> keyword is used to pick or generate a random value.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">rand x
+</code></pre>
+<ul>
+<li><code>x</code> : A list (to select a random element) or a number (to generate a random number between 0 and <em>x</em>).</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)rand 10 20 30 40 50
+50
+q)rand 1000
+360
+</code></pre>
+<p><code>rand</code> is a shorthand for the following:</p>
+<pre><code class="language-q">first 1?x
+</code></pre>
+<p>While <code>rand</code> is convenient for generating a single random item, the <code>?</code> operator should be preferred for generating larger sets:</p>
+<pre><code class="language-q">q)\ts rand each 1000000#10
+626 41164880
+q)\ts 1000000?10
+19 8388800
+</code></pre>
+<h2 id="reciprocal"><a class="header" href="#reciprocal"><code>reciprocal</code></a></h2>
+<p>The <code>reciprocal</code> keyword computes the reciprocal of a number or a list of numbers.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">reciprocal x
+</code></pre>
+<ul>
+<li><code>x</code> : A number or a list of numbers for which to compute the reciprocal.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)reciprocal 1 2 3 4 5
+1 0.5 0.3333333 0.25 0.2
+</code></pre>
+<p>This operation is equivalent to applying the <code>%</code> operator with 1 as its left operand:</p>
+<pre><code class="language-q">q)1%1 2 3 4 5
+1 0.5 0.3333333 0.25 0.2
+</code></pre>
+<p>Both forms have similar performance:</p>
+<pre><code class="language-q">q)\ts:100 reciprocal 1+til 10000000
+4127 402660944
+
+q)\ts:100 1%1+til 10000000
+4070 402660384
+</code></pre>
+<p>While <code>reciprocal</code> is more verbose, <code>%</code> is often preferred for its succinctness and clarity.</p>
+<h2 id="rload--rsave"><a class="header" href="#rload--rsave"><code>rload</code> &amp; <code>rsave</code></a></h2>
+<p>The <code>rload</code> and <code>rsave</code> keywords are used to load and save splayed tables from and to directories, respectively.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">rload x
+</code></pre>
+<ul>
+<li><code>x</code> : The directory path (as a symbol) from which to load a splayed table.</li>
+</ul>
+<pre><code class="language-q">rsave x
+</code></pre>
+<ul>
+<li><code>x</code> : The directory path (as a symbol) to which a global table will be saved.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<p>In a fresh Q session, define and save a splayed <code>trade</code> table:</p>
+<pre><code class="language-q">q)trade:update `sym?sym from flip `sym`price`qty!5?/:(`3;100f;100)
+
+q)rsave `:db/trade
+`:db/trade/
+</code></pre>
+<p>The <code>trade</code> table can be loaded using <code>rload</code>:</p>
+<pre><code class="language-q">q)delete trade from `. // remove from memory
+`.
+
+q)rload `:db/trade
+`trade
+</code></pre>
+<p><strong>Comparison: <code>rload</code> &amp; <code>rsave</code> vs <code>get</code> &amp; <code>set</code></strong></p>
+<p><code>rload</code> and <code>rsave</code> are less flexible than the <code>get</code> and <code>set</code> keywords, which allow specifying different target directory names.</p>
+<p>For example, saving with a different name using <code>set</code> and loading using <code>get</code>:</p>
+<pre><code class="language-q">q)`:db/tradeOther/ set trade
+`:db/tradeOther/
+
+q)delete tradeOther from `.
+`.
+
+q)tradeOther:get `:db/tradeOther/
+</code></pre>
+<p><code>rload</code> and <code>rsave</code> also require global tables, whereas <code>get</code> and <code>set</code> can work with local tables.</p>
+<pre><code class="language-q">q)f:{[] tradeLocal:update `sym?sym from flip `sym`price`qty!5?/:(`3;100f;100); rsave `:db/tradeLocal}
+
+q)f[]
+'tradeLocal
+  [1]  f:{[] tradeLocal:update `sym?sym from flip `sym`price`qty!5?/:(`3;100f;100); rsave `:db/tradeLocal}
+                                                                                    ^
+</code></pre>
+<pre><code class="language-q">q)f:{[] tradeLocal:update `sym?sym from flip `sym`price`qty!5?/:(`3;100f;100); `:db/tradeLocal/ set tradeLocal}
+
+q)f[]
+`:db/tradeLocal/
+</code></pre>
+<p>Implicit iteration is a benefit of <code>rload</code> and <code>rsave</code>:</p>
+<pre><code class="language-q">q)t1:([] a:1 2 3; b:"abc")
+
+q)t2:([] a:4 5 6; b:"def")
+
+q)rsave `t1`t2
+`:t1/`:t2/
+
+q)delete t1, t2 from `.
+
+q)rload `t1`t2
+</code></pre>
+<p>Explicit iteration is required with <code>get</code> and <code>set</code>:</p>
+<pre><code class="language-q">q)`:t1/`:t2/ set' (t1;t2)
+`:t1/`:t2/
+
+q)get each `:t1`:t2
++`a`b!(1 2 3;"abc")
++`a`b!(4 5 6;"def")
+</code></pre>
+<p>If you don’t need the extra flexibility of <code>get</code> and <code>set</code>, <code>rload</code> and <code>rsave</code> offer a simpler method for saving and loading splayed tables.</p>
+<h2 id="signum"><a class="header" href="#signum"><code>signum</code></a></h2>
+<p>The <code>signum</code> keyword evaluates an integer value and returns:</p>
+<ul>
+<li><code>-1i</code> for a null or negative value</li>
+<li><code>0i</code> for a zero value</li>
+<li><code>1i</code> for a positive value</li>
+</ul>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">signum x
+</code></pre>
+<ul>
+<li><code>x</code> : An integer value.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)signum -1 0 1 0N
+-1 0 1 -1i
+</code></pre>
+<p>You can use <code>signum</code> to categorise and count price movements by their direction:</p>
+<pre><code class="language-q">q)t:([] price:10 11 9 8 8 15)
+
+q)select ct:count i by direction:signum deltas price from t
+direction| ct
+---------| --
+-1       | 2
+0        | 1
+1        | 3
+</code></pre>
+<p>This example demonstrates how <code>signum</code> can be used to summarise directional price changes in a dataset.</p>
+<h2 id="sublist"><a class="header" href="#sublist"><code>sublist</code></a></h2>
+<p>The <code>sublist</code> keyword selects a subset of a list.</p>
+<p><strong>Syntax</strong></p>
+<pre><code class="language-q">x sublist y
+</code></pre>
+<ul>
+<li><code>x</code> : The number of items to take from the start of the list if positive, or from the end if negative.</li>
+<li><code>y</code> : The list from which to extract the sublist.</li>
+</ul>
+<p><strong>Example Usage</strong></p>
+<pre><code class="language-q">q)3 sublist 10 20 30 40 50
+10 20 30
+
+q)-3 sublist 10 20 30 40 50
+30 40 50
+</code></pre>
+<p>If the requested sublist exceeds the available items, it returns as many items as possible:</p>
+<pre><code class="language-q">q)10 sublist 10 20 30 40 50
+10 20 30 40 50
+</code></pre>
+<p>You can also select a slice of the list:</p>
+<pre><code class="language-q">q)1 3 sublist 10 20 30 40 50
+20 30 40
+
+q)1 10 sublist 10 20 30 40 50
+20 30 40 50
+</code></pre>
+<p><strong>Comparison: <code>sublist</code> vs take (<code>#</code>)</strong></p>
+<p>Use <code>sublist</code> when you want to avoid exceeding the number of available items, unlike the <code>#</code> operator which always returns the requested number of items:</p>
+<pre><code class="language-q">q)10#"Hey"
+"HeyHeyHeyH"
+
+q)10 sublist "Hey"
+"Hey"
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
+<p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
+<p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="analysis-of-q-memory-allocation"><a class="header" href="#analysis-of-q-memory-allocation">Analysis of Q Memory Allocation</a></h1>
 <p><img src="images/analysis_of_q_memory_allocation.png" title="Analysis of Q Memory Allocation Cover Image" alt="Analysis of Q Memory Allocation Cover Image"></p>
 <p>Memory allocation is a crucial aspect of any programming language, affecting performance and resource management. This blog delves into how the Q programming language handles memory allocation using the buddy memory allocation system.</p>
 <h2 id="buddy-memory-allocation-in-q"><a class="header" href="#buddy-memory-allocation-in-q">Buddy Memory Allocation in Q</a></h2>
@@ -328,7 +679,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
@@ -366,7 +717,7 @@ heap| 201326592
         <script src="searcher-c2a407aa.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-5b1a0277.js"></script>
+        <script src="highlight-80932283.js"></script>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
