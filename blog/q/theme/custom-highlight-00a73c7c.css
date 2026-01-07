@@ -1,0 +1,18 @@
+/*
+ * Custom Syntax Highlighting Theme for mdbook
+ * Based on highlight.js styling
+ */
+
+.light .hljs-symbol,
+.rust .hljs-symbol {
+  color: #569cd6;  
+}
+
+.coal .hljs-symbol,
+.navy .hljs-symbol {
+  color: #81a2be;  
+}
+
+.ayu .hljs-symbol {
+  color: #36a3d9;  
+}

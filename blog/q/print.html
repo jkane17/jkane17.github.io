@@ -29,6 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -38,10 +39,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ced79429.js";
+            window.path_to_searchindex_js = "searchindex-eac906b7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-3135433e.js"></script>
+        <script src="toc-ec50ce02.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,8 +178,522 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="the-little-q-keywords-that-could"><a class="header" href="#the-little-q-keywords-that-could">The Little Q Keywords That Could</a></h1>
-<p><img src="images/little_q_keywords_that_could.png" title="The Little Q Keywords That Could Cover Image" alt="The Little Q Keywords That Could Cover Image"></p>
+                        <h1 id="an-introduction-to-interacting-with-rest-apis-in-qkdb"><a class="header" href="#an-introduction-to-interacting-with-rest-apis-in-qkdb">An Introduction to Interacting with REST APIs in Q/KDB+</a></h1>
+<p><img src="images/rest_apis_introduction.png" title="Cover Image" alt="Cover Image"></p>
+<p>In today’s interconnected world, many websites and services provide programmatic access to their data through REST APIs. REST (Representational State Transfer) APIs allow different systems to securely exchange data over the internet. The Q programming language includes built-in HTTP request capabilities and, in this blog, we’ll explore how to interact with REST APIs using Q.</p>
+<h2 id="http-get-via-qhg"><a class="header" href="#http-get-via-qhg">HTTP GET via <code>.Q.hg</code></a></h2>
+<p>The <code>.Q.hg</code> function in Q is a powerful tool that allows you to perform HTTP GET requests directly from your Q session. By simply passing a URL to <code>.Q.hg</code>, you can retrieve raw data, such as the HTML of a webpage, which can then be processed or analysed.</p>
+<pre><code class="language-q">q).Q.hg `:http://www.google.com
+"&lt;!doctype html&gt;&lt;html itemscope=\"\" itemtype=\"http://schema.org/WebPage\" lang=\"en-GB\"&gt;&lt;head&gt;...
+</code></pre>
+<h2 id="https"><a class="header" href="#https">HTTPS</a></h2>
+<p>HTTPS (Hypertext Transfer Protocol Secure) is an extension of HTTP that uses <a href="https://code.kx.com/q/kb/ssl/">SSL/TLS</a> protocols to encrypt data, ensuring secure communication between clients and servers. To make HTTPS requests in Q, your environment must be configured to support SSL/TLS. If this configuration is missing, Q will raise an error when attempting an HTTPS request.</p>
+<pre><code class="language-q">q).Q.hg `:https://www.google.com
+'conn. OS reports: The requested protocol has not been configured into the system, or no implementation for it exists.
+  [0]  .Q.hg `:https://www.google.com
+       ^
+</code></pre>
+<p>SSL verification can be bypassed by setting the <code>SSL_VERIFY_SERVER</code> environment variable to <code>NO</code>. This should only be used in trusted environments, as disabling SSL verification can expose your application to security risks.</p>
+<h3 id="windows-command-prompt"><a class="header" href="#windows-command-prompt">Windows Command Prompt</a></h3>
+<pre><code class="language-powershell">set "SSL_VERIFY_SERVER=NO" 
+</code></pre>
+<h3 id="linux--macos-terminal"><a class="header" href="#linux--macos-terminal">Linux &amp; macOS Terminal</a></h3>
+<pre><code class="language-bash">export SSL_VERIFY_SERVER=NO
+</code></pre>
+<h3 id="example-in-q"><a class="header" href="#example-in-q">Example in Q</a></h3>
+<p>Once the environment variable is set, you can verify it and perform an HTTPS request:</p>
+<pre><code class="language-q">q)getenv `SSL_VERIFY_SERVER
+"NO"
+
+q).Q.hg `:https://www.google.com
+"&lt;!doctype html&gt;&lt;html itemscope=\"\" itemtype=\"http://schema.org/WebPage\" lang=\"en-GB\"&gt;&lt;head&gt;...
+</code></pre>
+<h2 id="json"><a class="header" href="#json">JSON</a></h2>
+<p>JSON (JavaScript Object Notation) is a lightweight data interchange format widely used in REST APIs due to its simplicity and ease of parsing. In Q, JSON objects and arrays map naturally to dictionaries and tables, respectively, making it straightforward to work with API data.</p>
+<h3 id="json-objects"><a class="header" href="#json-objects">JSON Objects</a></h3>
+<p>JSON objects are structured as a collection of key-value pairs, which directly correspond to Q dictionaries. Each key is a string, and its associated value can be a string, number, array, object, or Boolean.</p>
+<pre><code class="language-JSON">{
+    "firstName": "John", 
+    "lastName": "Smith"
+}
+</code></pre>
+<p>In this example, <code>firstName</code> and <code>lastName</code> are keys, and <code>"John"</code> and <code>"Smith"</code> are their respective values.</p>
+<h3 id="json-arrays"><a class="header" href="#json-arrays">JSON Arrays</a></h3>
+<p>JSON arrays are ordered collections of values, which can include objects, similar to a list of dictionaries, i.e., a table, in Q.</p>
+<pre><code class="language-JSON">[
+    { "firstName": "John", "lastName": "Wick" },
+    { "firstName": "Mary", "lastName": "Sue" }
+]
+</code></pre>
+<p>In this example, the array contains two JSON objects, each representing a person with <code>firstName</code> and <code>lastName</code> fields.</p>
+<h3 id="working-with-json-in-q"><a class="header" href="#working-with-json-in-q">Working with JSON in Q</a></h3>
+<p>Q simplifies the process of decoding JSON data using the <code>.j.k</code> function. This function parses a JSON string into a corresponding Q data structure—dictionaries for objects and tables for arrays of objects.</p>
+<h4 id="example-1-parsing-a-json-object"><a class="header" href="#example-1-parsing-a-json-object">Example 1: Parsing a JSON Object</a></h4>
+<pre><code class="language-q">q).j.k "{ \"firstName\": \"John\", \"lastName\": \"Smith\" }"
+firstName| "John"
+lastName | "Smith"
+</code></pre>
+<p>Here, the JSON object is parsed into a Q dictionary with <code>firstName</code> and <code>lastName</code> as keys.</p>
+<h4 id="example-2-parsing-a-json-array"><a class="header" href="#example-2-parsing-a-json-array">Example 2: Parsing a JSON Array</a></h4>
+<pre><code class="language-q">q).j.k "[ { \"firstName\": \"John\", \"lastName\": \"Wick\" }, { \"firstName\": \"Mary\", \"lastName\": \"Sue\" } ]"
+firstName lastName
+------------------
+"John"    "Wick"
+"Mary"    "Sue"
+</code></pre>
+<p>This JSON array is parsed into a Q table, with <code>firstName</code> and <code>lastName</code> as column names.</p>
+<p>JSON is a common format for data exchange in APIs, and Q’s built-in capabilities make it easy to decode and manipulate this data efficiently.</p>
+<h2 id="a-real-example-using-the-cheapshark-api"><a class="header" href="#a-real-example-using-the-cheapshark-api">A Real Example: Using the <em>CheapShark</em> API</a></h2>
+<p><em>CheapShark</em> is a website that aggregates the best deals on PC games from various popular stores like <em>Steam</em>, <em>Humble Bundle</em>, <em>Fanatical</em>, and more. It offers a free, easy-to-use REST API that does not require an authorisation key, making it an excellent resource for learning how to work with real-world APIs.</p>
+<h3 id="understanding-the-api"><a class="header" href="#understanding-the-api">Understanding the API</a></h3>
+<p>Most sites that provide a REST API will offer documentation to guide users on how to interact with their endpoints. The documentation for the <em>CheapShark</em> API can be found <a href="https://apidocs.cheapshark.com/">here</a>.</p>
+<h3 id="making-api-calls"><a class="header" href="#making-api-calls">Making API Calls</a></h3>
+<p>API calls typically begin with a base URL, which serves as the root address that you extend with specific endpoints to access different resources.</p>
+<pre><code class="language-q">q)baseURL:`:https://www.cheapshark.com/api/1.0
+</code></pre>
+<p>In this example, <code>1.0</code> denotes the API version. API versions can change over time as the service evolves, so it’s essential to check the documentation for the correct version.</p>
+<p>To request specific data, the base URL is extended with an endpoint. According to the <em>CheapShark</em> documentation, one available endpoint is <em>deals</em>, which provides information on current game deals.</p>
+<h4 id="querying-the-deals-endpoint"><a class="header" href="#querying-the-deals-endpoint">Querying the Deals Endpoint</a></h4>
+<p>The base URL can be extended with the <em>deals</em> endpoint to retrieve information about ongoing sales:</p>
+<pre><code class="language-q">q).Q.dd[baseURL;`deals]
+`:https://www.cheapshark.com/api/1.0/deals
+</code></pre>
+<p>The above code constructs the full URL to the deals endpoint. To fetch data from this endpoint, use the <code>.Q.hg</code> function to send an HTTP GET request and then parse the JSON response with <code>.j.k</code>:</p>
+<pre><code class="language-q">q)deals:.j.k .Q.hg .Q.dd[baseURL;`deals]
+</code></pre>
+<p>This command retrieves and decodes the JSON response into a Q table. You can then inspect the data:</p>
+<pre><code class="language-q">q)type deals
+98h
+q)count deals
+60
+q)first deals
+internalName      | "METAMORPHOSIS"
+title             | "Metamorphosis"
+metacriticLink    | "/game/metamorphosis/"
+dealID            | "oML4oLCz0hlxkKKQpDwVSBwm6NNQUvEBx1igr7uOgWw%3D"
+storeID           | ,"1"
+gameID            | "218750"
+salePrice         | "10.50"
+normalPrice       | "34.98"
+isOnSale          | ,"1"
+savings           | "69.982847"
+metacriticScore   | ,"0"
+steamRatingText   | "Very Positive"
+steamRatingPercent| "83"
+steamRatingCount  | "405"
+steamAppID        | "1025410"
+releaseDate       | 1.724976e+09
+lastChange        | 1.724246e+09
+dealRating        | "10.0"
+thumb             | "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1025410/c..
+</code></pre>
+<p>In the <code>deals</code> table, each row corresponds to a game deal, with fields like <code>title</code>, <code>salePrice</code>, and <code>normalPrice</code> providing details about the game and its discount.</p>
+<p>This example demonstrates how to use Q to interact with a real REST API, retrieving and processing JSON data effectively.</p>
+<h3 id="schema-mapping"><a class="header" href="#schema-mapping">Schema Mapping</a></h3>
+<p>When working with external data, especially from APIs, the incoming data might not always match the desired format or types. In such cases, it’s essential to “clean” the data—formatting, casting types, and removing erroneous rows to ensure consistency and usability. A good approach is to define a schema that outlines the expected structure and data types, which can then be applied to the incoming data.</p>
+<h4 id="defining-the-schema"><a class="header" href="#defining-the-schema">Defining the Schema</a></h4>
+<p>One effective way to define and manage this schema is by using a CSV file. The schema can specify the column names, data types, whether the columns are required, and any additional attributes.</p>
+<pre><code class="language-CSV">column,origColumn,ty,required,enabled,isKey,attrib,description
+internalName,internalName,s,0,0,0,,Game title used internally by CheapShark
+title,title,*,1,1,0,,Game title
+metacriticLink,metacriticLink,*,0,0,0,,Link to game page on Metacritic 
+dealID,dealID,*,1,1,1,u,Deal identifier
+storeID,storeID,j,1,1,0,,Game store identifier
+gameID,gameID,j,1,1,0,,Game identifier
+salePrice,salePrice,f,1,1,0,,Deal/reduced price of game (USD)
+normalPrice,normalPrice,f,1,1,0,,Usual/full price of game (USD)
+isOnSale,isOnSale,b,0,1,0,,True if game is currently on sale
+savings,savings,f,0,1,0,,Percent saved on sale price compared to normal price  
+metacriticScore,metacriticScore,j,1,1,0,,Score on Metacritic (0-100)
+steamRatingText,steamRatingText,*,1,1,0,,Rating on Steam
+steamRatingPercent,steamRatingPercent,j,1,1,0,,Percentage rating on Steam (0-100)
+steamRatingCount,steamRatingCount,j,1,1,0,,Number of ratings given on Steam
+steamAppID,steamAppID,j,0,0,0,,Application identifier on Steam
+releaseDate,releaseDate,j,1,1,0,,Date game was released
+lastChange,lastChange,j,0,0,0,,Date of last change made to game
+dealRating,dealRating,f,1,1,0,,CheapShark deal rating (0.0-10.0)
+thumb,thumb,*,0,0,0,,Link to thumbnail image
+</code></pre>
+<h4 id="loading-the-schema"><a class="header" href="#loading-the-schema">Loading the Schema</a></h4>
+<p>Q provides a straightforward way to load a CSV file into a table. For our schema configuration, we can use the following command to load the schema from a CSV file:</p>
+<pre><code class="language-q">q)show schema:("sscbbbs*";enlist ",") 0: `:schema/deals.csv
+column             origColumn         ty required enabled isKey attrib description               ..
+-------------------------------------------------------------------------------------------------..
+internalName       internalName       s  0        0       0            "Game title used internall..
+title              title              *  1        1       0            "Game title"              ..
+metacriticLink     metacriticLink     *  0        0       0            "Link to game page on Meta..
+dealID             dealID             *  1        1       1     u      "Deal identifier"         ..
+storeID            storeID            j  1        1       0            "Game store identifier"   ..
+gameID             gameID             j  1        1       0            "Game identifier"         ..
+..
+</code></pre>
+<p>This command reads the <code>schema/deals.csv</code> file and displays its contents as a table. Each row in the schema configuration corresponds to a column in the deals table.</p>
+<ul>
+<li><code>column</code>: The desired name for the column in Q.</li>
+<li><code>origColumn</code>: The original column name from the external source.</li>
+<li><code>ty</code>: The expected data type for the column.</li>
+<li><code>required</code>: A flag indicating whether the column is mandatory.</li>
+<li><code>enabled</code>: A flag indicating whether the column should be included in the final table.</li>
+<li><code>isKey</code>: A flag to indicate if the column should be used as a key.</li>
+<li><code>attrib</code>: Any attributes that should be applied to the column (e.g., <code>u</code> for unique).</li>
+<li><code>description</code>: A brief explanation of what the column represents.</li>
+</ul>
+<p>This schema setup provides a clear structure for managing and validating the data we receive from the deals API.</p>
+<h4 id="the-applyschema-function"><a class="header" href="#the-applyschema-function">The <code>applySchema</code> Function</a></h4>
+<p>To ensure the <code>deals</code> table conforms to the expected schema, the following function is defined:</p>
+<pre><code class="language-q">// Ensure a table conforms to the given schema
+applySchema:{[schema;tab]
+    // Select only enabled columns from the schema - useful for excluding unnecessary columns
+    schema:select from schema where enabled;
+    
+    // Ensure all required columns are present in the data
+    reqCols:exec origColumn from schema where required;
+    if[not all b:reqCols in cols tab; 
+        msg:"Required columns missing: ",", " sv string reqCols where not b;
+        -1 msg;
+        'msg
+    ];
+    
+    // Keep only columns that are both expected and received
+    tab:#[;tab] cols[tab] inter exec origColumn from schema;
+
+    // Rename columns to conform to Q's naming conventions
+    tab:xcol[;tab] exec origColumn!column from schema;
+    
+    // Cast columns to their correct data types
+    tab:cast[cols tab;exec (column!ty) cols tab from schema;tab];
+    
+    // Apply attributes to the appropriate columns
+    tab:applyAttr[;tab] exec column!attrib from schema where not null attrib;
+    
+    // Set the specified columns as the key(s) of the table
+    tab:xkey[;tab] exec column from schema where isKey;
+
+    // Return the cleaned and formatted table
+    tab
+ }
+</code></pre>
+<h5 id="explanation-of-the-applyschema-function"><a class="header" href="#explanation-of-the-applyschema-function">Explanation of the <code>applySchema</code> Function:</a></h5>
+<ol>
+<li>
+<p><strong>Selecting Enabled Columns</strong>: The schema may include columns that are not needed for the current operation. This step filters out any columns that are not marked as enabled in the schema.</p>
+</li>
+<li>
+<p><strong>Checking for Required Columns</strong>: Ensures that all columns marked as required in the schema are present in the incoming data. If any required columns are missing, the function throws an error with a descriptive message.</p>
+</li>
+<li>
+<p><strong>Filtering Received Columns</strong>: The function retains only those columns in the incoming data that are both expected (as per the schema) and present in the received data. This helps to discard any extraneous columns.</p>
+</li>
+<li>
+<p><strong>Renaming Columns</strong>: Column names are often inconsistent with Q’s conventions when received from external sources (not the case with <em>CheapShark</em> data). This step renames the columns to conform to Q’s naming conventions, which are specified in the schema.</p>
+</li>
+<li>
+<p><strong>Casting Columns to Correct Data Types</strong>: The function casts each column to its appropriate data type as specified in the schema. This is important for ensuring that the data can be accurately and efficiently processed.</p>
+</li>
+<li>
+<p><strong>Applying Attributes</strong>: Certain attributes, like <code>u</code> (unique), may need to be applied to specific columns. This step applies those attributes based on the schema configuration.</p>
+</li>
+<li>
+<p><strong>Setting the Table Key</strong>: The function sets the key for the table using the columns marked as <code>isKey</code> in the schema. This is crucial for operations that depend on uniquely identifying rows in the table.</p>
+</li>
+<li>
+<p><strong>Returning the Cleaned Table</strong>: Finally, the function returns the table with all the above transformations applied, ensuring it is in a clean, consistent, and usable format.</p>
+</li>
+</ol>
+<h4 id="helper-functions-used-in-applyschema"><a class="header" href="#helper-functions-used-in-applyschema">Helper Functions Used in <code>applySchema</code></a></h4>
+<h5 id="column-type-casting"><a class="header" href="#column-type-casting">Column Type Casting</a></h5>
+<p>The <code>applySchema</code> function relies on the following helper function to cast columns to their correct data types:</p>
+<pre><code class="language-q">// Cast column types in tab
+cast:{[columns;ty;tab]
+    col2Ty:columns!ty;
+    col2Ty,:exec c!upper col2Ty c from meta tab where t="C";
+    col2Ty:{($),x,y}'[col2Ty;key col2Ty];
+    ![tab;();0b;col2Ty]
+ }
+</code></pre>
+<p>Explanation:</p>
+<ul>
+<li>The <code>cast</code> function creates a mapping (<code>col2Ty</code>) between column names and their intended types.</li>
+<li>For columns that are received as strings, the function checks their actual data type and applies the appropriate casting by converting the type character to its uppercase form.</li>
+<li>The function then generates a list of applicable casting functions and applies these to the corresponding columns in the table. This ensures that each column in the table is correctly typed according to the schema.</li>
+</ul>
+<h5 id="applying-attributes-to-columns"><a class="header" href="#applying-attributes-to-columns">Applying Attributes to Columns</a></h5>
+<p>Another important aspect of schema application is setting the correct attributes for columns. The following helper function is used for this purpose:</p>
+<pre><code class="language-q">// Apply attributes to columns
+applyAttr:{[col2Attr;tab] ![tab;();0b;] {(#;enlist x;y)}'[col2Attr;key col2Attr]}
+</code></pre>
+<p>Explanation:</p>
+<ul>
+<li>The <code>applyAttr</code> function creates a mapping (<code>col2Attr</code>) between column names and their associated attributes.</li>
+<li>In the example provided, the mapping could look like <code>dealID | `u</code>, which means that the <code>u</code> (unique) attribute should be applied to the <code>dealID</code> column within the table.</li>
+</ul>
+<h4 id="applying-the-schema"><a class="header" href="#applying-the-schema">Applying the Schema</a></h4>
+<p>Now that we’ve defined the <code>applySchema</code> function, let’s put it into action by applying the schema to the <code>deals</code> table. This will ensure that the table conforms to the expected structure, with the appropriate data types, column names, and attributes as defined in the schema.</p>
+<pre><code class="language-q">q)deals:applySchema[schema;deals]
+</code></pre>
+<p>After applying the schema, we can inspect the first row of the <code>deals</code> table to verify that the data has been correctly formatted (note that <code>dealID</code> is a key column and is not shown when the <code>first</code> keyword is applied):</p>
+<pre><code class="language-q">q)first deals
+title             | "Metamorphosis"
+storeID           | 1
+gameID            | 218750
+salePrice         | 10.5
+normalPrice       | 34.98
+isOnSale          | 1b
+savings           | 69.98285
+metacriticScore   | 0
+steamRatingText   | "Very Positive"
+steamRatingPercent| 83
+steamRatingCount  | 406
+releaseDate       | 1724976000
+dealRating        | 10f
+</code></pre>
+<h4 id="converting-unix-epoch-timestamps-to-q-timestamps"><a class="header" href="#converting-unix-epoch-timestamps-to-q-timestamps">Converting Unix Epoch Timestamps to Q Timestamps</a></h4>
+<p>In the <code>deals</code> table, the <code>releaseDate</code> column is currently a long integer. According to the <em>CheapShark</em> documentation, this column represents a Unix Epoch timestamp, which is the number of seconds elapsed since <code>1970.01.01</code>.</p>
+<p>To make this data more usable, we need to convert these Unix Epoch timestamps into Q timestamps, which are based on the number of nanoseconds since <code>2000.01.01</code>.</p>
+<p>Q provides a straightforward way to perform this conversion, as shown below:</p>
+<pre><code class="language-q">q)"P"$string 1724976000
+2024.08.30D00:00:00.000000000
+</code></pre>
+<p>The <code>"P"$</code> operation converts a string representation of the Unix Epoch timestamp into a Q timestamp.</p>
+<p>This conversion isn’t handled within the <code>applySchema</code> function because the <code>releaseDate</code> column is received as a float. To correctly convert the Unix Epoch timestamp to a Q timestamp, the value must first be cast to a long, then converted from a string representation of that long integer.</p>
+<p>We can automate this process with a helper function:</p>
+<pre><code class="language-q">// Convert Unix Epoch timestamps to Q timestamps
+convertEpoch:{[epochCols;tab]
+    ![tab;();0b;] epochCols!("P"$string@),/:epochCols:(epochCols,()) inter cols tab
+ }
+</code></pre>
+<p>This function:</p>
+<ul>
+<li>Takes as input the names of the columns (<code>epochCols</code>) that store Unix Epoch timestamps and the table (<code>tab</code>) containing these columns.</li>
+<li>Converts the values in these columns from Unix Epoch timestamps to Q timestamps.</li>
+</ul>
+<p>Now, let’s apply this function to the <code>deals</code> table:</p>
+<pre><code class="language-q">q)deals:convertEpoch[`releaseDate;deals]
+q)first deals
+title             | "Metamorphosis"
+storeID           | 1
+gameID            | 218750
+salePrice         | 10.5
+normalPrice       | 34.98
+isOnSale          | 1b
+savings           | 69.98285
+metacriticScore   | 0
+steamRatingText   | "Very Positive"
+steamRatingPercent| 83
+steamRatingCount  | 406
+releaseDate       | 2024.08.30D00:00:00.000000000
+dealRating        | 10f
+</code></pre>
+<h3 id="example-queries"><a class="header" href="#example-queries">Example Queries</a></h3>
+<p>With the formatted <code>deals</code> table, you can now easily extract valuable insights. Below are some examples of useful queries you can perform:</p>
+<h4 id="find-games-that-are-free"><a class="header" href="#find-games-that-are-free">Find Games That Are Free</a></h4>
+<p>To identify which games are currently free, you can run the following query:</p>
+<pre><code class="language-q">q)select from deals where salePrice=0
+dealID                                                  | title                        storeID gameID salePrice normalPrice isOnSale savings ..
+--------------------------------------------------------| -----------------------------------------------------------------------------------..
+"hnqzhI6mSozJT13ntObN06QUeuLOaArkDyEu%2BiBplK4%3D"      | "Wild Card Football"         25      269270 0         29.99       1        100     ..
+"l%2BZiBW2Mu0W4B%2BipW%2FpUJ%2BAn218BfeYzAKecxjhUGO0%3D"| "Fallout Classic Collection" 25      120604 0         19.99       1        100     ..
+</code></pre>
+<p>This query filters the <code>deals</code> table to return only the rows where the <code>salePrice</code> is 0, showing which games are currently available for free.</p>
+<h4 id="sort-games-by-metacritic-rating"><a class="header" href="#sort-games-by-metacritic-rating">Sort Games by Metacritic Rating</a></h4>
+<p>If you want to see the games sorted by their <em>Metacritic</em> score, with the highest-rated games first, use this query:</p>
+<pre><code class="language-q">q)`metacriticScore xdesc deals
+dealID                                                | title                                        storeID gameID salePrice normalPrice ..
+------------------------------------------------------| ----------------------------------------------------------------------------------..
+"OGCfBOUZvvl8JPIWeBbYeWvtFw%2BBEy9WgFdO7pM999Q%3D"    | "Deus Ex: Human Revolution - Director's Cut" 2       102249 2.55      19.99       ..
+"h1pI0RMkHs6sjcjboS%2FvYhEytAI7XAat%2BSiXmP%2FL0OA%3D"| "Metro 2033 Redux"                           25      109746 1.99      19.99       ..
+"Ersqftfht15yRvVi%2BQtYqzHcXHuORprGmyDT0uvo5zc%3D"    | "Homeworld Remastered Collection"            1       141243 3.49      34.99       ..
+"3vW2Xy%2BiwEVnQOoN7KB2RlEAYz1%2FqK0IheNSCUA3g64%3D"  | "Shadow Tactics: Blades of the Shogun"       25      158443 3.99      39.99       ..
+"chTGFNtThpFwF7mhwKUFmuh101BeXYsHrDyGbnwDLw0%3D"      | "Deus Ex: Mankind Divided"                   2       143165 3.83      29.99       ..
+..
+</code></pre>
+<p>This query sorts the deals table by the <code>metacriticScore</code> in descending order, allowing you to quickly identify the top-rated games.</p>
+<h4 id="identify-games-with-high-discounts"><a class="header" href="#identify-games-with-high-discounts">Identify Games with High Discounts</a></h4>
+<p>To find games where you can save more than 90%, use the following query:</p>
+<pre><code class="language-q">q)select from deals where savings&gt;90
+dealID                                                    | title                                    storeID gameID salePrice normalPrice ..
+----------------------------------------------------------| ------------------------------------------------------------------------------..
+"hnqzhI6mSozJT13ntObN06QUeuLOaArkDyEu%2BiBplK4%3D"        | "Wild Card Football"                     25      269270 0         29.99       ..
+"syEZpIi1rsbwUJ1YU1OKiLx1O3gN1Ax0ei1ANNvNsqI%3D"          | "NHRA: Speed for All - Ultimate Edition" 25      277998 7.99      79.99       ..
+"ut1jqPlDrAYP%2BfA%2BWwDTf7DX%2B69aQWre5UlfuOLtLwE%3D"    | "Strange Brigade - Deluxe Edition"       2       186386 6         79.99       ..
+"Kp3%2BW%2B6AtA%2FpJ5TzS9HpxUmOT0xZIWoiB%2BEgs%2F9JzpU%3D"| "Sniper Elite 4 Deluxe Edition"          2       158734 6.75      89.99       ..
+"l%2BZiBW2Mu0W4B%2BipW%2FpUJ%2BAn218BfeYzAKecxjhUGO0%3D"  | "Fallout Classic Collection"             25      120604 0         19.99       ..
+..
+</code></pre>
+<p>This query selects games where the savings column shows a discount greater than 90%, helping you to spot the best deals available.</p>
+<h3 id="filtered-queries"><a class="header" href="#filtered-queries">Filtered Queries</a></h3>
+<p>Instead of retrieving all deals from the API (which may be constrained by page size), you can apply filters directly in your API queries to target specific data.</p>
+<h4 id="building-the-filter"><a class="header" href="#building-the-filter">Building the Filter</a></h4>
+<p>First, we’ll create a dictionary that maps filter names to their respective values. In this example, we want to retrieve all deals from <code>storeID = 1</code> with a <code>salePrice</code> less than or equal to $10:</p>
+<pre><code class="language-q">q)flts:`storeID`upperPrice!("1";"10")
+</code></pre>
+<h4 id="composing-the-filter-string"><a class="header" href="#composing-the-filter-string">Composing the Filter String</a></h4>
+<p>Next, we’ll use a helper function to convert this dictionary into a filter string that can be appended to the API URL:</p>
+<pre><code class="language-q">q)buildFltStr:"&amp;" sv value {[flts] {x,"=",y}'[string key flts;flts]}@
+</code></pre>
+<p>This function generates an <code>&amp;</code>-delimited string of <code>key=value</code> pairs from the dictionary:</p>
+<pre><code class="language-q">q)buildFltStr flts
+"storeID=1&amp;upperPrice=10"
+</code></pre>
+<h4 id="constructing-the-api-url"><a class="header" href="#constructing-the-api-url">Constructing the API URL</a></h4>
+<p>We can now construct the full API URL with the filter string included:</p>
+<pre><code class="language-q">q).Q.dd[baseURL;] `$"deals?",buildFltStr flts
+`:https://www.cheapshark.com/api/1.0/deals?storeID=1&amp;upperPrice=10
+</code></pre>
+<h4 id="fetching-filtered-data"><a class="header" href="#fetching-filtered-data">Fetching Filtered Data</a></h4>
+<p>Let’s call the API using the constructed URL to retrieve the filtered deals:</p>
+<pre><code class="language-q">q)filteredDeals:.j.k .Q.hg .Q.dd[baseURL;] `$"deals?",buildFltStr flts
+q)first filteredDeals
+internalName  | "HOMEWORLDREMASTEREDCOLLECTION"
+title         | "Homeworld Remastered Collection"
+metacriticLink| "/game/homeworld-remastered-collection/"
+dealID        | "Ersqftfht15yRvVi%2BQtYqzHcXHuORprGmyDT0uvo5zc%3D"
+storeID       | ,"1"
+gameID        | "141243"
+salePrice     | "3.49"
+..
+</code></pre>
+<p>Since this query still uses the deals API endpoint, the data structure returned follows the same schema as before.</p>
+<h4 id="applying-the-schema-and-converting-timestamps"><a class="header" href="#applying-the-schema-and-converting-timestamps">Applying the Schema and Converting Timestamps</a></h4>
+<p>Finally, we’ll apply the schema and convert any Unix Epoch timestamps in the retrieved data:</p>
+<pre><code class="language-q">q)filteredDeals:applySchema[schema;filteredDeals]
+q)filteredDeals:convertEpoch[`releaseDate;filteredDeals]
+q)first filteredDeals
+title      | "Homeworld Remastered Collection"
+storeID    | 1
+gameID     | 141243
+salePrice  | 3.49
+normalPrice| 34.99
+isOnSale   | 1b
+savings    | 90.02572
+..
+</code></pre>
+<h2 id="response-header"><a class="header" href="#response-header">Response Header</a></h2>
+<p>When making HTTP requests, responses include not only the requested content (like the deals we’ve seen) but also a header. Headers can contain valuable information, such as the status of the call (e.g., OK, Not Found) and other metadata.</p>
+<h3 id="extracting-the-response-header"><a class="header" href="#extracting-the-response-header">Extracting the Response Header</a></h3>
+<p>The utility function <code>.Q.hg</code> simplifies our lives by focusing on the content we need and hiding the header. However, there are cases where the header information is crucial. For example, the <em>CheapShark</em> API returns only up to 60 deals per page by default. To retrieve more data, you’ll need to know how many pages of deals exist, which is indicated by the <code>x-total-page-count</code> header element.</p>
+<h4 id="how-to-access-the-header"><a class="header" href="#how-to-access-the-header">How to Access the Header</a></h4>
+<p>To access the header, we can bypass <code>.Q.hg</code> and use the underlying function <code>.Q.hmb</code> directly. Here’s a quick look at the definition of <code>.Q.hg</code>:</p>
+<pre><code class="language-q">q).Q.hg
+k){hmb[x;`GET;()]1}
+</code></pre>
+<p>The function <code>.Q.hg</code> calls <code>.Q.hmb</code>, indexing the second item in the result, which is the content of the response. To access the header, we’ll need to capture the first item returned by <code>.Q.hmb</code>.</p>
+<p>Let’s examine what <code>.Q.hmb</code> returns:</p>
+<pre><code class="language-q">q)show res:.Q.hmb[;`GET;()] .Q.dd[baseURL;`deals]
+"HTTP/1.1 200 OK\r\ndate: Tue, 03 Sep 2024 14:48:26 GMT\r\ncontent-type: application/json\r\ncont..
+"[{\"internalName\":\"METAMORPHOSIS\",\"title\":\"Metamorphosis\",\"metacriticLink\":\"\\/game\\/..
+</code></pre>
+<p>The first item in <code>res</code> is the HTTP header, and the second item is the familiar JSON content. To extract individual elements from the header, we can split the string using <code>"\r\n"</code>:</p>
+<pre><code class="language-q">q)show res:"\r\n" vs first res
+"HTTP/1.1 200 OK"
+"date: Tue, 03 Sep 2024 14:50:13 GMT"
+"content-type: application/json"
+"content-length: 8548"
+"connection: close"
+"cf-ray: 8bd68d08e961cca9-MAN"
+"cf-cache-status: HIT"
+..
+</code></pre>
+<h4 id="filtering-and-formatting-header-elements"><a class="header" href="#filtering-and-formatting-header-elements">Filtering and Formatting Header Elements</a></h4>
+<p>To clean up the header, we remove any empty elements:</p>
+<pre><code class="language-q">q)res@:where 0&lt;count each res
+</code></pre>
+<p>The first element in the header is the response status, which we can handle separately:</p>
+<pre><code class="language-q">q)show header:enlist[`status]!enlist first res
+status| "HTTP/1.1 200 OK"
+</code></pre>
+<p>For the remaining elements, we split them into <code>key: value</code> pairs:</p>
+<pre><code class="language-q">q)x:first 1_res
+q)(0,x?":") cut x
+"date"
+": Tue, 03 Sep 2024 14:51:39 GMT"
+</code></pre>
+<p>The key should be converted to a symbol and the value should have the leading <code>":"</code> removed along with any other leading whitespace:</p>
+<pre><code class="language-q">q)(`$;ltrim 1_)@'(0,x?":") cut x
+`date
+"Tue, 03 Sep 2024 14:51:39 GMT"
+</code></pre>
+<p>We can apply this operation to all elements:</p>
+<pre><code class="language-q">q){(`$;ltrim 1_)@'(0,x?":") cut x} each 1_res
+`date            "Tue, 03 Sep 2024 14:51:39 GMT"
+`content-type    "application/json"             
+`content-length  "8548"                         
+`connection      "close"                        
+`cf-ray          "8bd68f23fef1b3e7-MAN"         
+`cf-cache-status "HIT"                     
+..
+</code></pre>
+<p>Then, convert the result into a Q dictionary:</p>
+<pre><code class="language-q">q)(!). flip {(`$;ltrim 1_)@'(0,x?":") cut x} each 1_res
+date           | "Tue, 03 Sep 2024 14:51:39 GMT"
+content-type   | "application/json"
+content-length | "8548"
+connection     | "close"
+cf-ray         | "8bd68f23fef1b3e7-MAN"
+cf-cache-status| "HIT"
+..
+</code></pre>
+<p>Finally, we can merge this with the header status:</p>
+<pre><code class="language-q">q)show header,:(!). flip {(`$;ltrim 1_)@'(0,x?":") cut x} each 1_res
+status         | "HTTP/1.1 200 OK"
+date           | "Tue, 03 Sep 2024 14:51:39 GMT"
+content-type   | "application/json"
+content-length | "8548"
+connection     | "close"
+cf-ray         | "8bd68f23fef1b3e7-MAN"
+cf-cache-status| "HIT"
+..
+</code></pre>
+<h4 id="wrapping-it-up-in-a-function"><a class="header" href="#wrapping-it-up-in-a-function">Wrapping It Up in a Function</a></h4>
+<p>For convenience, let’s encapsulate these steps in a function:</p>
+<pre><code class="language-q">hg:{[url]
+    r:.Q.hmb[url;`GET;()];
+    h@:where 0&lt;count each h:"\r\n" vs first r;
+    header:enlist[`status]!enlist first h;
+    header,:(!). flip {(`$;ltrim 1_)@'(0,x?":") cut x} each 1_h;
+    `header`content!(header;last r)
+ }
+</code></pre>
+<h4 id="using-the-function"><a class="header" href="#using-the-function">Using the Function</a></h4>
+<p>Now, we can use this function to extract the <code>x-total-page-count</code> from the header:</p>
+<pre><code class="language-q">q)res:hg .Q.dd[baseURL;`deals]
+q)show pageCount:"J"$res[`header]`$"x-total-page-count"
+50
+</code></pre>
+<p>This initial query retrieves the first page of deals and the total number of pages. The content can be stored in a variable:</p>
+<pre><code class="language-q">q)deals:.j.k res`content
+</code></pre>
+<p>For subsequent queries, we can revert to using <code>.Q.hg</code> and apply the <a href="#filtered-queries">filtered query</a> approach:</p>
+<pre><code class="language-q">q)queryPage:.j.k .Q.hg .Q.dd[baseURL;] `$"deals?",buildFltStr enlist[`pageNumber]!enlist string@
+q)queryPage 25 // Get 26th page (page numbering starts at 0)
+internalName                             title                                             ..
+-------------------------------------------------------------------------------------------..
+"THETOWNOFLIGHT"                         "The Town Of Light"                               ..
+"MXGP2021THEOFFICIALMOTOCROSSVIDEOGAME"  "MXGP 2021 - The Official Motocross Videogame"    ..
+"KINGSBOUNTYIIDUKESEDITION"              "Kings Bounty II - Dukes Edition"                 ..
+"NINOKUNIWRATHOFTHEWHITEWITCHREMASTERED" "Ni no Kuni: Wrath of the White Witch Remastered" ..
+"SIDMEIERSCIVILIZATIONVIANTHOLOGY"       "Sid Meiers Civilization VI Anthology"            ..
+..
+</code></pre>
+<p>To retrieve all pages, apply <code>queryPage</code> across the range of available pages (note that this may take some time):</p>
+<pre><code class="language-q">q)pages:queryPage each 1+til pageCount
+q)count pages
+50
+</code></pre>
+<p>Finally, combine all pages into a single <code>deals</code> table by using <code>raze</code>:</p>
+<pre><code class="language-q">q)deals,:raze pages
+q)deals:applySchema[schema;deals]
+q)deals:convertEpoch[`releaseDate;deals]
+q)count deals
+3060
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
+<p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
+<p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-little-q-keywords-that-could"><a class="header" href="#the-little-q-keywords-that-could">The Little Q Keywords That Could</a></h1>
+<p><img src="images/little_q_keywords_that_could.png" title="Cover Image" alt="Cover Image"></p>
 <p>In programming, keywords are predefined words with special meanings that form part of a language’s syntax. The Q programming language is rich with keywords, many of which were introduced to improve the readability of its predecessor, K4, by “wordifying” many primitive operations. In this blog, we’ll explore some of Q’s lesser-known or underutilised keywords that can be quite powerful when used effectively. We’ll also examine a few keywords whose usefulness might be questionable.</p>
 <h2 id="csv"><a class="header" href="#csv"><code>csv</code></a></h2>
 <p>The <code>csv</code> keyword is a synonym for <code>","</code>, often used to represent a comma delimiter.</p>
@@ -523,13 +1038,13 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="analysis-of-q-memory-allocation"><a class="header" href="#analysis-of-q-memory-allocation">Analysis of Q Memory Allocation</a></h1>
-<p><img src="images/analysis_of_q_memory_allocation.png" title="Analysis of Q Memory Allocation Cover Image" alt="Analysis of Q Memory Allocation Cover Image"></p>
+<p><img src="images/analysis_of_q_memory_allocation.png" title="Cover Image" alt="Cover Image"></p>
 <p>Memory allocation is a crucial aspect of any programming language, affecting performance and resource management. This blog delves into how the Q programming language handles memory allocation using the buddy memory allocation system.</p>
 <h2 id="buddy-memory-allocation-in-q"><a class="header" href="#buddy-memory-allocation-in-q">Buddy Memory Allocation in Q</a></h2>
 <p>Q uses a form of <a href="https://en.wikipedia.org/wiki/Buddy_memory_allocation">buddy memory allocation</a> for its memory management. Memory is requested in chunks whose sizes are powers of two, regardless of the actual memory required by an object.</p>
@@ -679,7 +1194,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
@@ -717,7 +1232,7 @@ heap| 201326592
         <script src="searcher-c2a407aa.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-80932283.js"></script>
+        <script src="highlight-2c2089fd.js"></script>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->

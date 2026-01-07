@@ -1,6 +1,6 @@
 # Analysis of Q Memory Allocation
 
-![Analysis of Q Memory Allocation Cover Image](./images/analysis_of_q_memory_allocation.png "Analysis of Q Memory Allocation Cover Image")
+![Cover Image](./images/analysis_of_q_memory_allocation.png "Cover Image")
 
 Memory allocation is a crucial aspect of any programming language, affecting performance and resource management. This blog delves into how the Q programming language handles memory allocation using the buddy memory allocation system.
 
