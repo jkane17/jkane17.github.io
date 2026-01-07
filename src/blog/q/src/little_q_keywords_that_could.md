@@ -1,6 +1,6 @@
 # The Little Q Keywords That Could
 
-![The Little Q Keywords That Could Cover Image](./images/little_q_keywords_that_could.png "The Little Q Keywords That Could Cover Image")
+![Cover Image](./images/little_q_keywords_that_could.png "Cover Image")
 
 In programming, keywords are predefined words with special meanings that form part of a language's syntax. The Q programming language is rich with keywords, many of which were introduced to improve the readability of its predecessor, K4, by "wordifying" many primitive operations. In this blog, we'll explore some of Q's lesser-known or underutilised keywords that can be quite powerful when used effectively. We'll also examine a few keywords whose usefulness might be questionable.
 

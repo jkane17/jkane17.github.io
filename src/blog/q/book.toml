@@ -4,6 +4,6 @@ authors = ["jkane17"]
 language = "en"
 
 [output.html]
+additional-css = ["theme/custom-highlight.css"]
 mathjax-support = true
 site-url = "/blog/q/"
-theme = "../theme"
