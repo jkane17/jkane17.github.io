@@ -30,6 +30,7 @@
 
         <!-- Custom theme stylesheets -->
         <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
+        <link rel="stylesheet" href="theme/navigation-ccf6f99d.css">
 
         <!-- MathJax -->
         <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
@@ -39,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-eac906b7.js";
+            window.path_to_searchindex_js = "searchindex-3381e94a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ec50ce02.js"></script>
+        <script src="toc-9dbffcb5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,7 +179,467 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="an-introduction-to-interacting-with-rest-apis-in-qkdb"><a class="header" href="#an-introduction-to-interacting-with-rest-apis-in-qkdb">An Introduction to Interacting with REST APIs in Q/KDB+</a></h1>
+                        <h1 id="qkdb-blog"><a class="header" href="#qkdb-blog">Q/KDB+ Blog</a></h1>
+<p>Welcome to the Q/KDB+ Blog. Here you’ll find articles exploring various aspects of the Q programming language and KDB+ database.</p>
+<h2 id="latest-articles"><a class="header" href="#latest-articles">Latest Articles</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Title</th><th>Published</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><strong><a href="#command-line-arguments-in-qkdb">Command Line Arguments in Q/KDB+</a></strong></td><td>Sep 20, 2024</td><td>Discover how to customize Q session behavior using command line arguments.</td></tr>
+<tr><td><strong><a href="#an-introduction-to-interacting-with-rest-apis-in-qkdb">An Introduction to Interacting with REST APIs in Q/KDB+</a></strong></td><td>Sep 11, 2024</td><td>Learn how to interact with REST APIs using Q, including HTTP GET requests, HTTPS, and handling responses.</td></tr>
+<tr><td><strong><a href="#the-little-q-keywords-that-could">The Little Q Keywords That Could</a></strong></td><td>Aug 15, 2024</td><td>Explore lesser-known and underutilised Q keywords that can be powerful when used effectively.</td></tr>
+<tr><td><strong><a href="#analysis-of-q-memory-allocation">Analysis of Q Memory Allocation</a></strong></td><td>Aug 15, 2024</td><td>Delve into how Q handles memory allocation using the buddy memory allocation system.</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="command-line-arguments-in-qkdb"><a class="header" href="#command-line-arguments-in-qkdb">Command Line Arguments in Q/KDB+</a></h1>
+<p><img src="images/command_line_args.png" title="Cover Image" alt="Cover Image"></p>
+<p>In Q/KDB+, command line arguments allow users to customise the behaviour of a session when it is started. By passing specific arguments, you can configure memory usage, port bindings, and even pre-load scripts, among other settings. This can be especially useful in automated environments or when dealing with large data sets that require specific resources.</p>
+<p>Typically, a Q session is started by simply typing <code>q</code> in the command line or terminal:</p>
+<pre><code class="language-powershell">C:\&gt; q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)
+</code></pre>
+<p>However, Q also supports additional arguments that can be passed after the <code>q</code> invocation to modify its behaviour. The general syntax looks like this:</p>
+<pre><code class="language-powershell">q [file] [-option [params] … ]
+</code></pre>
+<h2 id="loading-files-and-directories"><a class="header" href="#loading-files-and-directories">Loading Files and Directories</a></h2>
+<p>One of the simplest ways to initialise a Q session is by loading files or directories at start-up. The first argument you provide after invoking q is a file or directory that Q will automatically load upon launch. This is especially useful for preloading variables or scripts when starting a Q session.</p>
+<p>For example, let’s consider a file called <code>test.q</code> with the following content:</p>
+<pre><code class="language-q">a:10
+</code></pre>
+<p>To load this file when starting Q, simply pass it as the first argument:</p>
+<pre><code class="language-q">C:\&gt; q test.q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)a
+10
+</code></pre>
+<p>As you can see, the variable <code>a</code> from <code>test.q</code> is now available in the session.</p>
+<h3 id="loading-multiple-files-from-a-directory"><a class="header" href="#loading-multiple-files-from-a-directory">Loading Multiple Files from a Directory</a></h3>
+<p>Q also allows you to load multiple scripts from a directory by passing the directory name as the argument. In this case, all Q scripts in the directory will be executed in alphabetical order.</p>
+<p>For example, consider a directory called <code>test</code> with the following files:</p>
+<pre><code class="language-q">// test1.q
+a:10
+</code></pre>
+<pre><code class="language-q">// test2.q
+b:20
+</code></pre>
+<p>By passing the directory <code>test</code> to the Q command, both files are loaded:</p>
+<pre><code class="language-q">C:\&gt; q test\
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)a
+10
+q)b
+20
+</code></pre>
+<p>Here, both variables <code>a</code> and <code>b</code> are accessible because <code>test1.q</code> and <code>test2.q</code> were loaded sequentially.</p>
+<h3 id="handling-non-q-files"><a class="header" href="#handling-non-q-files">Handling Non-Q Files</a></h3>
+<p>If the directory contains non-Q compatible files (files without <code>.q</code>, <code>.k</code>, or <code>.s</code> extensions), Q will raise an error and halt the loading process:</p>
+<pre><code class="language-q">C:\&gt; ls test\
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        13/09/2024     12:09              4 test1.q
+-a----        13/09/2024     12:09              4 test2.q
+-a----        13/09/2024     12:14             17 test3.txt
+
+
+C:\&gt; q test\
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+'./test3.txt
+  [0]  (.Q.lo)
+
+ .Q )
+</code></pre>
+<p>To avoid such errors, ensure that all files in the directory have valid extensions like <code>.q</code>, <code>.k</code>, or <code>.s</code>.</p>
+<h4 id="file-extensions-explained"><a class="header" href="#file-extensions-explained">File Extensions Explained</a></h4>
+<ul>
+<li>
+<p><code>.q</code> – Extension used for Q scripts. Files with the <code>.q</code> extension contain Q code that can be executed or loaded directly into the session.</p>
+</li>
+<li>
+<p><code>.k</code> – Extension associated with K scripts, the predecessor of Q. Files ending in <code>.k</code> can still be executed within Q, ensuring backward compatibility with older K code.</p>
+</li>
+<li>
+<p><code>.s</code> – Extension for SQL code (not to be confused with the more common use of <code>.s</code> for assembly source code files). For more information on using SQL in Q, see <a href="https://code.kx.com/insights/1.11/core/sql.html#running-sql">here</a>.</p>
+</li>
+</ul>
+<h3 id="use-case-loading-databases"><a class="header" href="#use-case-loading-databases">Use Case: Loading Databases</a></h3>
+<p>One practical and common use case for command-line arguments in Q is loading splayed or partitioned databases directly into a session. By passing the root directory of the database as an argument when launching Q, the system will automatically memory-map the data, making its contents available for immediate querying without needing to fully load it into memory.</p>
+<p>This approach is particularly useful when working with large datasets, as memory-mapping allows Q to efficiently handle data on disk while still providing high-speed access. Here’s an example:</p>
+<pre><code class="language-powershell">C:\&gt; ls db/t
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        16/09/2024     09:55             12 .d
+-a----        16/09/2024     09:55             40 a
+-a----        16/09/2024     09:55             40 b
+</code></pre>
+<pre><code class="language-q">C:\&gt; q db/
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)t
+a b
+---
+1 4
+2 5
+3 6
+</code></pre>
+<p>In the above example, a splayed database located at the <code>db/</code> directory is loaded. The database contains a table <code>t</code>, which is instantly available in the Q session. This makes it possible to interact with large tables or partitions of data without the overhead of fully loading them into memory, which is crucial when working with vast amounts of time-series data or transactional records.</p>
+<p>By leveraging memory-mapping, Q ensures that only the necessary parts of the data are accessed, optimising performance while maintaining minimal memory usage. This functionality makes Q an efficient choice for handling large-scale databases, especially in financial and real-time data environments where speed and resource management are critical.</p>
+<p>This example demonstrates how easy it is to load a splayed or partitioned database with a simple command-line argument, highlighting Q’s ability to streamline database management and access.</p>
+<h2 id="built-in-options"><a class="header" href="#built-in-options">Built-in Options</a></h2>
+<p>Q provides several <a href="https://code.kx.com/q/basics/cmdline/">built-in command line options</a> that allow you to control various aspects of a Q session. These options follow the format:</p>
+<pre><code>-? [param/s]
+</code></pre>
+<p>where <code>?</code> is replaced by a single lowercase or uppercase letter, and <code>[param/s]</code> represents optional parameters that configure the behaviour of the option.</p>
+<h3 id="example-1-set-a-listening-port-with--p"><a class="header" href="#example-1-set-a-listening-port-with--p">Example 1: Set a Listening Port with <code>-p</code></a></h3>
+<p>The <code>-p</code> option allows you to set a listening port for your Q process, which is essential when running Q as a server to handle client queries. For instance, to set the port to 5000, you would use:</p>
+<pre><code class="language-q">C:\&gt; q -p 5000
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\p // Verify the port setting
+5000i
+</code></pre>
+<p>To let Q choose any available ephemeral port, pass <code>0W</code> as the argument:</p>
+<pre><code class="language-q">C:\&gt; q -p 0W
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\p // Check which port was automatically assigned
+61411i
+</code></pre>
+<p>Alternatively, setting <code>-p 0</code> means Q will not listen on any port (which is also the default behaviour):</p>
+<pre><code class="language-q">C:\&gt; q -p 0
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\p
+0i
+</code></pre>
+<h3 id="example-2-set-a-workspace-memory-limit-with--w"><a class="header" href="#example-2-set-a-workspace-memory-limit-with--w">Example 2: Set a Workspace Memory Limit with <code>-w</code></a></h3>
+<p>Since Q is an in-memory database, it’s important to manage memory usage carefully, especially in long-running processes. The <code>-w</code> option allows you to set a memory limit, preventing the Q process from consuming excessive system resources.</p>
+<p>To set a memory limit of 1 GB, pass <code>1024</code> (since the value is in megabytes) as an argument to <code>-w</code>:</p>
+<pre><code class="language-q">C:\&gt; q -w 1024
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).Q.w[]`wmax // Check memory limit (in bytes)
+1073741824
+</code></pre>
+<p>If the process attempts to use more memory than the specified limit, it will terminate with a <code>-w abort</code> error. For example:</p>
+<pre><code class="language-q">q)til 100000000 // Create a large list of longs
+'-w abort
+C:\&gt;
+</code></pre>
+<p>The default memory limit is 0, meaning no limit is enforced:</p>
+<pre><code class="language-q">C:\&gt; q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).Q.w[]`wmax
+0
+</code></pre>
+<h3 id="example-3-set-a-query-timeout-with--t"><a class="header" href="#example-3-set-a-query-timeout-with--t">Example 3: Set a Query Timeout with <code>-T</code></a></h3>
+<p>In server setups, Q processes can execute queries from external clients. Ill-formed or long-running queries can monopolise resources, so the <code>-T</code> option is used to set a timeout for client queries. Any query exceeding this time limit will be aborted automatically.</p>
+<p>To set a timeout of 5 seconds, along with a listening port on 5000, you would use:</p>
+<pre><code class="language-q">C:\&gt; q -T 5 -p 5000
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\T // Verify the timeout setting
+5i
+</code></pre>
+<p>Now, let’s set up another Q process to act as a client and query the server:</p>
+<pre><code class="language-q">C:\&gt; q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)h:hopen 5000
+q)h"(0&lt;){1+x}/1" // Infinite loop query
+'stop
+  [0]  h"(0&lt;){1+x}/1"
+</code></pre>
+<p>The server automatically killed the query after 5 seconds and returned a <code>'stop</code> error to the client.</p>
+<blockquote>
+<p><strong>Note:</strong> The timeout only applies to client queries. If you execute an infinite loop directly on the server itself, it will not be interrupted.</p>
+</blockquote>
+<p>The default timeout is 0, which means no timeout is enforced:</p>
+<pre><code class="language-q">C:\&gt; q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\T
+0i
+</code></pre>
+<h3 id="example-4-changing-values-after-start-up"><a class="header" href="#example-4-changing-values-after-start-up">Example 4: Changing Values After Start-Up</a></h3>
+<p>The built-in command-line options provided during the start of a Q session are set automatically and persist throughout the session. However, the values of most options can be modified dynamically after the session starts using <em>system commands</em>, without restarting Q. This feature adds flexibility when working in Q environments, particularly when it’s necessary to adjust settings based on runtime conditions.</p>
+<p>For example, you can adjust the listening port (<code>-p</code>) during a session:</p>
+<pre><code class="language-q">C:\&gt; q -p 5000
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\p // Initially set to 5000
+5000i 
+q)\p 8000
+q)\p // Now changed to 8000
+8000i 
+q).z.X // Raw command line unchanged
+,"q"
+"-p"
+"5000"
+</code></pre>
+<p>In the above example, the port was initially set to 5000 using the command line, and then dynamically changed to 8000 within the Q session. Importantly, the raw command line (<code>.z.X</code>) remains unchanged, preserving the initial values passed during start-up (see <a href="#example-3-custom-and-built-in-options-together">below</a> for more on <code>.z.X</code>).</p>
+<p>You can achieve the same result using the <code>system</code> keyword to invoke system commands:</p>
+<pre><code class="language-q">C:\&gt; q -p 5000
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)system"p" // Check current port
+5000i
+q)system"p 8000"
+q)system"p" // Port changed to 8000
+8000i
+</code></pre>
+<p>This approach provides more flexibility by allowing you to modify system settings dynamically, based on the needs of your application or environment. Whether you need to change the port number or other built-in options, using system commands within Q gives you control and adaptability during runtime.</p>
+<h2 id="custom-options"><a class="header" href="#custom-options">Custom Options</a></h2>
+<p>Q also provides the flexibility to define your own custom command line options, which follow a similar syntax to the built-in options:</p>
+<pre><code class="language-powershell">-myOpt [param/s]
+</code></pre>
+<h3 id="reserved-single-letter-option-names"><a class="header" href="#reserved-single-letter-option-names">Reserved Single-Letter Option Names</a></h3>
+<p>It is important to note that Q reserves single-letter names exclusively for its built-in options. Even if a specific single-letter option is not currently in use, attempting to assign it as a custom option will result in an error. This ensures that future Q updates do not conflict with user-defined options.</p>
+<pre><code class="language-powershell">C:\&gt; q -a 1 2 3
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+'a invalid
+</code></pre>
+<p>In this case, the single-letter option <code>-a</code> is reserved, and Q throws an error when trying to use it. To avoid such issues, always use multi-letter names for custom options to ensure compatibility.</p>
+<h3 id="example-1-a-single-custom-option"><a class="header" href="#example-1-a-single-custom-option">Example 1: A Single Custom Option</a></h3>
+<p>In this example, we pass a custom option <code>-myOpt</code> with a value of <code>10</code>:</p>
+<pre><code class="language-q">C:\&gt; q -myOpt 10
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)
+</code></pre>
+<p>You can inspect the custom command line option using the <code>.z.x</code> system variable, which captures the custom options passed during start-up:</p>
+<pre><code class="language-q">q).z.x
+"-myOpt"
+"10"
+</code></pre>
+<p>Here, <code>.z.x</code> shows that the custom option <code>-myOpt</code> and its value 10 were correctly passed to the Q session.</p>
+<h3 id="example-2-multiple-custom-options"><a class="header" href="#example-2-multiple-custom-options">Example 2: Multiple Custom Options</a></h3>
+<p>You can also pass multiple custom options. In this example, we use two custom options, <code>-myOpt1</code> and <code>-myOpt2</code>, with values of <code>10</code> and <code>hello world</code>, respectively:</p>
+<pre><code class="language-q">C:\&gt; q -myOpt1 10 -myOpt2 hello world
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).z.x
+"-myOpt1"
+"10"
+"-myOpt2"
+"hello"
+"world"
+</code></pre>
+<p>Notice that <code>.z.x</code> splits <code>hello world</code> into two separate arguments. On the command line, spaces are treated as argument separators. If you intended to pass <code>hello world</code> as a single argument, you need to wrap the argument in quotes:</p>
+<pre><code class="language-q">C:\&gt; q -myOpt1 10 -myOpt2 'hello world'
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).z.x
+"-myOpt1"
+"10"
+"-myOpt2"
+"hello world"
+</code></pre>
+<p>Now <code>.z.x</code> correctly captures <code>hello world</code> as a single argument.</p>
+<h3 id="example-3-custom-and-built-in-options-together"><a class="header" href="#example-3-custom-and-built-in-options-together">Example 3: Custom and Built-in Options Together</a></h3>
+<p>You can mix custom options with Q’s built-in options. In this example, we pass a custom option <code>-myOpt</code> and the built-in <code>-p</code> option to set a listening port:</p>
+<pre><code class="language-q">C:\&gt; q -myOpt 10 -p 5000
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).z.x
+"-myOpt"
+"10"
+</code></pre>
+<p>Here, <code>.z.x</code> only displays the custom option <code>-myOpt</code>. This is because <code>.z.x</code> is designed to capture only the custom command line options, not the built-in ones.</p>
+<p>To view the entire command line, including built-in options, you can use <code>.z.X</code> (uppercase X), which provides the raw command line used to start the Q session:</p>
+<pre><code class="language-q">q).z.X
+"C:\\q\\w64\\q.exe"
+"-myOpt"
+"10"
+"-p"
+"5000"
+</code></pre>
+<p>The first item in this list is the path to the Q executable, followed by all the options passed in the command line, including both custom and built-in options, in the order they were provided.</p>
+<h2 id="parsing-the-command-line"><a class="header" href="#parsing-the-command-line">Parsing the Command Line</a></h2>
+<p><code>.z.x</code> and <code>.z.X</code> provide a way to view the options and arguments supplied at the command line. However, extracting the values manually from these strings can be cumbersome.</p>
+<p>Fortunately, Q offers a more convenient way to parse the command line options.</p>
+<h3 id="converting-to-a-dictionary-with-qopt"><a class="header" href="#converting-to-a-dictionary-with-qopt">Converting to a Dictionary with <code>.Q.opt</code></a></h3>
+<p>In the following example, we pass a script file <code>test.q</code>, two custom options <code>-myOpt1</code> and <code>-myOpt2</code> with values <code>10</code> and <code>'Hello World'</code>, and the built-in <code>-p</code> option with a value of <code>5000</code>:</p>
+<pre><code class="language-q">C:\&gt; q test.q -myOpt1 10 -p 5000 -myOpt2 'Hello World'
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q).z.x
+"-myOpt1"
+"10"
+"-myOpt2"
+"Hello World"
+q).Q.opt .z.x
+myOpt1| "10"
+myOpt2| "Hello World"
+</code></pre>
+<p>Applying <code>.Q.opt</code> to <code>.z.x</code> converts the options into a dictionary, mapping the option names (as symbols) to their respective values (as strings).</p>
+<p><code>.Q.opt</code> also works with <code>.z.X</code>, even when the first two items are the Q binary and a script file:</p>
+<pre><code class="language-q">q).z.X
+"C:\\q\\w64\\q.exe"
+"test.q"
+"-myOpt1"
+"10"
+"-p"
+"5000"
+"-myOpt2"
+"Hello World"
+q).Q.opt .z.X
+myOpt1| "10"
+p     | "5000"
+myOpt2| "Hello World"
+</code></pre>
+<h3 id="casting-and-providing-defaults-with-qdef"><a class="header" href="#casting-and-providing-defaults-with-qdef">Casting and Providing Defaults with <code>.Q.def</code></a></h3>
+<p><code>.Q.def</code> allows you to provide default values for command line options. It also casts the option values to the same type as the default.</p>
+<p><code>.Q.def</code> takes two arguments:</p>
+<ul>
+<li>A dictionary mapping option names to their default values.</li>
+<li>A dictionary mapping provided option names to their values (i.e., <code>.Q.opt .z.X</code>).</li>
+</ul>
+<h4 id="example-1-casting"><a class="header" href="#example-1-casting">Example 1: Casting</a></h4>
+<pre><code class="language-q">q)show defaults:`myOpt1`myOpt2`p!(100f;`Nothing;1234)
+myOpt1| 100f
+myOpt2| `Nothing
+p     | 1234
+q).Q.def[defaults;.Q.opt .z.X]
+myOpt1| 10f
+myOpt2| `Hello World
+p     | 5000
+</code></pre>
+<p>In this example, the value for <code>myOpt1</code> is cast to a float (<code>10f</code>) because the default value is a float. The value for <code>myOpt2</code> is cast to a symbol (<code> `Hello World</code>) since the default is a symbol.</p>
+<h4 id="example-2-defaulting"><a class="header" href="#example-2-defaulting">Example 2: Defaulting</a></h4>
+<p>In this example, we provide values for <code>myOpt2</code> and <code>p</code>, but omit <code>myOpt1</code>. The missing option uses the default:</p>
+<pre><code class="language-q">C:\&gt; q test.q -p 5000 -myOpt2 'Hello World'
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)show defaults:`myOpt1`myOpt2`p!(100f;`Nothing;1234)
+myOpt1| 100f
+myOpt2| `Nothing
+p     | 1234
+q).Q.def[defaults;.Q.opt .z.X]
+myOpt1| 100f
+myOpt2| `Hello World
+p     | 5000
+</code></pre>
+<p>Since <code>myOpt1</code> was not provided on the command line, <code>.Q.def</code> uses the default value <code>100f</code>.</p>
+<h4 id="example-3-list-of-arguments"><a class="header" href="#example-3-list-of-arguments">Example 3: List of Arguments</a></h4>
+<p><code>myOpt2</code> is cast to a symbol because its default value was a symbol (<code> `Nothing</code>). However, it would be better if it were a string since the user’s input might include spaces.</p>
+<pre><code class="language-q">q)show defaults:`myOpt1`myOpt2`p!(100f;"Nothing";1234)
+myOpt1| 100f
+myOpt2| "Nothing"
+p     | 1234
+q)show args:.Q.def[defaults;.Q.opt .z.X]
+myOpt1| 100f
+myOpt2| ," "
+p     | 5000
+</code></pre>
+<p>The value of <code>myOpt2</code> has been replaced with an enlisted null char.</p>
+<p>When providing a default for a string type, we must ensure that the default value is enlisted so it is handled correctly by <code>.Q.def</code>:</p>
+<pre><code class="language-q">q)show defaults:`myOpt1`myOpt2`p!(100f;enlist "Nothing";1234)
+myOpt1| 100f
+myOpt2| ,"Nothing"
+p     | 1234
+q).Q.def[defaults;.Q.opt .z.X]
+myOpt1| 100f
+myOpt2| ,"Hello World"
+p     | 5000
+</code></pre>
+<p>This issue does not affect other list types, for example:</p>
+<pre><code class="language-q">C:\&gt; q -longs 1 2 3 -syms abc xyz
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)show defaults:`longs`missingLongs`syms`missingSyms!(10 20 30;8 9;`123`789;`hey`ho)
+longs       | 10 20 30
+missingLongs| 8 9
+syms        | `123`789
+missingSyms | `hey`ho
+q).Q.def[defaults;.Q.opt .z.X]
+longs       | 1 2 3
+missingLongs| 8 9
+syms        | `abc`xyz
+missingSyms | `hey`ho
+</code></pre>
+<p>However, if you want to default to a single value but expect a list from the user, you must ensure the default is enlisted:</p>
+<pre><code class="language-q">C:\&gt; q -longs 1 2 3
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)show defaults:`longs`missingLongs!(100;10 20 30)
+longs       | 100
+missingLongs| 10 20 30
+q).Q.def[defaults;.Q.opt .z.X]
+longs       | 1
+missingLongs| 10 20 30
+</code></pre>
+<p>The provided values <code>1 2 3</code> were truncated to just <code>1</code> because the default was not enlisted.</p>
+<pre><code class="language-q">q)show defaults:`longs`missingLongs!(enlist 100;10 20 30)
+longs       | ,100
+missingLongs| 10 20 30
+q).Q.def[defaults;.Q.opt .z.X]
+longs       | 1  2  3
+missingLongs| 10 20 30
+</code></pre>
+<h3 id="applying-defaults-to-built-in-options"><a class="header" href="#applying-defaults-to-built-in-options">Applying Defaults to Built-in Options</a></h3>
+<p>In a previous example, we set <code>5000</code> as the default value for the <code>-p</code> option. If the value is not provided, we may specify a default, but it’s up to the user to actually apply these defaults:</p>
+<pre><code class="language-q">C:\&gt; q
+KDB+ 4.1 2024.03.12 Copyright (C) 1993-2024 Kx Systems
+w64/ 8(24)core 32448MB ..
+
+q)\p
+0i
+q)show defaults:enlist[`p]!enlist 5000
+p| 5000
+q).Q.def[defaults;.Q.opt .z.X]
+p| 5000
+q)\p
+0i
+q)"p ",string .Q.def[defaults;.Q.opt .z.X]`p
+"p 5000"
+q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
+q)\p
+5000i
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
+<p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
+<p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="an-introduction-to-interacting-with-rest-apis-in-qkdb"><a class="header" href="#an-introduction-to-interacting-with-rest-apis-in-qkdb">An Introduction to Interacting with REST APIs in Q/KDB+</a></h1>
 <p><img src="images/rest_apis_introduction.png" title="Cover Image" alt="Cover Image"></p>
 <p>In today’s interconnected world, many websites and services provide programmatic access to their data through REST APIs. REST (Representational State Transfer) APIs allow different systems to securely exchange data over the internet. The Q programming language includes built-in HTTP request capabilities and, in this blog, we’ll explore how to interact with REST APIs using Q.</p>
 <h2 id="http-get-via-qhg"><a class="header" href="#http-get-via-qhg">HTTP GET via <code>.Q.hg</code></a></h2>
@@ -687,7 +1148,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -1038,7 +1499,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -1194,7 +1655,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
@@ -1236,6 +1697,7 @@ heap| 201326592
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
+        <script src="theme/navigation-8d154390.js"></script>
 
         <script>
         window.addEventListener('load', function() {

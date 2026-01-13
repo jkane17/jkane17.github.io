@@ -1,0 +1,50 @@
+/* Site Navigation Icons */
+.site-nav-icons {
+  display: inline-flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: var(--spacing-md);
+}
+
+.site-nav-icons .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  margin: 0.75rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.site-nav-icons .icon-button:hover {
+  opacity: 0.7;
+}
+
+.site-nav-icons .icon-button:active {
+  transform: scale(0.95);
+}
+
+.site-nav-icons .fa-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.site-nav-icons .fa-svg svg {
+  width: 100%;
+  height: 100%;
+}
+
+.site-nav-icons .fa-svg svg path {
+  fill: currentColor;
+}
