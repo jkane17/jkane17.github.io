@@ -2,24 +2,158 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog - jkane17</title>
   <link rel="stylesheet" href="/assets/style.css" />
+  <script defer src="/assets/theme.js"></script>
 </head>
 <body>
-  <main>
-    <h1>Blog</h1>
-    <p>Writing, notes, and long-form posts by topic.</p>
+  <nav class="main-nav">
+    <div class="nav-container">
+      <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/" class="nav-link">🏠 Home</a></li>
+        <li><a href="/blog/" class="nav-link active">📝 Blog</a></li>
+        <li><a href="/books/" class="nav-link">📚 Books</a></li>
+        <li><a href="/about/" class="nav-link">👤 About</a></li>
+      </ul>
+      <div class="theme-switcher" id="themeSwitcher">
+        <button class="theme-button" data-theme="light" title="Light theme">☀️</button>
+        <button class="theme-button" data-theme="system" title="System theme">🖥️</button>
+        <button class="theme-button active" data-theme="dark" title="Dark theme">🌙</button>
+      </div>
+    </div>
+  </nav>
 
-    <ul>
-      <li>
-        <a href="/blog/q/"><strong>Q/KDB</strong></a><br />
-        Q/KDB programming language blogs.
-      </li>
-      <li>
-        <a href="/blog/rust/"><strong>Rust</strong></a><br />
-        Rust blogs.
-      </li>
-    </ul>
-  </main>
+  <div class="container">
+
+    <section class="blog-intro">
+      <h1>Blog</h1>
+      <p>Writing, notes, and long-form posts by topic. Deep dives into programming concepts, language exploration, and technical discoveries.</p>
+    </section>
+
+    <main>
+      <section class="latest-section">
+        <h2 class="latest-title">Latest Posts</h2>
+        <div class="blog-posts-list" id="latestPostsList">
+          <!-- Dynamically populated from /blog/q/introduction.html -->
+          <p style="color: var(--text-light);">Loading posts...</p>
+        </div>
+      </section>
+
+      <div class="divider-line"></div>
+
+      <section class="topics-section">
+        <h2 class="topics-title">Browse by Topic</h2>
+        <div class="blog-categories">
+          <a href="/blog/q/" class="blog-category">
+            <div class="category-icon">🔵</div>
+            <h2 class="category-title">Q/KDB</h2>
+            <p class="category-description">Explore the Q programming language and KDB+ database. Posts covering language features, memory allocation, command-line arguments, and REST APIs.</p>
+            <span class="category-cta">Explore Q Posts →</span>
+          </a>
+
+          <a href="#" class="blog-category">
+          <div class="category-icon">📚</div>
+          <h2 class="category-title">More Topics Coming Soon</h2>
+          <p class="category-description">I'm working on expanding coverage to additional programming topics and languages. Stay tuned for more in-depth articles and guides.</p>
+          <span class="category-cta">Check Back Soon →</span>
+        </a>
+        </div>
+      </section>
+
+      <div class="recent-note">
+        <p><strong>Note:</strong> Each topic has its own collection of detailed articles and guides. Click on a category above to dive deeper into the content.</p>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>
+        <a href="/">← Back to Home</a>
+        <span> • Built with passion and curiosity • <span id="year"></span></span>
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    // Set current year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Hamburger menu toggle
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const navLinks = document.getElementById('navLinks');
+    
+    function toggleMenu() {
+      hamburgerMenu.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    }
+    
+    hamburgerMenu.addEventListener('click', toggleMenu);
+
+    // Close menu when a link is clicked
+    navLinks.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', toggleMenu);
+    });
+
+    // Load latest posts from /blog/q/introduction.html
+    async function loadLatestPosts() {
+      try {
+        const response = await fetch('/blog/q/introduction.html');
+        const html = await response.text();
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const table = doc.querySelector('table');
+        
+        if (!table) {
+          console.warn('Could not find posts table');
+          return;
+        }
+        
+        const rows = Array.from(table.querySelectorAll('tbody tr')).slice(0, 3);
+        const postsList = document.getElementById('latestPostsList');
+        postsList.innerHTML = '';
+        
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length < 3) return;
+          
+          const titleCell = cells[0];
+          const dateCell = cells[1];
+          const descCell = cells[2];
+          const link = titleCell.querySelector('a');
+          
+          if (!link) return;
+          
+          const postItem = document.createElement('a');
+          postItem.className = 'blog-post-item';
+          postItem.href = `/blog/q/${link.getAttribute('href')}`;
+          postItem.innerHTML = `
+            <div class="post-header">
+              <h3 class="post-title">${link.textContent}</h3>
+              <span class="post-date">${dateCell.textContent.trim()}</span>
+            </div>
+            <p class="post-snippet">${descCell.textContent.trim()}</p>
+          `;
+          
+          postsList.appendChild(postItem);
+        });
+        
+        if (postsList.children.length === 0) {
+          postsList.innerHTML = '<p style="color: var(--text-light);">No posts found.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        const postsList = document.getElementById('latestPostsList');
+        postsList.innerHTML = '<p style="color: var(--text-light);">Error loading posts.</p>';
+      }
+    }
+    
+    loadLatestPosts();
+  </script>
 </body>
 </html>
