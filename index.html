@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
@@ -6,28 +6,10 @@
         <title>jkane17 - Software Engineer & Technical Writer</title>
         <link rel="stylesheet" href="/assets/style.css" />
         <script defer src="/assets/theme.js"></script>
+        <script defer src="/assets/nav.js"></script>
     </head>
     <body>
-        <nav class="main-nav">
-            <div class="nav-container">
-                <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle navigation menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <ul class="nav-links" id="navLinks">
-                    <li><a href="/" class="nav-link active">🏠 Home</a></li>
-                    <li><a href="/blog/" class="nav-link">📝 Blog</a></li>
-                    <li><a href="/books/" class="nav-link">📚 Books</a></li>
-                    <li><a href="/about/" class="nav-link">👤 About</a></li>
-                </ul>
-                <div class="theme-switcher" id="themeSwitcher">
-                    <button class="theme-button" data-theme="light" title="Light theme">☀️</button>
-                    <button class="theme-button" data-theme="system" title="System theme">🖥️</button>
-                    <button class="theme-button active" data-theme="dark" title="Dark theme">🌙</button>
-                </div>
-            </div>
-        </nav>
+        <nav-component></nav-component>
 
         <div class="container">
             <header class="hero">
@@ -35,8 +17,9 @@
                     <h1>Hi, I'm Jonathan Kane</h1>
                     <p class="tagline">Software Engineer • Technical Writer • Lifelong Learner</p>
                     <p class="intro">
-                        Welcome to my corner of the web. Explore my blogs, books, and coding projects. 
-                        I write about programming, technical deep dives, and the things I learn along the way.
+                        Welcome to my corner of the web. Explore my blogs, books, and coding
+                        projects. I write about programming, technical deep dives, and the things I
+                        learn along the way.
                     </p>
                 </div>
             </header>
@@ -44,56 +27,44 @@
             <main>
                 <section class="featured">
                     <h2>Featured Content</h2>
-                    
+
                     <div class="cards">
                         <article class="card blog-card">
                             <div class="card-icon">📖</div>
                             <h3>Latest Blog Posts</h3>
-                            <p>Deep dives into programming, Q/KDB, Rust, and technical topics that interest me.</p>
+                            <p>
+                                Deep dives into programming, Q/KDB, Rust, and technical topics that
+                                interest me.
+                            </p>
                             <a href="/blog/" class="card-link">Read Articles →</a>
                         </article>
 
                         <article class="card books-card">
                             <div class="card-icon">📕</div>
                             <h3>Books & Guides</h3>
-                            <p>Long-form technical guides and compilations exploring complex topics in depth.</p>
+                            <p>
+                                Long-form technical guides and compilations exploring complex topics
+                                in depth.
+                            </p>
                             <a href="/books/" class="card-link">Explore Books →</a>
                         </article>
 
                         <article class="card about-card">
                             <div class="card-icon">🚀</div>
                             <h3>Projects & Experiments</h3>
-                            <p>Explore my coding projects, side experiments, and technical explorations.</p>
+                            <p>
+                                Explore my coding projects, side experiments, and technical
+                                explorations.
+                            </p>
                             <a href="/about/" class="card-link">Learn More →</a>
                         </article>
                     </div>
                 </section>
             </main>
 
-            <footer class="footer">
-                <p>Built with passion and curiosity • <span id="year"></span></p>
-            </footer>
+            <footer-component></footer-component>
         </div>
 
-        <script>
-            // Set current year in footer
-            document.getElementById('year').textContent = new Date().getFullYear();
-
-            // Hamburger menu toggle
-            const hamburgerMenu = document.getElementById('hamburgerMenu');
-            const navLinks = document.getElementById('navLinks');
-            
-            function toggleMenu() {
-                hamburgerMenu.classList.toggle('active');
-                navLinks.classList.toggle('active');
-            }
-            
-            hamburgerMenu.addEventListener('click', toggleMenu);
-
-            // Close menu when a link is clicked
-            navLinks.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', toggleMenu);
-            });
-        </script>
+        <script src="/assets/footer.js"></script>
     </body>
 </html>

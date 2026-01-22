@@ -6,6 +6,7 @@ Welcome to the Q/KDB+ Blog. Here you'll find articles exploring various aspects 
 
 | Title | Published | Description |
 | - | - | - |
+| **[Measuring Compression Performance in Q/KDB+](./compression_perf.md)** | Jan 31, 2025 | Find out how to measure the performance of different compression algorithm and settings. |
 | **[An Introduction to Compression in Q/KDB+](./compression.md)** | Oct 13, 2024 | A detailed look at how compression works in Q. |
 | **[Command Line Arguments in Q/KDB+](./command_line_args.md)** | Sep 20, 2024 | Discover how to customise Q session behavior using command line arguments. |
 | **[An Introduction to Interacting with REST APIs in Q/KDB+](./rest_apis_introduction.md)** | Sep 11, 2024 | Learn how to interact with REST APIs using Q, including HTTP GET requests, HTTPS, and handling responses. |

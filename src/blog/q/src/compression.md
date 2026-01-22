@@ -726,4 +726,4 @@ In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on
 
 Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.
 
-Check out [part two](#) of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.
+Check out [part two](./compression_perf.md) of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.

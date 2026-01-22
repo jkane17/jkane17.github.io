@@ -1,0 +1,663 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Measuring Compression Performance in Q/KDB+ - Q/KDB Blog</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
+        <link rel="stylesheet" href="theme/navigation-ccf6f99d.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-fa5e6838.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-009f72ef.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Q/KDB Blog</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="measuring-compression-performance-in-qkdb"><a class="header" href="#measuring-compression-performance-in-qkdb">Measuring Compression Performance in Q/KDB+</a></h1>
+<p><img src="./images/compression_perf.png" title="Cover Image" alt="Cover Image"></p>
+<p>Compression performance in Q/KDB+ is influenced by several critical factors, including the choice of compression parameters — logical block size (LBS), compression algorithm, and algorithm level. These parameters significantly impact the compression factor (how effectively data is compressed) and influence the speed of reading and writing compressed data. Since these parameters are user-configurable, selecting the optimal combination for a specific use case is essential.</p>
+<p>Equally important is the nature of the data being compressed. Characteristics such as data type, structure, and repetitiveness can heavily influence compression performance.</p>
+<p>In this blog, we’ll explore strategies for evaluating compression performance in Q/KDB+ and discuss how to identify the parameter configurations best suited to your data and requirements. If you’re new to compression in Q/KDB+, I recommend starting with my earlier post, <a href="./compression.html">An Introduction to Compression in Q/KDB+</a>, where I cover the basics of compression methods and their usage. Understanding those fundamentals will provide helpful context for the experiments and analyses discussed here.</p>
+<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
+<p>To evaluate compression performance in Q/KDB+, I created a standalone tool available in the <a href="https://github.com/jkane17/qtools">QTools repository</a>. The specific script for measuring compression performance can be found <a href="https://github.com/jkane17/qtools/blob/main/src/zipPerf.q">here</a>. Simply copy or download this script to use it, and refer to the <a href="https://github.com/jkane17/qtools/blob/main/docs/zipPerf.md">documentation</a> for detailed instructions on the tool’s functions.</p>
+<p>I have included all the code used to generate the results, so you can see examples of how this tool is used throughout this blog.</p>
+<h3 id="key-notes"><a class="header" href="#key-notes">Key Notes</a></h3>
+<ul>
+<li>All times (write and read) are reported in milliseconds.</li>
+<li>Q/KDB+ version used: 4.1 (2024.05.31)</li>
+</ul>
+<h3 id="disclaimer"><a class="header" href="#disclaimer">Disclaimer</a></h3>
+<p>The results of these tests can vary based on factors such as machine architecture, the specific random values used, and other environmental conditions. The results in this blog are illustrative and intended to guide you in conducting your own performance evaluations.</p>
+<h2 id="savingloading-results"><a class="header" href="#savingloading-results">Saving/Loading Results</a></h2>
+<p>Running some of these tests can be time-consuming. To avoid losing your results and allow for future analysis, you can save them to disk and reload them later. The following functions facilitate saving and loading data:</p>
+<pre><code class="language-q">dataDir:`:/&lt;DATA-PATH&gt;/data;
+
+// Save data
+sd:{.Q.dd[x;` sv y,`csv] 0: "," 0: value y}[dataDir;];
+
+// Load data
+ld:{y set ("jjjhjfffn";enlist ",") 0: .Q.dd[x;` sv y,`csv]}[dataDir;];
+</code></pre>
+<p>Simply set the <code>dataDir</code> variable to the desired directory for saving the results. Once set, you can save and load the <code>results</code> table as shown below:</p>
+<pre><code class="language-q">// Save the results table
+q)sd `results
+
+// Load the results table
+q)ld `results
+</code></pre>
+<h2 id="static-data"><a class="header" href="#static-data">Static Data</a></h2>
+<p>Historic data is static and unlikely to change. For such data, we can optimise compression by testing different parameter configurations and selecting the best fit for our requirements.</p>
+<h3 id="example-dataset"><a class="header" href="#example-dataset">Example Dataset</a></h3>
+<p>Consider a simple example: a list of 10,000 randomly generated long integers ranging from 0 to 999.</p>
+<pre><code class="language-q">data:10000?1000
+</code></pre>
+<p>Although generated randomly, this dataset is now static. Using the <em>zipPerf</em> tool introduced in the <a href="#setup">setup</a>, we can evaluate various compression parameters to understand their impact on performance.</p>
+<h3 id="testing-compression-parameters"><a class="header" href="#testing-compression-parameters">Testing Compression Parameters</a></h3>
+<p>First, load the performance measurement tool and run the test:</p>
+<pre><code class="language-q">q)\l &lt;PATH&gt;/qtools/src/zipPerf.q
+
+// Run the test - Takes approx. 4 minutes (%1e6 converts timespan to milliseconds)
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAll data
+</code></pre>
+<h3 id="performance-metric-statistics"><a class="header" href="#performance-metric-statistics">Performance Metric Statistics</a></h3>
+<p>Key performance statistics for compression factor, write time, and read time can be summarised with the following query:</p>
+<pre><code class="language-q">select 
+    metric:`compFactor`writeTime`readTime,
+    maximum:(max compFactor; max writeTime; max readTime),
+    minimum:(min compFactor; min writeTime; min readTime),
+    average:(avg compFactor; avg writeTime; avg readTime)
+    from results 
+</code></pre>
+<p>Example output:</p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 4.957621 0.9974073 3.649513 
+writeTime  170.298  0.188266  12.57895 
+readTime   2.733323 0.060592  0.7867975
+</code></pre>
+<p>This analysis reveals the range and average values for each metric. To determine the best compression configuration, let’s examine each metric individually.</p>
+<h3 id="compression-factor"><a class="header" href="#compression-factor">Compression Factor</a></h3>
+<p>The compression factor measures space savings, with higher values indicating more efficient compression. We identify the configuration yielding the highest compression factor:</p>
+<pre><code class="language-q">q)select compFactor, lbs, alg, lvl from results where compFactor=max compFactor
+compFactor lbs alg lvl
+----------------------
+4.957621   17  5   1  
+4.957621   17  5   2  
+4.957621   18  5   1  
+4.957621   18  5   2  
+4.957621   19  5   1  
+4.957621   19  5   2  
+4.957621   20  5   1  
+4.957621   20  5   2
+</code></pre>
+<p>The highest compression factor (4.957621) is achieved with the <em>zstd</em> algorithm at level 1 or 2 and LBS values between 17 and 20.</p>
+<h3 id="write-time"><a class="header" href="#write-time">Write Time</a></h3>
+<p>Write time measures how quickly data is compressed and written to disk. Lower values are preferable:</p>
+<pre><code class="language-q">q)select writeTime, lbs, alg, lvl from results where writeTime=min writeTime
+writeTime lbs alg lvl
+---------------------
+0.188266  13  2   0  
+</code></pre>
+<p>The fastest write time (0.188266 ms) is achieved using the <em>gzip</em> algorithm at level 0 with an LBS of 13.</p>
+<h3 id="read-time"><a class="header" href="#read-time">Read Time</a></h3>
+<p>Read time measures how quickly compressed data can be retrieved and decompressed. Again, lower values are better:</p>
+<pre><code class="language-q">q)select readTime, lbs, alg, lvl from results where readTime=min readTime
+readTime lbs alg lvl
+--------------------
+0.060592 12  5   10
+</code></pre>
+<p>The fastest read time (0.060592 ms) is achieved using the <em>zstd</em> algorithm at level 10 with an LBS of 12.</p>
+<h3 id="choosing-the-best-configuration"><a class="header" href="#choosing-the-best-configuration">Choosing the Best Configuration</a></h3>
+<p>The ideal compression configuration depends on specific requirements:</p>
+<ul>
+<li><strong>Maximising Compression Factor</strong>: Suitable when storage is limited.</li>
+<li><strong>Minimising Write Time</strong>: Ideal for scenarios with time-sensitive writes.</li>
+<li><strong>Minimising Read Time</strong>: Common in read-heavy environments, such as historical databases.</li>
+</ul>
+<p><strong>Balancing Metrics</strong></p>
+<p>In practice, trade-offs between metrics are often necessary. Suppose we prioritise a quick write time (&lt;0.3 ms) while maintaining a compression factor &gt;2. We can refine our query:</p>
+<pre><code class="language-q">q)`writeTime xasc select compFactor, writeTime, lbs, alg, lvl from results where writeTime&lt;0.3, compFactor&gt;2
+compFactor writeTime lbs alg lvl
+--------------------------------
+2.67451    0.263748  17  3   0  
+2.469249   0.264199  14  3   0  
+2.4869     0.268497  19  1   0  
+2.368178   0.274438  13  1   0  
+</code></pre>
+<p>This query identifies configurations that balance write time and compression efficiency. The final choice should align with operational priorities and system constraints.</p>
+<h2 id="generalised-compression-testing-with-random-data"><a class="header" href="#generalised-compression-testing-with-random-data">Generalised Compression Testing with Random Data</a></h2>
+<p>While historic data in KDB+ is typically static, it’s often impractical to test compression across all columns, tables, and partitions due to the sheer volume of data. Instead, we can simulate different data scenarios by generating random datasets and testing compression on them.</p>
+<p>This approach allows us to evaluate compression performance across a variety of data organisations, providing insights into the parameters that yield “good” performance in the general case.</p>
+<h3 id="the-tool"><a class="header" href="#the-tool">The Tool</a></h3>
+<p>The <em>zipPerf</em> tool includes the function <code>.zipPerf.testAllRand</code> for this purpose. This function takes two arguments:</p>
+<ul>
+<li><strong>Number of Lists</strong>: The number of random datasets to generate and test.</li>
+<li><strong>Data Generator Function</strong>: A function to generate random datasets.</li>
+</ul>
+<p>For example, the following call generates 10 random lists, each containing 10,000 longs between 0 and 999, and evaluates compression performance for each list:</p>
+<pre><code class="language-q">.zipPerf.testAllRand[10;{10000?1000}]
+</code></pre>
+<p>The results are aggregated, computing the average performance metrics for each parameter configuration.</p>
+<h3 id="running-the-test"><a class="header" href="#running-the-test">Running the Test</a></h3>
+<p>To demonstrate, let’s run the test and convert the time metrics to milliseconds:</p>
+<pre><code class="language-q">// Run the test - Takes approx. 30 minutes
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{10000?1000}];
+</code></pre>
+<p>Using the same queries from the <a href="#static-data">Static Data</a> section, we summarise the key statistics from the results:</p>
+<pre><code class="language-q">// Key performance statistics
+metric     maximum  minimum   average  
+---------------------------------------
+compFactor 4.954066 0.9974073 3.649914 
+writeTime  60.00062 0.1174    9.881192 
+readTime   1.236025 0.328472  0.6572004
+
+// Maximum compression factor
+compFactor lbs alg lvl
+----------------------
+4.954066   17  5   1  
+4.954066   18  5   1  
+4.954066   19  5   1  
+4.954066   20  5   1 
+
+// Minimum write time
+writeTime lbs alg lvl
+---------------------
+0.1174    0   0   0
+
+// Minimum read time
+readTime lbs alg lvl
+--------------------
+0.328472 0   0   0 
+</code></pre>
+<h3 id="observations"><a class="header" href="#observations">Observations</a></h3>
+<ul>
+<li>
+<p><strong>Compression Factor</strong>: The best compression factor (4.954066) is achieved using the <em>zstd</em> algorithm at level 1, with any LBS between 17 and 20.</p>
+</li>
+<li>
+<p><strong>Write and Read Times Without Compression</strong>: The fastest write (0.1174 ms) and read (0.328472 ms) times occur when no compression is applied, which is expected since compression and decompression introduce overhead.</p>
+</li>
+</ul>
+<p>Let’s exclude the results for uncompressed data and identify the best configurations for write and read times:</p>
+<p><strong>Best Write Time with Compression:</strong></p>
+<pre><code class="language-q">q)select writeTime, lbs, alg, lvl from (select from results where alg&lt;&gt;0) where writeTime=min writeTime
+writeTime lbs alg lvl
+---------------------
+0.153473  17  2   0  
+</code></pre>
+<p>The most favourable write time (0.153473 ms) occurs with the <em>gzip</em> algorithm at level 0 and an LBS of 17.</p>
+<p><strong>Best Read Time with Compression:</strong></p>
+<pre><code class="language-q">q)select readTime, lbs, alg, lvl from (select from results where alg&lt;&gt;0) where readTime=min readTime
+readTime lbs alg lvl
+--------------------
+0.364619 13  4   12 
+</code></pre>
+<p>The most favourable read time (0.364619 ms) occurs with the <em>lz4hc</em> algorithm at level 12 and an LBS of 13.</p>
+<h2 id="impact-of-algorithm-level-on-compression-performance"><a class="header" href="#impact-of-algorithm-level-on-compression-performance">Impact of Algorithm Level on Compression Performance</a></h2>
+<p>In this section, we explore how varying the algorithm level affects compression performance. Using the results from the <a href="#generalised-compression-testing-with-random-data">previous section</a>, we focus on the <em>zstd</em> algorithm with a fixed LBS of 17 to analyse performance trends.</p>
+<h3 id="results"><a class="header" href="#results">Results</a></h3>
+<p>The below query can be used to gather the results:</p>
+<pre><code class="language-q">q)select lvl, compFactor, writeTime, readTime from results where alg=5, lbs=17
+lvl compFactor writeTime readTime
+---------------------------------
+-7  4.057967   0.315761  0.602378
+-6  4.05925    0.29988   0.540294
+-5  4.055668   0.313296  0.6288  
+-4  4.056856   0.299043  0.636049
+..
+</code></pre>
+<h3 id="visualisation"><a class="header" href="#visualisation">Visualisation</a></h3>
+<p>To better understand these trends, the following graph illustrates the relationship between the algorithm level and the performance metrics:</p>
+<p><img src="./images/longs_alg5_lbs17.png" title="Changing Level Performance of the zstd Algorithm for a List of 10,000 Longs (LBS = 17)" alt="Changing Level Performance of the zstd Algorithm for a List of 10,000 Longs (LBS = 17)"></p>
+<h3 id="observations-1"><a class="header" href="#observations-1">Observations</a></h3>
+<ul>
+<li>
+<p><strong>Read Time</strong>: The read time remains relatively constant across levels, showing no significant variation.</p>
+</li>
+<li>
+<p><strong>Compression Factor</strong>: The compression factor is generally stable, with a slight “bump” observed at levels 1 and 2, indicating better compression efficiency at these levels.</p>
+</li>
+<li>
+<p><strong>Write Time</strong>: Write time exhibits an exponential increase as the level rises, highlighting the trade-off between compression level and write performance.</p>
+</li>
+</ul>
+<p>This analysis demonstrates that if constrained to the <em>zstd</em> algorithm with an LBS of 17, levels 1 or 2 are optimal. These levels achieve the maximum compression factor while keeping write time low.</p>
+<h2 id="impact-of-logical-block-size-lbs-on-compression-performance"><a class="header" href="#impact-of-logical-block-size-lbs-on-compression-performance">Impact of Logical Block Size (LBS) on Compression Performance</a></h2>
+<p>This section examines how varying the Logical Block Size (LBS) affects compression performance. For consistency, we analyse results using the <em>zstd</em> algorithm at a fixed level of 18.</p>
+<h3 id="results-1"><a class="header" href="#results-1">Results</a></h3>
+<p>The below query can be used to gather the results:</p>
+<pre><code class="language-q">q)select lbs, compFactor, writeTime, readTime from results where alg=5, lvl=18
+lbs compFactor writeTime readTime
+---------------------------------
+12  3.419139   18.3573   0.55395 
+13  3.545852   21.61034  0.513634
+14  3.787947   25.07718  0.686512
+15  3.907031   14.57396  0.636689
+16  4.059368   15.26676  0.68913 
+17  4.155016   14.82453  0.563237
+18  4.155016   14.19188  0.650421
+19  4.155016   14.71257  0.675492
+20  4.155016   14.67119  0.833243
+</code></pre>
+<h3 id="visualisation-1"><a class="header" href="#visualisation-1">Visualisation</a></h3>
+<p>The graph below visualizes how the compression factor, write time, and read time vary with LBS:</p>
+<p><img src="./images/longs_alg5_lvl18.png" title="Changing LBS Performance of the zstd Algorithm for a List of 10,000 Longs (Level = 18)" alt="Changing LBS Performance of the zstd Algorithm for a List of 10,000 Longs (Level = 18)"></p>
+<h3 id="observations-2"><a class="header" href="#observations-2">Observations</a></h3>
+<ul>
+<li>
+<p><strong>Compression Factor</strong>: The compression factor steadily increases as the LBS grows, peaking at LBS values 17–20.</p>
+</li>
+<li>
+<p><strong>Write Time</strong>: Write time initially rises with increasing LBS but stabilises and even slightly decreases beyond LBS 14.</p>
+</li>
+<li>
+<p><strong>Read Time</strong>: Read time remains relatively constant across the range of LBS values, with minor variations.</p>
+</li>
+</ul>
+<p>Based on these results, if the <em>zstd</em> algorithm is used at level 18, the optimal choice of LBS is 17 or 18, depending on whether read or write performance takes priority. These configurations maximise the compression factor while maintaining stable read and write times, offering a balanced trade-off between efficiency and performance.</p>
+<h2 id="structure-and-size-of-data"><a class="header" href="#structure-and-size-of-data">Structure and Size of Data</a></h2>
+<p>Compression performance can be significantly influenced by the structure and size of the data.</p>
+<p>This section explores the effects of sorted, contiguous, and larger datasets on compression performance, comparing the results to the unsorted, smaller dataset analysed earlier.</p>
+<p>For consistency, each test was performed with a fresh Q session using the same random seed, ensuring direct comparability of results.</p>
+<h3 id="sorted-data"><a class="header" href="#sorted-data">Sorted Data</a></h3>
+<p>To assess the impact of sorting, we rerun the general random data test seen <a href="#generalised-compression-testing-with-random-data">previously</a>, with the data sorted in ascending order. Sorting is achieved using the <code>asc</code> keyword in Q.</p>
+<pre><code class="language-q">// Run the test - Takes approx. 30 minutes
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{asc 10000?1000}];
+</code></pre>
+<p><strong>Summary of Results</strong></p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 41.2923  0.9974073 23.22625 
+writeTime  238.3535 0.14515   15.27876 
+readTime   1.084563 0.183848  0.3457299
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Compared to the unsorted data <a href="#running-the-test">summary table</a>, sorting results in a dramatic increase in both the maximum and average compression factors, demonstrating significant space-saving potential.</p>
+<p>However, there is a small penalty in terms of read and write times, as seen in the increase in their maximum and average values. Additionally, if the data isn’t already sorted, the time required for sorting must also be factored in.</p>
+<h3 id="contiguous-data"><a class="header" href="#contiguous-data">Contiguous Data</a></h3>
+<p>Contiguous ordering arranges identical values side by side, enhancing compression opportunities.</p>
+<p>For example:</p>
+<pre><code>Contiguous: 3 3 3 3 1 1 1 2 2
+Not contiguous: 3 1 2 1 3 1 2 3 3
+</code></pre>
+<p>We transform the random data into a contiguous order by grouping identical values using <code>group</code> and then flattening the result with <code>raze</code>.</p>
+<pre><code class="language-q">// Run the test - Takes approx. 30 minutes
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{raze d group d:10000?1000}];
+</code></pre>
+<p><strong>Summary of Results</strong></p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 32.44508 0.9974073 20.15545 
+writeTime  218.1142 0.120421  12.29244 
+readTime   1.102754 0.19812   0.3532618
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Contiguous data demonstrates a significant increase in compression factors compared to unsorted data. While the improvements are not as pronounced as those seen with sorted data, the degradation in read and write times is less severe.</p>
+<p>Contiguous data therefore offers a balance between space-saving benefits and read/write performance, making it a practical alternative to sorting.</p>
+<h3 id="larger-data"><a class="header" href="#larger-data">Larger Data</a></h3>
+<p>Compression performance can also vary based on dataset size.</p>
+<p>We reran the test with a larger list of 1,000,000 longs to evaluate its effect on compression.</p>
+<pre><code class="language-q">// Run the test - Takes approx. 8 hours
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{1000000?1000}];
+</code></pre>
+<p><strong>Summary of Results</strong></p>
+<pre><code class="language-q">metric     maximum  minimum   average 
+--------------------------------------
+compFactor 4.985321 0.9980438 3.734221
+writeTime  759141   3.421783  2301.216
+readTime   5.054386 0.4867    1.579741
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>The larger dataset achieves slightly improved compression factors due to increased redundancy and repetition within the data. However, write and read times are significantly longer, which is expected given the greater volume of data being processed.</p>
+<h2 id="different-datatypes"><a class="header" href="#different-datatypes">Different Datatypes</a></h2>
+<p>So far, we have focused exclusively on the long datatype. However, the tests described earlier can be applied to any datatype in Q.</p>
+<p>This section explores the impact of compression on two additional datatypes: boolean (a simpler datatype) and symbol (a more complex datatype).</p>
+<h3 id="boolean"><a class="header" href="#boolean">Boolean</a></h3>
+<p>In Q/KDB+, a boolean is a single-byte (8-bit) value that represents one of two possible states: true (<code>1b</code>) or false (<code>0b</code>). The simplicity of its structure and the high likelihood of repeated values make it an interesting candidate for compression.</p>
+<h4 id="general-test"><a class="header" href="#general-test">General Test</a></h4>
+<p>The test was rerun for a random list of 10,000 booleans:</p>
+<pre><code class="language-q">// Run the test - Takes approx. 25 minutes
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{10000?0b}];
+</code></pre>
+<p><strong>Summary of Results</strong></p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 5.844129 0.9928628 4.395721 
+writeTime  6.01018  0.109531  1.858013 
+readTime   0.643794 0.151092  0.2843463
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Compared to the results for longs (<a href="#running-the-test">summary table</a>), booleans show:</p>
+<ul>
+<li><strong>Higher compression factors</strong>: The simpler structure and greater redundancy in boolean data improve compression.</li>
+<li><strong>Faster read and write times</strong>: Smaller memory requirements for booleans contribute to quicker operations.</li>
+</ul>
+<h4 id="sorted-test"><a class="header" href="#sorted-test">Sorted Test</a></h4>
+<p>The test was repeated for a sorted list of 10,000 booleans.</p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 120.6747 0.9928628 96.03797 
+writeTime  2.937618 0.109034  0.1614437
+readTime   0.708015 0.174412  0.2824265
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Sorting results in dramatic improvements in compression performance:</p>
+<ul>
+<li>The average compression factor jumps to 96, significantly outperforming sorted longs.</li>
+<li>The write times are notably reduced, reflecting the efficient encoding of long runs of identical values in sorted boolean data.</li>
+</ul>
+<h4 id="large-dataset-test"><a class="header" href="#large-dataset-test">Large Dataset Test</a></h4>
+<p>The test was scaled up to a list of 1,000,000 booleans to observe the effects of larger datasets.</p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 7.715686 0.9979961 4.951624 
+writeTime  4447.509 0.563583  353.4303 
+readTime   4.269396 0.277281  0.9963099
+</code></pre>
+<p><strong>Analysis</strong></p>
+<ul>
+<li>The compression factor increases with the larger dataset, reflecting the enhanced opportunities for compression in longer sequences of boolean values.</li>
+<li>Write and read times scale up as expected, but the performance remains manageable due to the datatype’s simplicity.</li>
+</ul>
+<h3 id="symbol"><a class="header" href="#symbol">Symbol</a></h3>
+<p>In Q/KDB+, the symbol datatype is analogous to a string in that it can represent sequences of characters. However, unlike strings, symbols are irreducible atomic values in Q/KDB+, with each symbol internally stored as an integer reference to a global dictionary of unique values. This representation makes symbols more complex than simpler data types like longs.</p>
+<p>Given their structure, we can expect compression results for symbols to differ from those observed for longs.</p>
+<h4 id="general-test-1"><a class="header" href="#general-test-1">General Test</a></h4>
+<p>The compression test was rerun on a random list of 10,000, 3-character symbols:</p>
+<pre><code class="language-q">// Run the test - Takes approx. 25 minutes
+q)results:update writeTime%1e6, readTime%1e6 from .zipPerf.testAllRand[10;{10000?`3}];
+</code></pre>
+<p><strong>Summary of Results</strong></p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 2.053863 0.9968108 1.60796  
+writeTime  5.365143 0.212508  1.26698  
+readTime   1.450128 0.63938   0.9329227
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Compared to the results for longs (<a href="#running-the-test">summary table</a>), symbols exhibit the following key differences:</p>
+<ul>
+<li><strong>Lower Compression Factor</strong>: The more complex structure of symbols, coupled with potentially lower redundancy, reduces compression efficiency.</li>
+<li><strong>Faster Write Times</strong>: While uncompressed long data is typically written faster than symbol data, the opposite trend is observed for compressed data. On average, compressed symbol data is written faster than compressed long data. This is likely because symbols tend to achieve lower compression ratios due to their more complex structure and representation, resulting in less computational overhead during the compression phase of the write process.</li>
+</ul>
+<h4 id="sorted-test-1"><a class="header" href="#sorted-test-1">Sorted Test</a></h4>
+<p>The test was repeated for a sorted list of 10,000, 3-character symbols:</p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 10.58119 0.9968108 5.523273 
+writeTime  4.763245 0.20937   1.005981 
+readTime   1.161317 0.498619  0.6530251
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>Sorting significantly impacts the compression performance of symbols:</p>
+<ul>
+<li><strong>Improved Compression Factor</strong>: Sorting amplifies redundancy, enabling compression algorithms to achieve a much higher compression factor. This effect is similar to that observed for longs and booleans.</li>
+<li><strong>Improved Write and Read Times</strong>: Unlike longs, where sorting often increases write and read times, symbols see slight improvements. This might be due to better memory locality and more efficient processing of the sorted dictionary references.</li>
+</ul>
+<h4 id="contiguous-test"><a class="header" href="#contiguous-test">Contiguous Test</a></h4>
+<p>The test was repeated for a contiguous list of 10,000, 3-character symbols:</p>
+<pre><code class="language-q">metric     maximum  minimum   average  
+---------------------------------------
+compFactor 5.316126 0.9968108 3.300586 
+writeTime  5.221845 0.221293  1.118578 
+readTime   2.431121 0.520317  0.7447879
+</code></pre>
+<p><strong>Analysis</strong></p>
+<p>The results for contiguous data fall between those for unsorted and fully sorted data:</p>
+<ul>
+<li><strong>Moderate Compression Factor Improvement</strong>: While not as effective as full sorting, contiguous ordering still groups identical symbols together, improving compression efficiency.</li>
+<li><strong>Slight Improvements in Write and Read Times</strong>: The impact on performance is not as pronounced as with fully sorted data, reflecting the less regular structure of contiguous ordering.</li>
+</ul>
+<p>Overall, contiguous ordering provides a trade-off, achieving better compression factors than unsorted data without the full processing cost of sorting.</p>
+<h4 id="large-dataset-test-1"><a class="header" href="#large-dataset-test-1">Large Dataset Test</a></h4>
+<p>Finally, the test was scaled up to a list of 1,000,000, 3-character symbols to observe the impact of dataset size:</p>
+<pre><code class="language-q">metric     maximum  minimum   average 
+--------------------------------------
+compFactor 2.139341 0.9980379 1.651971
+writeTime  858.8655 6.676792  147.2629
+readTime   70.03013 31.14028  40.45668
+</code></pre>
+<p><strong>Analysis</strong></p>
+<ul>
+<li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
+<li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
+</ul>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
+<ol>
+<li>
+<p><strong>Compression Algorithms and Parameters</strong>: The choice of algorithm, level, and logical block size (LBS) has a significant impact on compression performance. Optimal settings often require balancing compression factor, write time, and read time based on specific use cases.</p>
+</li>
+<li>
+<p><strong>Data Structure and Size</strong>: Sorting or grouping data (contiguous ordering) before compression can significantly improve compression factors, albeit at the cost of increased read and write times. Larger datasets often achieve better compression factors due to higher redundancy but require more time to process.</p>
+</li>
+<li>
+<p><strong>Datatypes</strong>: Simpler datatypes like booleans generally achieve better compression performance compared to complex datatypes like symbols. However, symbols showed faster write times for compressed data, highlighting the role of underlying data representation in compression efficiency.</p>
+</li>
+</ol>
+<p>Understanding these factors can help you make informed decisions when implementing compression in Q/KDB+, enabling you to tailor configurations to your specific data and performance needs. By leveraging the insights and methodologies discussed here, you can strike the right balance between storage efficiency and operational performance, optimising your use of compression in a production environment.</p>
+<p>The results in this blog are a starting point. Real-world performance will depend on your specific data and workload, so it’s worth experimenting to find what works best for your use case.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="compression.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="compression.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-2c2089fd.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/navigation-8d154390.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
