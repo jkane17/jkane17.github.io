@@ -19,14 +19,14 @@
     --warning: #f59e0b;
     --warning-light: #fef3c7;
     --warning-dark: #92400e;
-    
+
     /* Gradients */
     --bg-gradient: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%);
-    
+
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-normal: 0.3s ease;
-    
+
     /* Spacing */
     --spacing-xs: 0.5rem;
     --spacing-sm: 0.75rem;
@@ -35,13 +35,13 @@
     --spacing-xl: 2rem;
     --spacing-2xl: 2.5rem;
     --spacing-3xl: 3rem;
-    
+
     /* Shadows */
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.12);
     --shadow-xl: 0 12px 28px rgba(0, 0, 0, 0.12);
-    
+
     /* Border Radius */
     --radius-sm: 0.25rem;
     --radius-md: 0.5rem;
@@ -65,14 +65,17 @@ html.dark-theme {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--bg-gradient);
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
 }
 
 .container {
@@ -320,6 +323,39 @@ main {
     color: var(--primary);
 }
 
+/* Social Links in Footer */
+.footer-social {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    /* margin-top: 1.5rem; */
+    padding-top: 1rem;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 1.25rem;
+    transition: all var(--transition-normal);
+}
+
+.social-link:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-3px);
+}
+
+.social-link:hover svg {
+    fill: white;
+}
+
 /* Main Navigation Bar */
 .main-nav {
     background: var(--bg);
@@ -443,6 +479,20 @@ main {
 
     .nav-link:last-child {
         border-bottom: none;
+    }
+}
+
+@media (max-width: 1074px) and (min-width: 919px) {
+    .nav-link {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 918px) and (min-width: 769px) {
+    .nav-link {
+        padding: var(--spacing-xs) var(--spacing-xs);
+        font-size: 0.9rem;
     }
 }
 

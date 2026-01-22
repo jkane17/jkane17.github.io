@@ -1,341 +1,232 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Books - jkane17</title>
-  <link rel="stylesheet" href="/assets/style.css" />
-  <style>
-    .coming-soon-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 60vh;
-      text-align: center;
-      padding: 2rem 0;
-    }
-
-    .coming-soon-icon {
-      font-size: 4rem;
-      margin-bottom: 2rem;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
-    }
-
-    .coming-soon-title {
-      font-size: clamp(2rem, 6vw, 3rem);
-      font-weight: 800;
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-
-    .coming-soon-subtitle {
-      font-size: 1.25rem;
-      color: var(--text-light);
-      margin-bottom: 2rem;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .coming-soon-description {
-      font-size: 1.05rem;
-      color: var(--text-light);
-      max-width: 700px;
-      margin: 0 auto 3rem;
-      line-height: 1.8;
-    }
-
-    .what-to-expect {
-      background: var(--bg);
-      border-radius: 1rem;
-      padding: 2.5rem;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 600px;
-      margin: 2rem auto;
-      text-align: left;
-    }
-
-    .what-to-expect h3 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      color: var(--text);
-      text-align: center;
-    }
-
-    .expect-list {
-      list-style: none;
-    }
-
-    .expect-list li {
-      padding: 0.75rem 0;
-      padding-left: 2rem;
-      position: relative;
-      color: var(--text-light);
-      font-size: 1rem;
-      line-height: 1.6;
-    }
-
-    .expect-list li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-
-    .cta-container {
-      margin-top: 3rem;
-    }
-
-    .cta-button-primary {
-      display: inline-block;
-      padding: 0.875rem 2rem;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-      color: white;
-      text-decoration: none;
-      border-radius: 0.75rem;
-      font-weight: 700;
-      font-size: 1.05rem;
-      transition: all 0.3s ease;
-      margin-right: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .cta-button-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-    }
-
-    .cta-button-secondary {
-      display: inline-block;
-      padding: 0.875rem 2rem;
-      background: white;
-      color: var(--primary);
-      border: 2px solid var(--primary);
-      text-decoration: none;
-      border-radius: 0.75rem;
-      font-weight: 700;
-      font-size: 1.05rem;
-      transition: all 0.3s ease;
-      margin-bottom: 1rem;
-    }
-
-    .cta-button-secondary:hover {
-      background: var(--primary);
-      color: white;
-      transform: translateY(-2px);
-    }
-
-    .newsletter-note {
-      margin-top: 2rem;
-      padding: 1.5rem;
-      background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%);
-      border-radius: 0.75rem;
-      border-left: 4px solid var(--success);
-    }
-
-    .newsletter-note p {
-      color: #166534;
-      font-size: 0.95rem;
-      margin: 0;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 640px) {
-      .coming-soon-container {
-        min-height: 50vh;
-        padding: 1rem 0;
-      }
-
-      .coming-soon-title {
-        font-size: 1.75rem;
-      }
-
-      .coming-soon-subtitle {
-        font-size: 1.1rem;
-      }
-
-      .what-to-expect {
-        margin: 1.5rem 0;
-        padding: 1.5rem;
-      }
-
-      .cta-button-primary,
-      .cta-button-secondary {
-        display: block;
-        width: 100%;
-        text-align: center;
-        margin-right: 0;
-      }
-    }
-  </style>
-</head>
-<body>
-  <nav class="main-nav">
-    <div class="nav-container">
-      <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle navigation menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <ul class="nav-links" id="navLinks">
-        <li><a href="/" class="nav-link">🏠 Home</a></li>
-        <li><a href="/blog/" class="nav-link">📝 Blog</a></li>
-        <li><a href="/books/" class="nav-link active">📚 Books</a></li>
-        <li><a href="/about/" class="nav-link">👤 About</a></li>
-      </ul>
-      <div class="theme-switcher" id="themeSwitcher">
-        <button class="theme-button" data-theme="light" title="Light theme">☀️</button>
-        <button class="theme-button" data-theme="system" title="System theme">🖥️</button>
-        <button class="theme-button active" data-theme="dark" title="Dark theme">🌙</button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container">
-
-    <div class="coming-soon-container">
-      <div class="coming-soon-icon">📚</div>
-      <h1 class="coming-soon-title">Books Coming Soon</h1>
-      <p class="coming-soon-subtitle">Something exciting is brewing</p>
-      
-      <p class="coming-soon-description">
-        I'm currently working on comprehensive guides and long-form technical books on topics I'm passionate about. These will be detailed explorations of complex concepts, perfect for deep learning.
-      </p>
-
-      <div class="what-to-expect">
-        <h3>What to Expect</h3>
-        <ul class="expect-list">
-          <li>In-depth technical guides on programming languages and systems</li>
-          <li>Practical examples and hands-on tutorials</li>
-          <li>Comprehensive explanations of complex concepts</li>
-          <li>Well-structured content for learning and reference</li>
-          <li>Free and openly available for all readers</li>
-        </ul>
-      </div>
-
-      <div class="cta-container">
-        <a href="/blog/" class="cta-button-primary">Read My Blog →</a>
-        <a href="/" class="cta-button-secondary">Back to Home</a>
-      </div>
-
-      <div class="newsletter-note">
-        <p>
-          <strong>Stay tuned!</strong> Check back soon for the first books, or explore my blog for detailed articles on the same topics.
-        </p>
-      </div>
-    </div>
-
-    <footer class="footer">
-      <p>
-        <a href="/">← Back to Home</a>
-        <span> • Built with passion and curiosity • <span id="year"></span></span>
-      </p>
-    </footer>
-  </div>
-
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    // Hamburger menu toggle
-    const hamburgerMenu = document.getElementById('hamburgerMenu');
-    const navLinks = document.getElementById('navLinks');
-    
-    hamburgerMenu.addEventListener('click', () => {
-      hamburgerMenu.classList.toggle('active');
-      navLinks.classList.toggle('active');
-    });
-
-    // Close menu when a link is clicked
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        hamburgerMenu.classList.remove('active');
-        navLinks.classList.remove('active');
-      });
-    });
-
-    // Theme switcher
-    const themeSwitcher = document.getElementById('themeSwitcher');
-    const themeButtons = document.querySelectorAll('.theme-button');
-    
-    function initTheme() {
-        const saved = localStorage.getItem('theme') || 'system';
-        const html = document.documentElement;
-        
-        if (saved === 'dark') {
-            html.classList.add('dark-theme');
-        } else if (saved === 'light') {
-            html.classList.remove('dark-theme');
-        } else if (saved === 'system') {
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                html.classList.add('dark-theme');
-            } else {
-                html.classList.remove('dark-theme');
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Books - jkane17</title>
+        <link rel="stylesheet" href="/assets/style.css" />
+        <script defer src="/assets/nav.js"></script>
+        <style>
+            .coming-soon-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 60vh;
+                text-align: center;
+                padding: 2rem 0;
             }
-        }
-        
-        updateActiveButton(saved);
-    }
-    
-    function updateActiveButton(theme) {
-        themeButtons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.theme === theme) {
-                btn.classList.add('active');
+
+            .coming-soon-icon {
+                font-size: 4rem;
+                margin-bottom: 2rem;
+                animation: float 3s ease-in-out infinite;
             }
-        });
-    }
-    
-    themeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const theme = btn.dataset.theme;
-            const html = document.documentElement;
-            
-            if (theme === 'dark') {
-                html.classList.add('dark-theme');
-            } else if (theme === 'light') {
-                html.classList.remove('dark-theme');
-            } else if (theme === 'system') {
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    html.classList.add('dark-theme');
-                } else {
-                    html.classList.remove('dark-theme');
+
+            @keyframes float {
+                0%,
+                100% {
+                    transform: translateY(0px);
+                }
+                50% {
+                    transform: translateY(-10px);
                 }
             }
-            
-            localStorage.setItem('theme', theme);
-            updateActiveButton(theme);
-        });
-    });
-    
-    // Initialize theme on page load
-    initTheme();
-    
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        const saved = localStorage.getItem('theme') || 'system';
-        if (saved === 'system') {
-            const html = document.documentElement;
-            if (e.matches) {
-                html.classList.add('dark-theme');
-            } else {
-                html.classList.remove('dark-theme');
+
+            .coming-soon-title {
+                font-size: clamp(2rem, 6vw, 3rem);
+                font-weight: 800;
+                margin-bottom: 1rem;
+                color: var(--text);
             }
-        }
-    });
-  </script>
-</body>
+
+            .coming-soon-subtitle {
+                font-size: 1.25rem;
+                color: var(--text-light);
+                margin-bottom: 2rem;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .coming-soon-description {
+                font-size: 1.05rem;
+                color: var(--text-light);
+                max-width: 700px;
+                margin: 0 auto 3rem;
+                line-height: 1.8;
+            }
+
+            .what-to-expect {
+                background: var(--bg);
+                border-radius: 1rem;
+                padding: 2.5rem;
+                border: 1px solid var(--border);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                max-width: 600px;
+                margin: 2rem auto;
+                text-align: left;
+            }
+
+            .what-to-expect h3 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-bottom: 1.5rem;
+                color: var(--text);
+                text-align: center;
+            }
+
+            .expect-list {
+                list-style: none;
+            }
+
+            .expect-list li {
+                padding: 0.75rem 0;
+                padding-left: 2rem;
+                position: relative;
+                color: var(--text-light);
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+
+            .expect-list li:before {
+                content: "✓";
+                position: absolute;
+                left: 0;
+                color: var(--primary);
+                font-weight: 700;
+                font-size: 1.2rem;
+            }
+
+            .cta-container {
+                margin-top: 3rem;
+            }
+
+            .cta-button-primary {
+                display: inline-block;
+                padding: 0.875rem 2rem;
+                background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 0.75rem;
+                font-weight: 700;
+                font-size: 1.05rem;
+                transition: all 0.3s ease;
+                margin-right: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .cta-button-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            }
+
+            .cta-button-secondary {
+                display: inline-block;
+                padding: 0.875rem 2rem;
+                background: white;
+                color: var(--primary);
+                border: 2px solid var(--primary);
+                text-decoration: none;
+                border-radius: 0.75rem;
+                font-weight: 700;
+                font-size: 1.05rem;
+                transition: all 0.3s ease;
+                margin-bottom: 1rem;
+            }
+
+            .cta-button-secondary:hover {
+                background: var(--primary);
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            .newsletter-note {
+                margin-top: 2rem;
+                padding: 1.5rem;
+                background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%);
+                border-radius: 0.75rem;
+                border-left: 4px solid var(--success);
+            }
+
+            .newsletter-note p {
+                color: #166534;
+                font-size: 0.95rem;
+                margin: 0;
+                line-height: 1.6;
+            }
+
+            @media (max-width: 640px) {
+                .coming-soon-container {
+                    min-height: 50vh;
+                    padding: 1rem 0;
+                }
+
+                .coming-soon-title {
+                    font-size: 1.75rem;
+                }
+
+                .coming-soon-subtitle {
+                    font-size: 1.1rem;
+                }
+
+                .what-to-expect {
+                    margin: 1.5rem 0;
+                    padding: 1.5rem;
+                }
+
+                .cta-button-primary,
+                .cta-button-secondary {
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                    margin-right: 0;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <nav-component></nav-component>
+
+        <div class="container">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon">📚</div>
+                <h1 class="coming-soon-title">Books Coming Soon</h1>
+                <p class="coming-soon-subtitle">Something exciting is brewing</p>
+
+                <p class="coming-soon-description">
+                    I'm currently working on comprehensive guides and long-form technical books on
+                    topics I'm passionate about. These will be detailed explorations of complex
+                    concepts, perfect for deep learning.
+                </p>
+
+                <div class="what-to-expect">
+                    <h3>What to Expect</h3>
+                    <ul class="expect-list">
+                        <li>In-depth technical guides on programming languages and systems</li>
+                        <li>Practical examples and hands-on tutorials</li>
+                        <li>Comprehensive explanations of complex concepts</li>
+                        <li>Well-structured content for learning and reference</li>
+                        <li>Free and openly available for all readers</li>
+                    </ul>
+                </div>
+
+                <div class="cta-container">
+                    <a href="/blog/" class="cta-button-primary">Read My Blog →</a>
+                    <a href="/" class="cta-button-secondary">Back to Home</a>
+                </div>
+
+                <div class="newsletter-note">
+                    <p>
+                        <strong>Stay tuned!</strong> Check back soon for the first books, or explore
+                        my blog for detailed articles on the same topics.
+                    </p>
+                </div>
+            </div>
+
+            <footer-component></footer-component>
+        </div>
+
+        <script src="/assets/footer.js"></script>
+    </body>
 </html>
