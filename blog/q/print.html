@@ -40,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fa5e6838.js";
+            window.path_to_searchindex_js = "searchindex-fea86c29.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-009f72ef.js"></script>
+        <script src="toc-8faff5ba.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,6 +188,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></strong></td><td>Feb 28, 2025</td><td>Master floating-point datatypes in Q.</td></tr>
 <tr><td><strong><a href="#measuring-compression-performance-in-qkdb">Measuring Compression Performance in Q/KDB+</a></strong></td><td>Jan 31, 2025</td><td>Find out how to measure the performance of different compression algorithm and settings.</td></tr>
 <tr><td><strong><a href="#an-introduction-to-compression-in-qkdb">An Introduction to Compression in Q/KDB+</a></strong></td><td>Oct 13, 2024</td><td>A detailed look at how compression works in Q.</td></tr>
 <tr><td><strong><a href="#command-line-arguments-in-qkdb">Command Line Arguments in Q/KDB+</a></strong></td><td>Sep 20, 2024</td><td>Discover how to customise Q session behavior using command line arguments.</td></tr>
@@ -197,6 +198,199 @@
 </tbody>
 </table>
 </div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="floating-point-datatypes-in-qkdb"><a class="header" href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></h1>
+<p><img src="images/floating_point.png" title="Cover Image" alt="Cover Image"></p>
+<p>Floating-point numbers are essential for representing real-world values that require fractional precision. These numbers are used to model quantities such as measurements, scientific data, financial calculations, and approximations of irrational numbers like \(\pi\). Unlike integers, which represent whole numbers, floating-point numbers allow for the representation of both very small and very large numbers by using a decimal point and an exponent.</p>
+<p>In Q/KDB+, floating-point numbers are implemented using two primary datatypes, each suited for different levels of precision. These datatypes are built on the IEEE 754 standard, which defines formats for representing floating-point numbers in a binary system. Understanding how floating-point numbers work in Q/KDB+ is critical for efficiently handling numerical data, particularly in high-performance time series and financial applications where precision and performance are crucial.</p>
+<p>This blog will explore how floating-point numbers behave in Q/KDB+, including their characteristics, default types, and practical considerations such as comparison tolerance and the implications of rounding errors.</p>
+<h2 id="floating-point-datatypes-in-qkdb-1"><a class="header" href="#floating-point-datatypes-in-qkdb-1">Floating-Point Datatypes in Q/KDB+</a></h2>
+<p>Q/KDB+ provides two primary floating-point datatypes:</p>
+<ul>
+<li>
+<p><code>real</code>: A 4-byte (32-bit) single-precision floating-point number, adhering to the <em>IEEE 754</em> standard. This type can hold approximately 6 decimal digits of precision.</p>
+</li>
+<li>
+<p><code>float</code>: An 8-byte (64-bit) double-precision floating-point number, also based on the <em>IEEE 754</em> standard. This type supports approximately 15 decimal digits of precision.</p>
+</li>
+</ul>
+<p>The table below provides a concise overview of the properties of <code>real</code> and <code>float</code> datatypes:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Internal Code</th><th>Character</th><th>Size (bytes)</th><th>Example</th><th>Null</th><th>Infinity</th><th>Approx. Range</th></tr>
+</thead>
+<tbody>
+<tr><td>real</td><td><code>8</code></td><td><code>e</code></td><td><code>4</code></td><td><code>17.5e</code></td><td><code>0Ne</code> <br /> <code>0ne</code></td><td><code>0We</code> <br /> <code>0we</code></td><td>\([-3.403 \times 10^{38}, 3.403 \times 10^{38}]\)</td></tr>
+<tr><td>float</td><td><code>9</code></td><td><code>f</code></td><td><code>8</code></td><td><code>17.5f</code> <br /> <code>17.5</code></td><td><code>0Nf</code> <br /> <code>0nf</code> <br /> <code>0n</code></td><td><code>0Wf</code> <br /> <code>0wf</code> <br /> <code>0w</code></td><td>\([-1.798 \times 10^{308}, 1.798 \times 10^{308}]\)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="default-floating-point-datatype"><a class="header" href="#default-floating-point-datatype">Default Floating-Point Datatype</a></h2>
+<p>In Q/KDB+, the default floating-point type is the <code>float</code>. Any number with a decimal point and without a type character suffix will automatically be a float.</p>
+<p>To explicitly define a <code>real</code>, the value must include the <code>e</code> suffix. Here are some examples:</p>
+<pre><code class="language-q">7.5e // Real
+7.5f // Float
+7.5  // Float
+.1   // Float
+1.   // Float  
+2e3  // Float (Scientific notation)
+2e3e // Real (Scientific notation)
+</code></pre>
+<h3 id="note-on-scientific-notation"><a class="header" href="#note-on-scientific-notation">Note on Scientific Notation</a></h3>
+<p>Scientific notation is a compact way of expressing numbers using powers of 10. Examples include <code>1.23e5</code> for \(1.23 \times 10^5\). For more details, see the <a href="#scientific-notation">Scientific Notation</a> section.</p>
+<h2 id="infinities-and-nulls"><a class="header" href="#infinities-and-nulls">Infinities and Nulls</a></h2>
+<p>Floating-point operations involving infinity or null values behave as expected in Q/KDB+, without wrapping like integers. For example:</p>
+<pre><code class="language-q">q)10+0we
+0we
+q)10+0w
+0w
+q)-10+0we
+0we
+q)-10+0w
+0w
+</code></pre>
+<p>Division by zero produces positive or negative infinity:</p>
+<pre><code class="language-q">q)123%0
+0w
+q)-123%0
+-0w
+</code></pre>
+<p>Dividing zero by zero produces a null <code>float</code>:</p>
+<pre><code class="language-q">q)0%0
+0n
+</code></pre>
+<h2 id="scientific-notation"><a class="header" href="#scientific-notation">Scientific Notation</a></h2>
+<p>Floating-point numbers in Q can be expressed using scientific notation, where <code>e</code> indicates the exponent:</p>
+<pre><code class="language-q">q)1.234e05
+123400f
+q)1.234e+5
+123400f
+q)1.234e5
+123400f
+q)1.234e-3
+0.001234
+</code></pre>
+<p>To the right of the <code>e</code> is a signed exponent. The <code>+</code> and leading <code>0</code> for a positive exponent are optional.</p>
+<p>To explicitly define a real in scientific notation, the <code>e</code> type suffix must be included:</p>
+<pre><code class="language-q">q)1.234e3e
+1234e
+</code></pre>
+<h2 id="display-precision-and-formatting"><a class="header" href="#display-precision-and-formatting">Display Precision and Formatting</a></h2>
+<p>The Q console defaults to displaying up to 7 significant digits for floating-point values, even though the actual stored precision may be higher. You can adjust the display precision using the <code>\P</code> system command:</p>
+<pre><code class="language-q">q)\P 2
+q)3.14159265358979323
+3.1
+
+q)\P 10
+q)3.14159265358979323
+3.141592654
+
+q)\P 0  // Full precision (17 digits for floats - the last digit is unreliable)
+q)3.14159265358979323
+3.1415926535897931
+</code></pre>
+<h2 id="comparison-tolerance"><a class="header" href="#comparison-tolerance">Comparison Tolerance</a></h2>
+<p>Floating-point comparisons in Q use a tolerance mechanism to account for precision limitations. This ensures that two values close to each other are considered equal:</p>
+<pre><code class="language-q">q)sum 7#1%7
+0.99999999999999978
+
+q)1f=sum 7#1%7
+1b
+q)1f&gt;sum 7#1%7
+0b
+q)1f&lt;sum 7#1%7
+0b
+</code></pre>
+<p>However, only zero is tolerantly the same as zero:</p>
+<pre><code class="language-q">q)0=1e-300
+0b
+q)0=0
+1b
+</code></pre>
+<p>Therefore, for intolerant comparison, one can check if</p>
+<p>\[
+0 = x - y
+\]</p>
+<pre><code class="language-q">q)1f=sum 7#1%7
+1b
+q)0=1f-sum 7#1%7
+0b
+</code></pre>
+<h3 id="built-in-comparison-tolerance"><a class="header" href="#built-in-comparison-tolerance">Built-in Comparison Tolerance</a></h3>
+<p>Comparison tolerance is automatically applied in the following cases:</p>
+<ul>
+<li>Operators: <code>=</code> <code>&lt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>&gt;</code> <code>~</code></li>
+<li>Keywords: <code>differ</code> <code>within</code></li>
+<li>Iterators: Converge, Do, and While</li>
+</ul>
+<p>However, comparison tolerance is not used in:</p>
+<ul>
+<li>Operators: <code>?</code></li>
+<li>Keywords: <code>distinct</code> <code>except</code> <code>group</code> <code>in</code> <code>inter</code> <code>union</code> <code>xgroup</code> <code>asc</code> <code>desc</code> <code>iasc</code> <code>idesc</code> <code>rank</code> <code>xasc</code> <code>xdesc</code></li>
+</ul>
+<h3 id="transitivity-caveat"><a class="header" href="#transitivity-caveat">Transitivity Caveat</a></h3>
+<pre><code class="language-q">q)a:96.099999999999994
+q)b:96.10000000001
+q)c:96.10000000002
+
+q)a=b
+1b
+q)b=c
+1b
+q)a=c
+0b
+</code></pre>
+<p>Because of this, floats are unsuitable for use as database keys or in operations that rely on strict equality.</p>
+<h3 id="formal-definition-of-tolerance"><a class="header" href="#formal-definition-of-tolerance">Formal Definition of Tolerance</a></h3>
+<p>The comparison tolerance <em>T</em> in Q/KDB+ is defined as:</p>
+<p>\[
+T = 2^{-43} \approx 1.14 \times 10^{-13}
+\]</p>
+<p>This tolerance ensures that floating-point comparisons account for small relative differences between values.</p>
+<p>Two floating-point values <em>x</em> and <em>y</em> are considered equal if:</p>
+<p>\[
+| x - y | \le T \times max(|x|, |y|)
+\]</p>
+<h4 id="why-non-zero-values-cannot-equal-zero"><a class="header" href="#why-non-zero-values-cannot-equal-zero">Why Non-Zero Values Cannot Equal Zero</a></h4>
+<p>Under this definition, no non-zero value can be considered equal to zero. Here’s the proof:</p>
+<p>\[
+\begin{align*}
+| x - 0 | &amp;\gt T \times max(|x|, |0|) \\
+|x|       &amp;\gt T \times |x| \\
+1         &amp;\gt T
+\end{align*} \qquad \forall \space x \ne 0<br>\]</p>
+<p>Since <em>T</em> is a very small positive constant, the inequality \(1 &gt; T\) always holds, making the condition true for all non-zero values of <em>x</em>.</p>
+<h2 id="additional-notes"><a class="header" href="#additional-notes">Additional Notes</a></h2>
+<h3 id="floating-point-addition-is-not-associative"><a class="header" href="#floating-point-addition-is-not-associative">Floating-Point Addition is Not Associative</a></h3>
+<p>Due to rounding errors, the order of operations can affect the result of summing floating-point values:</p>
+<pre><code class="language-q">q)\P 0
+q)x:1e-10*til 10000000
+q)sum x
+4999.9995000000017
+q)sum reverse x
+4999.9994999999999
+q){x+y} over x
+4999.9994999999635
+q){x+y} over reverse x
+4999.9995000000026
+q)sum sum 2 cut x
+4999.9995000000199
+</code></pre>
+<h3 id="datetime-comparisons"><a class="header" href="#datetime-comparisons">Datetime Comparisons</a></h3>
+<p><code>datetime</code> values in Q/KDB+ are stored as <code>float</code> and therefore use tolerance in comparisons:</p>
+<pre><code class="language-q">q)a:2000.01.02+sum 1000#1%86400
+q)b:2000.01.02T00:16:40.000
+
+q)a=b   // Tolerantly equal
+1b
+q)0=a-b // Strict comparison
+0b
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
+<p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
+<p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="measuring-compression-performance-in-qkdb"><a class="header" href="#measuring-compression-performance-in-qkdb">Measuring Compression Performance in Q/KDB+</a></h1>
 <p><img src="images/compression_perf.png" title="Cover Image" alt="Cover Image"></p>
@@ -607,7 +801,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -1148,7 +1342,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -1591,7 +1785,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -2105,7 +2299,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -2456,7 +2650,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -2612,7 +2806,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
