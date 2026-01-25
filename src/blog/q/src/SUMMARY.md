@@ -2,6 +2,7 @@
 
 [Introduction](./introduction.md)
 
+[Floating-Point Datatypes in Q/KDB+](./floating_point.md)
 [Measuring Compression Performance in Q/KDB+](./compression_perf.md)
 [An Introduction to Compression in Q/KDB+](./compression.md)
 [Command Line Arguments in Q/KDB+](./command_line_args.md)
