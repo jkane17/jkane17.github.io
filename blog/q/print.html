@@ -40,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fea86c29.js";
+            window.path_to_searchindex_js = "searchindex-4700a985.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8faff5ba.js"></script>
+        <script src="toc-f189c1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,6 +188,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#kdb-attributes">KDB+ Attributes</a></strong></td><td>May 6, 2025</td><td>Understand the basics of attributes in KDB+.</td></tr>
 <tr><td><strong><a href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></strong></td><td>Feb 28, 2025</td><td>Master floating-point datatypes in Q.</td></tr>
 <tr><td><strong><a href="#measuring-compression-performance-in-qkdb">Measuring Compression Performance in Q/KDB+</a></strong></td><td>Jan 31, 2025</td><td>Find out how to measure the performance of different compression algorithm and settings.</td></tr>
 <tr><td><strong><a href="#an-introduction-to-compression-in-qkdb">An Introduction to Compression in Q/KDB+</a></strong></td><td>Oct 13, 2024</td><td>A detailed look at how compression works in Q.</td></tr>
@@ -198,6 +199,621 @@
 </tbody>
 </table>
 </div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
+<p>KDB+ provides four attributes — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — that can be applied to lists and table columns to significantly enhance query performance. However, understanding when these attributes are preserved, lost, or best applied can be subtle and often overlooked. This blog explores how these attributes behave under common operations, where they are most effectively used, and some special behaviours — particularly of the <em>sorted</em> attribute. Whether you’re optimising an RDB or HDB, mastering attribute behaviour is key to writing efficient, high-performance KDB+ code.</p>
+<h2 id="what-is-an-attribute"><a class="header" href="#what-is-an-attribute">What is an Attribute?</a></h2>
+<p>In KDB+, an attribute is a form of metadata that can be applied to a list (also dictionaries and tables for <em>sorted</em>), provided the list has a structure compatible with that attribute. This metadata instructs the Q interpreter to apply certain optimisations when processing the list, potentially leading to significant performance improvements in queries and operations.</p>
+<p>However, attributes come with trade-offs. Maintaining attribute integrity (<a href="#attribute-preservation">attribute preservation</a>) can add complexity to your code. Additionally, attributes can introduce performance overhead, both in terms of memory usage and execution time. For a deeper exploration of performance implications, see my other blog post <a href="attr_perf_costs.html">Performance Costs of KDB+ Attributes</a>.</p>
+<h2 id="the-four-attributes"><a class="header" href="#the-four-attributes">The Four Attributes</a></h2>
+<p>KDB+ provides four attributes that can be applied to lists to enable specific performance optimisations:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Attribute</th><th>Code</th><th>Required Structure</th><th>Optimisation</th></tr>
+</thead>
+<tbody>
+<tr><td><em>Sorted</em></td><td>s</td><td>List must be sorted in ascending order.</td><td>Enables the use of binary search instead of linear search, improving search performance.</td></tr>
+<tr><td><em>Unique</em></td><td>u</td><td>List must contain only unique values.</td><td>Builds a hash table that maps each unique element to its index in the list.</td></tr>
+<tr><td><em>Parted</em></td><td>p</td><td>List must be sorted into contiguous blocks of identical elements.</td><td>Builds a hash table mapping each unique element to the index of the first element in its group.</td></tr>
+<tr><td><em>Grouped</em></td><td>g</td><td>No structural requirement.</td><td>Builds a hash table mapping each unique element to the list of indexes where it occurs.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="example-sorted-searching"><a class="header" href="#example-sorted-searching">Example: Sorted Searching</a></h3>
+<p>To illustrate how different search algorithms operate, let’s search for (the first occurrence of) the number 7 in a sorted list of numbers from 1 to 10.</p>
+<p><a href="https://en.wikipedia.org/wiki/Linear_search">Linear search</a> sequentially examines each element until a match is found (or the end of the list is reached).</p>
+<pre><code>1 2 3 4 5 6 7 8 9 10
+^                      // 1 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+^                      // 2 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+    ^                  // 3 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+    ^                  // 4 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+        ^              // 5 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+        ^              // 6 ≠ 7
+
+1 2 3 4 5 6 7 8 9 10
+            ^          // 7 = 7 → Found at index 6
+
+// Result: Item found after checking 7 elements
+</code></pre>
+<p><a href="https://en.wikipedia.org/wiki/Binary_search">Binary search</a> uses a divide-and-conquer approach and only works on sorted data.</p>
+<pre><code>1 2 3 4 5 6 7 8 9 10
+        ^              // Midpoint: 5 &lt; 7 → Search right half
+
+6 7 8 9 10
+    ^                  // Midpoint: 8 &gt; 7 → Search left half
+
+6 7
+^                      // Midpoint: 6 &lt; 7 → Search right
+
+7
+^                      // 7 = 7 → Found at index 6
+
+// Result: Item found after checking only 4 elements
+</code></pre>
+<h3 id="example-unique-hash-table"><a class="header" href="#example-unique-hash-table">Example: Unique Hash Table</a></h3>
+<p>The following example shows the internal hash table Q creates when the <em>unique</em> attribute is applied:</p>
+<pre><code class="language-q">q)mylist:`u#`a`b`c`z`y`x
+
+// Resulting hash table:
+a | 0
+b | 1
+c | 2
+z | 3
+y | 4
+x | 5
+</code></pre>
+<h3 id="example-parted-hash-table"><a class="header" href="#example-parted-hash-table">Example: Parted Hash Table</a></h3>
+<p>Here’s what Q generates when the <em>parted</em> attribute is applied:</p>
+<pre><code class="language-q">q)mylist:`p#`a`a`a`b`b`b`c`z`z`z`z`z`y`x`x
+
+// Resulting hash table:
+a | 0
+b | 3
+c | 6
+z | 7
+y | 12
+x | 13
+</code></pre>
+<h3 id="example-grouped-hash-table"><a class="header" href="#example-grouped-hash-table">Example: Grouped Hash Table</a></h3>
+<p>Finally, this example illustrates the hash table built by Q when the <em>grouped</em> attribute is used:</p>
+<pre><code class="language-q">q)mylist:`g#`a`a`b`c`z`a`z`y`x`x`c`y
+
+// Resulting hash table:
+a | 0 1 5
+b | 2
+c | 3 10
+z | 4 6
+y | 7 11
+x | 8 9
+</code></pre>
+<h2 id="attribute-operations"><a class="header" href="#attribute-operations">Attribute Operations</a></h2>
+<p>There are three primary operations related to attributes in KDB+: <strong>applying</strong>, <strong>removing</strong>, and <strong>checking</strong> attributes on a list.</p>
+<h3 id="applying"><a class="header" href="#applying">Applying</a></h3>
+<p>Attributes are applied using the <code>#</code> operator:</p>
+<pre><code class="language-q">x#y
+</code></pre>
+<p>Where:</p>
+<ul>
+<li><em>x</em> is the attribute code as a symbol (<code>`s, `u, `p, or `g</code>).</li>
+<li><em>y</em> is the list to apply the attribute to.</li>
+</ul>
+<h4 id="object-copying"><a class="header" href="#object-copying">Object Copying</a></h4>
+<p>When an attribute is applied to a list, it creates a copy of the original list with the attribute applied. We can confirm this behaviour by inspecting the reference count of the object using the internal function <code>-16!</code>, which reveals how many references point to the same memory location.</p>
+<pre><code class="language-q">q)show n:til 10
+0 1 2 3 4 5 6 7 8 9
+q)m:n
+// Both m and n point to the same object in memory
+q)-16!m
+2i
+q)-16!n
+2i
+</code></pre>
+<p>Now apply an attribute (e.g., <em>unique</em>) to <em>n</em>:</p>
+<pre><code class="language-q">q)show n:til 10
+0 1 2 3 4 5 6 7 8 9
+q)show m:`u#n
+`u#0 1 2 3 4 5 6 7 8 9
+
+// m and n now reference separate objects
+q)-16!n
+1i
+q)-16!m
+1i
+</code></pre>
+<h4 id="exception-sorted-attribute-applied-in-place"><a class="header" href="#exception-sorted-attribute-applied-in-place">Exception: Sorted Attribute Applied In-Place</a></h4>
+<p>Unlike the other attributes, the <em>sorted</em> attribute is applied in-place, i.e., it modifies the original object even without reassignment.</p>
+<pre><code class="language-q">q)n:til 10
+q)`s#n
+`s#0 1 2 3 4 5 6 7 8 9
+
+// Despite no reassignment, the attribute is applied to n
+q)n
+`s#0 1 2 3 4 5 6 7 8 9
+</code></pre>
+<p>This behaviour remains even when assigned to another variable:</p>
+<pre><code class="language-q">q)n:til 10
+q)show m:`s#n
+`s#0 1 2 3 4 5 6 7 8 9
+q)n
+`s#0 1 2 3 4 5 6 7 8 9
+
+// m and n reference separate objects
+q)-16!n
+1i
+q)-16!m
+1i
+</code></pre>
+<h4 id="other-attributes-require-reassignment"><a class="header" href="#other-attributes-require-reassignment">Other Attributes Require Reassignment</a></h4>
+<p>For all other attributes (<em>unique</em>, <em>grouped</em>, <em>parted</em>), reassignment is necessary to retain the attribute:</p>
+<pre><code class="language-q">q)n:til 10
+q)`u#n
+`u#0 1 2 3 4 5 6 7 8 9
+
+// The attribute is not preserved unless reassigned
+q)n
+0 1 2 3 4 5 6 7 8 9
+q)n:`u#n
+q)n
+`u#0 1 2 3 4 5 6 7 8 9
+</code></pre>
+<h4 id="list-structure-verification"><a class="header" href="#list-structure-verification">List Structure Verification</a></h4>
+<p>When applying the <em>sorted</em>, <em>unique</em>, or <em>parted</em> attributes, Q verifies that the list meets the required structure. If not, an error is raised:</p>
+<pre><code class="language-q">q)`s#4 2 5 1 3
+'s-fail
+  [0]  `s#4 2 5 1 3
+         ^
+
+q)`u#1 2 1 2 1
+'u-fail
+  [0]  `u#1 2 1 2 1
+         ^
+
+// For `p, Q also throws a 'u-fail if the list is not properly parted
+q)`p#1 2 1 2 1
+'u-fail
+  [0]  `p#1 2 1 2 1
+         ^
+</code></pre>
+<p>As a convenience, applying asc to a list will automatically assign the <em>sorted</em> attribute:</p>
+<pre><code class="language-q">q)show n:10?100
+93 54 38 97 88 58 68 45 2 39
+q)asc n
+`s#2 38 39 45 54 58 68 88 93 97
+</code></pre>
+<h3 id="removing"><a class="header" href="#removing">Removing</a></h3>
+<p>To remove an attribute, use the null symbol <code>`</code> as the left argument to the <code>#</code> operator:</p>
+<pre><code class="language-q">`#y
+</code></pre>
+<p>Where <em>y</em> is the list from which the attribute should be removed.</p>
+<pre><code class="language-q">q)show n:`u#til 10
+`u#0 1 2 3 4 5 6 7 8 9
+q)show n:`#n
+0 1 2 3 4 5 6 7 8 9
+</code></pre>
+<h3 id="checking"><a class="header" href="#checking">Checking</a></h3>
+<p>You can check the current attribute applied to a list using the <code>attr</code> keyword:</p>
+<pre><code class="language-q">q)show n:`u#til 10
+`u#0 1 2 3 4 5 6 7 8 9
+q)attr n
+`u
+</code></pre>
+<p>If no attribute is applied, the result is the null symbol <code>`</code>.</p>
+<pre><code class="language-q">q)show n:til 10
+0 1 2 3 4 5 6 7 8 9
+q)attr n
+`
+</code></pre>
+<h2 id="table-attributes"><a class="header" href="#table-attributes">Table Attributes</a></h2>
+<p>Most operations in KDB+ involve working with tables. Attributes are most commonly applied to table columns, and the principles for applying, removing, and checking attributes are the same as for standalone lists.</p>
+<h3 id="applying-1"><a class="header" href="#applying-1">Applying</a></h3>
+<p>Attributes can be applied to table columns either:</p>
+<ul>
+<li>At the time of table creation, or</li>
+<li>After the table is created, using an <code>update</code> statement or direct column assignment.</li>
+</ul>
+<h4 id="apply-on-creation"><a class="header" href="#apply-on-creation">Apply on creation</a></h4>
+<pre><code class="language-q">// Apply the unique attribute to col1 when creating the table
+q)show t:([] col1:`u#til 5; col2:`a`b`c`d`e)
+col1 col2
+---------
+0    a
+1    b
+2    c
+3    d
+4    e
+q)attr t`col1
+`u
+</code></pre>
+<h4 id="apply-using-update"><a class="header" href="#apply-using-update">Apply using <code>update</code></a></h4>
+<pre><code class="language-q">// Create table without attributes, then apply unique to col1
+q)t:([] col1:til 5; col2:`a`b`c`d`e)
+q)attr t`col1
+`
+q)update `u#col1 from `t
+`t
+q)attr t`col1
+`u
+</code></pre>
+<h4 id="apply-using-column-assignment"><a class="header" href="#apply-using-column-assignment">Apply using column assignment</a></h4>
+<pre><code class="language-q">// Apply attribute via direct column assignment
+q)t:([] col1:til 5; col2:`a`b`c`d`e)
+q)attr t`col1
+`
+q)t[`col1]:`u#t`col1
+q)attr t`col1
+`u
+</code></pre>
+<h3 id="removing-1"><a class="header" href="#removing-1">Removing</a></h3>
+<p>Attributes can be removed from a table column using <code>`#</code> along with either an <code>update</code> statement or a column assignment.</p>
+<h4 id="removing-using-update"><a class="header" href="#removing-using-update">Removing using <code>update</code></a></h4>
+<pre><code class="language-q">q)t:([] col1:`u#til 5; col2:`a`b`c`d`e)
+q)attr t`col1
+`u
+q)update `#col1 from `t
+`t
+q)attr t`col1
+`
+</code></pre>
+<h4 id="removing-using-column-assignment"><a class="header" href="#removing-using-column-assignment">Removing using column assignment</a></h4>
+<pre><code class="language-q">q)t:([] col1:`u#til 5; col2:`a`b`c`d`e)
+q)attr t`col1
+`u
+q)t[`col1]:`#t`col1
+q)attr t`col1
+`
+</code></pre>
+<h3 id="checking-1"><a class="header" href="#checking-1">Checking</a></h3>
+<p>You can use the <code>attr</code> keyword to inspect the attribute of an individual column:</p>
+<pre><code class="language-q">q)t:([] col1:`u#til 5; col2:`a`b`c`d`e)
+q)attr t`col1
+`u
+</code></pre>
+<p>To view all column attributes at once, use the <code>meta</code> keyword. The <code>"a"</code> field in the metadata output indicates any attribute applied to each column:</p>
+<pre><code class="language-q">q)meta t
+c   | t f a
+----| -----
+col1| j   u
+col2| s
+</code></pre>
+<h2 id="attribute-preservation"><a class="header" href="#attribute-preservation">Attribute Preservation</a></h2>
+<p>Preserving an attribute on a list can be tricky — many operations will strip an attribute, even if the structure appears unchanged. It’s important to understand which operations preserve attributes and which cause them to be lost.</p>
+<h3 id="append-operations"><a class="header" href="#append-operations">Append Operations</a></h3>
+<p>Append operations will <strong>preserve attributes</strong> (except <em>parted</em>) as long as the required structure is maintained.</p>
+<h4 id="sorted-s-attribute"><a class="header" href="#sorted-s-attribute">Sorted (s) Attribute</a></h4>
+<pre><code class="language-q">// Sorted preserved: elements appended in order
+q)show n:`s#til 10
+`s#0 1 2 3 4 5 6 7 8 9
+q)show n,:10 11 12
+`s#0 1 2 3 4 5 6 7 8 9 10 11 12
+
+// Using upsert, sorted still preserved
+q)n:`s#til 10
+q)show n:n upsert 10 11 12
+`s#0 1 2 3 4 5 6 7 8 9 10 11 12
+
+// Appending unsorted data causes attribute to be lost
+q)n:`s#til 10
+q)show n,:12 11 10
+0 1 2 3 4 5 6 7 8 9 12 11 10
+</code></pre>
+<p>Table append behaves the same</p>
+<pre><code class="language-q">q)show t:([] col1:`s#til 5; col2:`a`b`c`d`e)
+col1 col2
+---------
+0    a
+1    b
+2    c
+3    d
+4    e
+q)meta t,:([] col1:5 6 7; col2:`x`y`z)   // Sorted preserved
+c   | t f a
+----| -----
+col1| j   s
+col2| s
+q)meta t upsert flip (5 6 7;`x`y`z)      // Sorted preserved
+c   | t f a
+----| -----
+col1| j   s
+col2| s
+q)meta t upsert flip (7 6 5;`x`y`z)      // Sorted lost
+c   | t f a
+----| -----
+col1| j
+col2| s
+</code></pre>
+<h4 id="unique-u-attribute"><a class="header" href="#unique-u-attribute">Unique (u) Attribute</a></h4>
+<pre><code class="language-q">// Unique preserved: no duplicates added
+q)show n:`u#til 10
+`u#0 1 2 3 4 5 6 7 8 9
+q)show n,:10 11 12
+`u#0 1 2 3 4 5 6 7 8 9 10 11 12
+
+// Unique lost: duplicates introduced
+q)n:`u#til 10
+q)show n,:7 8 9
+0 1 2 3 4 5 6 7 8 9 7 8 9
+</code></pre>
+<h4 id="grouped-g-attribute"><a class="header" href="#grouped-g-attribute">Grouped (g) Attribute</a></h4>
+<pre><code class="language-q">// Grouped is always preserved when appending
+q)show n:`g#til 10
+`g#0 1 2 3 4 5 6 7 8 9
+q)show n,:til 10
+`g#0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
+</code></pre>
+<h3 id="comma-join--operation"><a class="header" href="#comma-join--operation">Comma Join (,) Operation</a></h3>
+<p>A standard comma join (without assignment) creates a new list, losing any attribute.</p>
+<pre><code class="language-q">q)show n:`s#til 10
+`s#0 1 2 3 4 5 6 7 8 9
+q)show n:n,10 11 12
+0 1 2 3 4 5 6 7 8 9 10 11 12
+
+// Even grouped is lost
+q)show n:`g#til 10
+`g#0 1 2 3 4 5 6 7 8 9
+q)show n:n,10 11 12
+0 1 2 3 4 5 6 7 8 9 10 11 12
+
+// Tables also lose attributes on comma join
+q)meta t:([] col1:`s#til 5; col2:`a`b`c`d`e)
+c   | t f a
+----| -----
+col1| j   s
+col2| s
+q)meta t,([] col1:5 6 7; col2:`x`y`z)
+c   | t f a
+----| -----
+col1| j
+col2| s
+</code></pre>
+<h3 id="parted-p-attribute-and-append"><a class="header" href="#parted-p-attribute-and-append">Parted (p) Attribute and Append</a></h3>
+<p>The <em>parted</em> attribute is only preserved when:</p>
+<ul>
+<li>Both lists are parted.</li>
+<li>Their group values are disjoint (except in a <a href="#special-case-shared-edge-group">special case</a>).</li>
+</ul>
+<pre><code class="language-q">// Valid parted append: disjoint values, both parted
+q)x:`p#1 1 1 2 2 3 4 4 4 4
+q)y:`p#5 6 7 7
+q)show z:x,y
+`p#1 1 1 2 2 3 4 4 4 4 5 6 7 7
+
+// Comma assign does not preserve parted
+q)show x,:y
+1 1 1 2 2 3 4 4 4 4 5 6 7 7
+
+// y not parted → attribute lost
+q)x:`p#1 1 1 2 2 3 4 4 4 4
+q)y:5 6 7 7
+q)show z:x,y
+1 1 1 2 2 3 4 4 4 4 5 6 7 7
+
+// Not disjoint → attribute lost
+q)x:`p#1 1 1 2 2 3 4 4 4 4
+q)y:`p#1 1 2
+q)show z:x,y
+1 1 1 2 2 3 4 4 4 4 1 1 2
+</code></pre>
+<h4 id="special-case-shared-edge-group"><a class="header" href="#special-case-shared-edge-group">Special Case: Shared edge group</a></h4>
+<p>If the last group in <em>x</em> is the same as the first group in <em>y</em>, and all other groups are disjoint, the attribute is preserved.</p>
+<pre><code class="language-q">// Special case: last of x = first of y
+q)x:`p#1 1 1 2 2 3 4 4 4 4
+q)y:`p#4 4 5 5 6
+q)show z:x,y
+`p#1 1 1 2 2 3 4 4 4 4 4 4 5 5 6
+
+// Not valid: disjoint condition violated
+q)x:`p#1 1 1 2 2 3 4 4 4 4
+q)y:`p#6 5 5 4 4
+q)show z:x,y
+1 1 1 2 2 3 4 4 4 4 6 5 5 4 4
+</code></pre>
+<h3 id="modification-operations"><a class="header" href="#modification-operations">Modification Operations</a></h3>
+<p>Any operation that modifies elements in a list (e.g., addition, replacement, deletion) results in a new list with no attribute.</p>
+<pre><code class="language-q">q)show n:`s#til 10
+`s#0 1 2 3 4 5 6 7 8 9
+
+// Sorted lost
+q)show m:n+1
+1 2 3 4 5 6 7 8 9 10
+
+// Even assigning back to n loses the attribute
+q)show n+:1
+1 2 3 4 5 6 7 8 9 10
+
+// Replacement loses attribute
+q)n:`s#5 10 15 20 25
+q)n[2]:16
+q)n
+5 10 16 20 25
+
+// Deletion loses attribute
+q)n:`s#til 10
+q)show n:-1_n
+0 1 2 3 4 5 6 7 8
+
+// Same behaviour applies to unique, parted, grouped
+q)n:`u#til 10; show n+:1
+q)n:`p#til 10; show n+:1
+q)n:`g#til 10; show n+:1
+</code></pre>
+<h4 id="table-modifications"><a class="header" href="#table-modifications">Table Modifications</a></h4>
+<p>Updating a table also removes column attributes:</p>
+<pre><code class="language-q">q)meta t:([] col1:`s#til 5; col2:`a`b`c`d`e)
+c   | t f a
+----| -----
+col1| j   s
+col2| s
+q)meta update col1+1 from t
+c   | t f a
+----| -----
+col1| j
+col2| s
+</code></pre>
+<h2 id="when-and-where-to-use-attributes"><a class="header" href="#when-and-where-to-use-attributes">When and Where to Use Attributes</a></h2>
+<p>Attributes are most commonly applied to table columns that are frequently queried. Choosing the right attribute depends on both:</p>
+<ul>
+<li>The structure of the data in the column (since attributes, except <em>grouped</em>, require specific ordering or uniqueness), and</li>
+<li>The cost and complexity of preserving that attribute across updates or transformations.</li>
+</ul>
+<p>The table below summarises typical use cases for each attribute in KDB+:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Attribute</th><th>Where to Apply</th></tr>
+</thead>
+<tbody>
+<tr><td><em>Sorted</em></td><td>On temporal columns (e.g., timestamps) where values naturally arrive in ascending order.</td></tr>
+<tr><td><em>Unique</em></td><td>On columns containing unique identifiers or primary keys.</td></tr>
+<tr><td><em>Parted</em></td><td>On symbol columns in a historical database (HDB) where values are fixed after initial writedown (e.g., <code>sym</code> in tick data).</td></tr>
+<tr><td><em>Grouped</em></td><td>On frequently queried columns whose values are often repeated but lack a predictable structure (common in RDBs).</td></tr>
+</tbody>
+</table>
+</div>
+<p>Attribute application should be based on your specific workload and data patterns. While attributes can offer substantial performance improvements, they come with maintenance trade-offs. Always test attribute use in your environment to verify their effectiveness before applying them broadly.</p>
+<h2 id="attribute-interaction-in-queries"><a class="header" href="#attribute-interaction-in-queries">Attribute Interaction in Queries</a></h2>
+<p>Only the first column with an attribute referenced in a where clause benefits from the attribute. Subsequent filters operate on a derived sub-table, where attributes are no longer available.</p>
+<pre><code class="language-q">q)meta t:([] col1:`s#til 5; col2:`u#`a`b`c`d`e)
+c   | t f a
+----| -----
+col1| j   s
+col2| s   u
+// Only 'col1&gt;2' benefits from an attribute
+q)select from t where col1&gt;2, col2 in `d`e
+col1 col2
+---------
+3    d
+4    e
+</code></pre>
+<p>In this example:</p>
+<ul>
+<li><code>col1&gt;2</code> benefits from the <em>sorted</em> attribute for efficient filtering.</li>
+<li><code>col2 in `d`e</code> does not leverage the <em>unique</em> attribute, since it’s applied on a sub-table.</li>
+</ul>
+<h2 id="special-applications-of-sorted"><a class="header" href="#special-applications-of-sorted">Special Applications of Sorted</a></h2>
+<p>The <em>sorted</em> attribute is unique among KDB+ attributes because it can be applied not only to lists (like all attributes) but also directly to dictionaries, tables, and keyed tables.</p>
+<h3 id="step-functions"><a class="header" href="#step-functions">Step Functions</a></h3>
+<p>Applying the <em>sorted</em> attribute to a dictionary transforms it into a step function. In this context, KDB+ will return the value associated with the largest key less than or equal to the query value:</p>
+<pre><code class="language-q">q)show d:`s#10 20 30 40 50!`a`b`c`d`e
+10| a
+20| b
+30| c
+40| d
+50| e
+q)attr d
+`s
+// Attribute is visible on the key
+q)key d
+`s#10 20 30 40 50
+
+q)d 10
+`a
+q)d 19
+`a
+q)d 20
+`b
+q)d 10000
+`e
+
+// Null since no key &lt;= 5
+q)d 5
+`
+</code></pre>
+<p>Note that the key of the dictionary must be in sorted order:</p>
+<pre><code class="language-q">q)`s#20 10 30 40 50!`a`b`c`d`e
+'s-fail
+  [0]  `s#20 10 30 40 50!`a`b`c`d`e
+         ^
+</code></pre>
+<p>A step function behaves similarly to the <code>bin</code> keyword, except it returns an index rather than a key:</p>
+<pre><code class="language-q">q)10 20 30 40 50 bin 10
+0
+q)10 20 30 40 50 bin 19
+0
+q)10 20 30 40 50 bin 20
+1
+q)10 20 30 40 50 bin 10000
+4
+// -1 since no value &lt;= 5
+q)10 20 30 40 50 bin 5
+-1
+</code></pre>
+<p>Note:</p>
+<ul>
+<li>The <em>sorted</em> attribute must be applied to the entire dictionary.</li>
+<li>Applying it to just the key list does not create a step function:</li>
+</ul>
+<pre><code class="language-q">// Not a step function – just a dictionary with a sorted key
+q)d:(`s#10 20 30 40 50)!`a`b`c`d`e
+q)attr d
+`
+q)attr key d
+`s
+q)d 19
+`
+</code></pre>
+<h3 id="tables-and-keyed-tables"><a class="header" href="#tables-and-keyed-tables">Tables and Keyed Tables</a></h3>
+<p>The behaviour of the <em>sorted</em> attribute differs depending on whether it’s applied to a simple table or a keyed table:</p>
+<h4 id="simple-tables"><a class="header" href="#simple-tables">Simple Tables</a></h4>
+<p>When <em>sorted</em> is applied to a non-keyed (simple) table, it implicitly applies the <em>parted</em> attribute to the first column only:</p>
+<pre><code class="language-q">q)meta t:([] col1:til 5; col2:`a`b`c`d`e)
+c   | t f a
+----| -----
+col1| j
+col2| s
+q)meta `s#t
+c   | t f a
+----| -----
+col1| j   p
+col2| s
+</code></pre>
+<h4 id="keyed-tables"><a class="header" href="#keyed-tables">Keyed Tables</a></h4>
+<p>For keyed tables:</p>
+<ul>
+<li>If there is only one key column, <em>sorted</em> is applied directly to that key column.</li>
+<li>If there are multiple key columns, only the first receives the <em>parted</em> attribute.</li>
+</ul>
+<pre><code class="language-q">// Single-keyed table: sorted applies to the key column
+q)meta t:([col1:til 5] col2:`a`b`c`d`e)
+c   | t f a
+----| -----
+col1| j
+col2| s
+q)meta `s#t
+c   | t f a
+----| -----
+col1| j   s
+col2| s
+
+// Multi-keyed table: parted applied to the first key only
+q)meta t:([col1:til 5;col2:`a`b`c`d`e;col3:"abcde"] col4:1 2 3 4 5f)
+c   | t f a
+----| -----
+col1| j
+col2| s
+col3| c
+col4| f
+q)meta `s#t
+c   | t f a
+----| -----
+col1| j   p
+col2| s
+col3| c
+col4| f
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
+<p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="attr_perf_benefits.html">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="floating-point-datatypes-in-qkdb"><a class="header" href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></h1>
 <p><img src="images/floating_point.png" title="Cover Image" alt="Cover Image"></p>
@@ -387,7 +1003,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -801,7 +1417,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -1342,7 +1958,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -1785,7 +2401,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -2299,7 +2915,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -2650,7 +3266,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -2806,7 +3422,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
