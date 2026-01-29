@@ -37,7 +37,8 @@ Where:
 * `level` - The [compression (zip) level](#compression-algorithms).
 * `srcFile` - The path to the uncompressed source file.
 
-> **Note:** Performance depends heavily on the number of disk seeks. Placing the source and target files on separate physical disks can reduce seek time and improve performance.
+> [!NOTE]
+> Performance depends heavily on the number of disk seeks. Placing the source and target files on separate physical disks can reduce seek time and improve performance.
 
 **Example**
 

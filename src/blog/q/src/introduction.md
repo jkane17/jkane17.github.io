@@ -6,6 +6,7 @@ Welcome to the Q/KDB+ Blog. Here you'll find articles exploring various aspects 
 
 | Title | Published | Description |
 | - | - | - |
+| **[Performance Benefits of KDB+ Attributes](./attr_perf_benefits.md)** | Aug 4, 2025 | See what benefits can be realised when using KDB+ attributes. |
 | **[KDB+ Attributes](./attributes.md)** | May 6, 2025 | Understand the basics of attributes in KDB+. |
 | **[Floating-Point Datatypes in Q/KDB+](./floating_point.md)** | Feb 28, 2025 | Master floating-point datatypes in Q. |
 | **[Measuring Compression Performance in Q/KDB+](./compression_perf.md)** | Jan 31, 2025 | Find out how to measure the performance of different compression algorithm and settings. |

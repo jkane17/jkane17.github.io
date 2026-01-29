@@ -3,13 +3,13 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Q/KDB Blog</title>
+        <title>Q/KDB+ Blog</title>
         <meta name="robots" content="noindex">
 
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="">
+        <meta name="description" content="Blogs for Q/KDB+">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -40,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4700a985.js";
+            window.path_to_searchindex_js = "searchindex-a20a1eb2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f189c1b5.js"></script>
+        <script src="toc-981f9fa5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -142,7 +142,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Q/KDB Blog</h1>
+                    <h1 class="menu-title">Q/KDB+ Blog</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -188,6 +188,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a></strong></td><td>Aug 4, 2025</td><td>See what benefits can be realised when using KDB+ attributes.</td></tr>
 <tr><td><strong><a href="#kdb-attributes">KDB+ Attributes</a></strong></td><td>May 6, 2025</td><td>Understand the basics of attributes in KDB+.</td></tr>
 <tr><td><strong><a href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></strong></td><td>Feb 28, 2025</td><td>Master floating-point datatypes in Q.</td></tr>
 <tr><td><strong><a href="#measuring-compression-performance-in-qkdb">Measuring Compression Performance in Q/KDB+</a></strong></td><td>Jan 31, 2025</td><td>Find out how to measure the performance of different compression algorithm and settings.</td></tr>
@@ -200,7 +201,347 @@
 </table>
 </div>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="performance-benefits-of-kdb-attributes"><a class="header" href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a></h1>
+<p><img src="images/attr_perf_benefits.png" title="Cover Image" alt="Cover Image"></p>
+<p>Attributes in KDB+ are powerful performance optimisations that can dramatically accelerate queries on large datasets. In this blog, we’ll dive into the tangible performance benefits they offer - measuring real-world improvements in speed and efficiency. If you’re new to attributes or want a refresher on their mechanics and use cases, check out my <a href="#kdb-attributes">previous blog post</a>  for a detailed introduction.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<ul>
+<li>Results were generated using Q/KDB+ version 4.1 (2025.04.28).</li>
+<li>Times are shown in milliseconds and space in megabytes.</li>
+<li>Figures are shown to three significant figures.</li>
+</ul>
+</blockquote>
+<h2 id="basic-list-operations"><a class="header" href="#basic-list-operations">Basic List Operations</a></h2>
+<p>To understand the impact of attributes on performance, we begin by analysing basic list operations.</p>
+<p>Each test followed this methodology:</p>
+<ol>
+<li>
+<p>A sorted list of <em>N</em> unique elements was created using <code>til N</code>.</p>
+</li>
+<li>
+<p>For binary operations, a random element from the list was selected as the second operand.</p>
+</li>
+<li>
+<p>The operation was executed on the list without any attribute, then repeated with each attribute applied.</p>
+</li>
+<li>
+<p>Steps 2–3 were repeated multiple times, and the average execution time was recorded for accuracy.</p>
+</li>
+</ol>
+<p>In addition to the primary list type, I also tested two other structures:</p>
+<ul>
+<li>A unique, unsorted list generated using <code>neg[N]?N</code> (list is sorted when applying <em>sorted</em> and <em>parted</em> attributes).</li>
+<li>A non-unique, unsorted list generated using <code>N?N div 4</code> (<em>unique</em> attribute excluded for this case).</li>
+</ul>
+<p>This allows us to determine if the underlying structure of the list affects performance trends. Unless otherwise noted, the trends were consistent across list types.</p>
+<h3 id="comparison-operators"><a class="header" href="#comparison-operators">Comparison Operators</a></h3>
+<p>KDB+ provides several standard comparison operators, familiar to users of other languages:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operator</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>=</code></td><td>Equal</td></tr>
+<tr><td><code>&lt;&gt;</code></td><td>Not Equal</td></tr>
+<tr><td><code>&lt;</code></td><td>Less Than</td></tr>
+<tr><td><code>&gt;</code></td><td>Greater Than</td></tr>
+<tr><td><code>&lt;=</code></td><td>Less Than or Equal</td></tr>
+<tr><td><code>&gt;=</code></td><td>Greater Than or Equal</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="how-the-sorted-attribute-boosts-performance"><a class="header" href="#how-the-sorted-attribute-boosts-performance">How the Sorted Attribute Boosts Performance</a></h4>
+<p>The <em>sorted</em> attribute enables Q/KDB+ to use binary search instead of linear search, significantly improving performance on large lists. Consider the following example using the less than (<code>&lt;</code>) operator:</p>
+<p>List: <code>1 2 3 4 5 6 7 8 9 10</code>, searching for <code>&lt; 7</code></p>
+<pre><code>1 2 3 4 5 6 7 8 9 10
+        ^              // Midpoint: 5 &lt; 7 → Search right half
+1 1 1 1 1 . . . . .
+
+6 7 8 9 10
+    ^                  // Midpoint: 8 &gt; 7 → Search left half
+. . 0 0 0
+
+6 7
+^                      // Midpoint: 6 &lt; 7 → Search right
+1 .
+
+7
+^                      // 7 = 7 → Done
+0
+</code></pre>
+<p>The full comparison is completed in just a few steps using binary search — far faster than checking each element sequentially.</p>
+<h4 id="equal--and-not-equal-"><a class="header" href="#equal--and-not-equal-">Equal (<code>=</code>) and Not Equal (<code>&lt;&gt;</code>)</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000408</td><td>0.000409</td><td>0.000409</td><td>0.000411</td><td>0.000407</td></tr>
+<tr><td>10,000</td><td>0.00330</td><td>0.00337</td><td>0.00335</td><td>0.00333</td><td>0.00331</td></tr>
+<tr><td>100,000</td><td>0.0481</td><td>0.0485</td><td>0.0477</td><td>0.0482</td><td>0.0483</td></tr>
+<tr><td>1,000,000</td><td>0.649</td><td>0.634</td><td>0.680</td><td>0.603</td><td>0.640</td></tr>
+<tr><td>10,000,000</td><td>7.46</td><td>7.75</td><td>7.80</td><td>7.48</td><td>7.51</td></tr>
+<tr><td>100,000,000</td><td>76.0</td><td>76.3</td><td>76.3</td><td>75.2</td><td>76.4</td></tr>
+</tbody>
+</table>
+</div>
+<p>Surprisingly, the <code>=</code> and <code>&lt;&gt;</code> operators do not appear to benefit from any attribute — even on large lists. The operation time scales roughly linearly with list count. This behaviour contrasts sharply with other comparison operators that benefit from the <em>sorted</em> attribute.</p>
+<h4 id="less-than--and-greater-than-"><a class="header" href="#less-than--and-greater-than-">Less Than (<code>&lt;</code>) and Greater Than (<code>&gt;</code>)</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.00169</td><td>0.00137</td><td>0.00176</td><td>0.00166</td><td>0.00168</td></tr>
+<tr><td>10,000</td><td>0.0128</td><td>0.00239</td><td>0.0126</td><td>0.0121</td><td>0.0124</td></tr>
+<tr><td>100,000</td><td>0.121</td><td>0.0094</td><td>0.117</td><td>0.119</td><td>0.123</td></tr>
+<tr><td>1,000,000</td><td>1.455</td><td>0.113</td><td>1.46</td><td>1.47</td><td>1.46</td></tr>
+<tr><td>10,000,000</td><td>12.8</td><td>1.06</td><td>12.8</td><td>13.0</td><td>12.9</td></tr>
+<tr><td>100,000,000</td><td>76.9</td><td>5.40</td><td>78.3</td><td>79.6</td><td>77.4</td></tr>
+</tbody>
+</table>
+</div>
+<p>These results clearly demonstrate the benefit of the <em>sorted</em> attribute for range-based comparisons. The performance gain becomes increasingly significant as the data volume grows, thanks to binary search.</p>
+<h4 id="less-than-or-equal--and-greater-than-or-equal-"><a class="header" href="#less-than-or-equal--and-greater-than-or-equal-">Less Than Or Equal (<code>&lt;</code>=) and Greater Than Or Equal (<code>&gt;=</code>)</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000724</td><td>0.000530</td><td>0.000747</td><td>0.000712</td><td>0.000710</td></tr>
+<tr><td>10,000</td><td>0.0113</td><td>0.00268</td><td>0.0113</td><td>0.0111</td><td>0.0117</td></tr>
+<tr><td>100,000</td><td>0.131</td><td>0.0186</td><td>0.137</td><td>0.134</td><td>0.132</td></tr>
+<tr><td>1,000,000</td><td>1.633</td><td>0.312</td><td>1.651</td><td>1.661</td><td>1.658</td></tr>
+<tr><td>10,000,000</td><td>16.4</td><td>3.20</td><td>16.4</td><td>16.6</td><td>16.3</td></tr>
+<tr><td>100,000,000</td><td>79.3</td><td>16.4</td><td>77.7</td><td>78.6</td><td>78.2</td></tr>
+</tbody>
+</table>
+</div>
+<p>These compound comparisons also benefit from the <em>sorted</em> attribute, although not as dramatically as their strict counterparts. This is likely because the equality portion of the operation introduces a slight overhead compared to strict inequality.</p>
+<h3 id="the-find-operator-"><a class="header" href="#the-find-operator-">The Find Operator (<code>?</code>)</a></h3>
+<p>The find operator (<code>?</code>) searches for an item in a list. If found, it returns the <strong>index of the first occurrence</strong>. If not found, it returns the <strong>count of the list</strong>, which is one past the last index.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000452</td><td>0.000350</td><td>0.000302</td><td>0.000318</td><td>0.000300</td></tr>
+<tr><td>10,000</td><td>0.00243</td><td>0.000435</td><td>0.000331</td><td>0.000369</td><td>0.000348</td></tr>
+<tr><td>100,000</td><td>0.0196</td><td>0.000361</td><td>0.000258</td><td>0.000269</td><td>0.000265</td></tr>
+<tr><td>1,000,000</td><td>0.224</td><td>0.000361</td><td>0.000244</td><td>0.000279</td><td>0.000250</td></tr>
+<tr><td>10,000,000</td><td>2.80</td><td>0.000339</td><td>0.000240</td><td>0.000253</td><td>0.000242</td></tr>
+<tr><td>100,000,000</td><td>31.1</td><td>0.000401</td><td>0.000249</td><td>0.000256</td><td>0.000284</td></tr>
+</tbody>
+</table>
+</div>
+<p>The find operation shows dramatic performance improvements when using any of the attributes. The <em>unique</em>, <em>parted</em>, and <em>grouped</em> attributes offer nearly 2× better performance than <em>sorted</em> for a list with 100 million elements.</p>
+<p>However, these three attributes require additional overhead to store internal structures (such as hash maps), whereas the <em>sorted</em> attribute does not require any extra space — making it a more lightweight option when applicable.</p>
+<h3 id="minimum-min-and-maximum-max"><a class="header" href="#minimum-min-and-maximum-max">Minimum (<code>min</code>) and Maximum (<code>max</code>)</a></h3>
+<p>The <code>min</code> and <code>max</code> functions return the smallest and largest elements in a list, respectively.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000335</td><td>0.000102</td><td>0.000320</td><td>0.000326</td><td>0.000320</td></tr>
+<tr><td>10,000</td><td>0.00203</td><td>0.0000990</td><td>0.00204</td><td>0.00204</td><td>0.00204</td></tr>
+<tr><td>100,000</td><td>0.0192</td><td>0.000104</td><td>0.0192</td><td>0.0253</td><td>0.0195</td></tr>
+<tr><td>1,000,000</td><td>0.431</td><td>0.000117</td><td>0.242</td><td>0.240</td><td>0.222</td></tr>
+<tr><td>10,000,000</td><td>5.21</td><td>0.000109</td><td>4.57</td><td>6.04</td><td>4.71</td></tr>
+<tr><td>100,000,000</td><td>55.8</td><td>0.000284</td><td>53.1</td><td>59.2</td><td>49.2</td></tr>
+</tbody>
+</table>
+</div>
+<p>When a list is <em>sorted</em>, the minimum and maximum values are simply the first and last elements. This makes these operations constant time, regardless of list count, as reflected in the table above.</p>
+<p>Other attributes (<em>unique</em>, <em>parted</em>, <em>grouped</em>) do not show meaningful benefit.</p>
+<h4 id="special-case-non-unique-unsorted-lists"><a class="header" href="#special-case-non-unique-unsorted-lists">Special Case: Non-Unique, Unsorted Lists</a></h4>
+<p>In the case of a non-unique, unsorted list, we observed a performance gain with the <em>parted</em> attribute:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000731</td><td>0.000259</td><td>0.000475</td><td>0.000764</td></tr>
+<tr><td>10,000</td><td>0.00457</td><td>0.000262</td><td>0.00112</td><td>0.00428</td></tr>
+<tr><td>100,000</td><td>0.0386</td><td>0.000275</td><td>0.0102</td><td>0.0396</td></tr>
+<tr><td>1,000,000</td><td>0.937</td><td>0.000223</td><td>0.125</td><td>1.29</td></tr>
+<tr><td>10,000,000</td><td>10.6</td><td>0.000281</td><td>1.64</td><td>6.61</td></tr>
+<tr><td>100,000,000</td><td>57.9</td><td>0.000147</td><td>20.9</td><td>63.1</td></tr>
+</tbody>
+</table>
+</div>
+<p>This improvement likely stems from how the <em>parted</em> attribute internally manages buckets of unique values. In a non-unique list, the underlying hash map only needs to examine the keys (i.e., unique values) when computing the minimum or maximum. This subset is often much smaller than the original list, making the operation faster in practice.</p>
+<h3 id="distinct-distinct"><a class="header" href="#distinct-distinct">Distinct (<code>distinct</code>)</a></h3>
+<p>The <code>distinct</code> function returns a list of the unique elements from the input list, preserving their first occurrence.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Unique</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.00290</td><td>0.00370</td><td>0.000157</td><td>0.000801</td><td>0.0150</td></tr>
+<tr><td>10,000</td><td>0.0321</td><td>0.0342</td><td>0.000135</td><td>0.00446</td><td>0.0997</td></tr>
+<tr><td>100,000</td><td>0.439</td><td>0.542</td><td>0.000228</td><td>0.183</td><td>1.50</td></tr>
+<tr><td>1,000,000</td><td>6.77</td><td>5.82</td><td>0.000209</td><td>2.24</td><td>16.5</td></tr>
+<tr><td>10,000,000</td><td>50.5</td><td>40.6</td><td>0.000212</td><td>18.2</td><td>135</td></tr>
+<tr><td>100,000,000</td><td>432</td><td>462</td><td>0.000207</td><td>159</td><td>1360</td></tr>
+</tbody>
+</table>
+</div>
+<p>With the <em>unique</em> attribute, the <code>distinct</code> operation becomes essentially free — the list is already composed of unique elements, so the function simply returns the list as-is. This results in constant-time performance, regardless of the list count.</p>
+<p>The <em>parted</em> attribute also provides a significant performance boost. This is because a parted list internally maintains a hash map of unique values, so distinct can efficiently return the map’s keys, bypassing a full scan of the list.</p>
+<p>The <em>sorted</em> attribute, by contrast, offers no substantial benefit. While sorted lists could potentially allow for early exit strategies or linear scanning, this doesn’t appear to be leveraged in the current implementation.</p>
+<p>Surprisingly, the <em>grouped</em> attribute — despite also maintaining a hash map — performs worse than having no attribute at all. The reason for this is unclear. It may be due to internal overheads in the way grouped lists are structured or accessed.</p>
+<h4 id="special-case-non-unique-unsorted-lists-1"><a class="header" href="#special-case-non-unique-unsorted-lists-1">Special Case: Non-Unique, Unsorted Lists</a></h4>
+<p>When applied to a non-unique, unsorted list, the <em>parted</em> attribute once again offers a meaningful advantage:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.00341</td><td>0.00237</td><td>0.000271</td><td>0.00219</td></tr>
+<tr><td>10,000</td><td>0.0257</td><td>0.0347</td><td>0.000685</td><td>0.0187</td></tr>
+<tr><td>100,000</td><td>0.454</td><td>0.576</td><td>0.0177</td><td>0.466</td></tr>
+<tr><td>1,000,000</td><td>7.03</td><td>8.28</td><td>0.483</td><td>4.73</td></tr>
+<tr><td>10,000,000</td><td>58.9</td><td>52.0</td><td>3.76</td><td>24.1</td></tr>
+<tr><td>100,000,000</td><td>1330</td><td>537</td><td>34.3</td><td>347</td></tr>
+</tbody>
+</table>
+</div>
+<p>In this case, the <em>parted</em> attribute delivers a ~5× improvement compared to the normal case (unique, sorted list). This confirms that <em>parted</em> is particularly effective for lists with high duplication, where the internal hash structure enables fast access to the unique keys.</p>
+<h2 id="disk-read-operations"><a class="header" href="#disk-read-operations">Disk Read Operations</a></h2>
+<p>Up to this point, we’ve explored how attributes affect in-memory lists. While useful for illustration, the more common real-world application of attributes is in on-disk (splayed) tables — particularly to optimise disk reads, which are far more costly than memory access.</p>
+<p>In this section, we evaluate a few basic queries to see how disk read performance is affected by applying attributes to specific columns.</p>
+<p>For the tests, I created several splayed tables with the following schema, each containing a different number of rows:</p>
+<pre><code class="language-q">// Schema
+([] time:`timestamp$(); sym:`symbol$(); price:`float$(); size:`long$(); side:`char$())
+</code></pre>
+<h3 id="query-time--randtime"><a class="header" href="#query-time--randtime">Query: <code>time &gt; randTime</code></a></h3>
+<p>In time-series data, the <em>time</em> column typically arrives in order, making it a good candidate for the <em>sorted</em> attribute. This query selects <em>sym</em> and <em>price</em> for rows where the time is greater than a randomly chosen timestamp:</p>
+<pre><code class="language-q">randTime:exec rand time from table
+select sym, price from table where time&gt;randTime
+</code></pre>
+<p>Both execution time and memory usage (space) was measured for two cases: with and without the <em>sorted</em> attribute on the time column.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute (Time)</th><th>Sorted (Time)</th><th>No Attribute (Space)</th><th>Sorted (Space)</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>36.0</td><td>26.3</td><td>0.374</td><td>0.250</td></tr>
+<tr><td>1,000,000</td><td>168</td><td>88.7</td><td>12.0</td><td>8.00</td></tr>
+<tr><td>10,000,000</td><td>1780</td><td>1140</td><td>192</td><td>128</td></tr>
+<tr><td>100,000,000</td><td>7210</td><td>1098</td><td>384</td><td>256</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <em>sorted</em> attribute yields substantial improvements in both speed and memory efficiency. This is due to the underlying binary search strategy enabled by sorted data, which minimises disk reads.</p>
+<h3 id="query-time--randtime-1"><a class="header" href="#query-time--randtime-1">Query: <code>time = randTime</code></a></h3>
+<p>In earlier in-memory tests, we observed that the <code>=</code> operator did not benefit from the <em>sorted</em> attribute. Here, we test whether that holds true for on-disk tables:</p>
+<pre><code class="language-q">select sym, price from table where time=randTime
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute (Time)</th><th>Sorted (Time)</th><th>No Attribute (Space)</th><th>Sorted (Space)</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>13.0</td><td>16.5</td><td>0.125</td><td>0.000458</td></tr>
+<tr><td>1,000,000</td><td>100</td><td>20.2</td><td>1.00</td><td>0.000458</td></tr>
+<tr><td>10,000,000</td><td>560</td><td>20.8</td><td>16.0</td><td>0.000458</td></tr>
+<tr><td>100,000,000</td><td>5030</td><td>18.4</td><td>128</td><td>0.000458</td></tr>
+</tbody>
+</table>
+</div>
+<p>Interestingly, when querying on-disk data, <code>=</code> benefits greatly from the <em>sorted</em> attribute — both in speed and memory usage. This is a contrast to the in-memory case, and it highlights how Q’s columnar storage and I/O behaviour differ between memory and disk.</p>
+<h3 id="query-sym--randsym"><a class="header" href="#query-sym--randsym">Query: <code>sym = randSym</code></a></h3>
+<p>The <em>sym</em> column is one of the most commonly queried columns in KDB+, often representing stock tickers or instrument identifiers. Due to its high selectivity and frequent use in filters, it is a natural candidate for attribute optimisation.</p>
+<p>In this test, we query for all rows where <em>sym</em> equals a randomly selected symbol:</p>
+<pre><code class="language-q">randSym:exec rand sym from table
+select time, side from table where sym=randSym
+</code></pre>
+<p>We evaluate four cases based on the attribute applied to the <em>sym</em> column: No Attribute, <em>Sorted</em>, <em>Parted</em>, and <em>Grouped</em>.</p>
+<h4 id="time"><a class="header" href="#time">Time</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>21.1</td><td>16.0</td><td>15.2</td><td>28.6</td></tr>
+<tr><td>1,000,000</td><td>106</td><td>22.4</td><td>24.7</td><td>19.9</td></tr>
+<tr><td>10,000,000</td><td>526</td><td>17.5</td><td>16.2</td><td>15.4</td></tr>
+<tr><td>100,000,000</td><td>6200</td><td>22.3</td><td>14.3</td><td>31.6</td></tr>
+</tbody>
+</table>
+</div>
+<p>All three attributes — <em>sorted</em>, <em>parted</em>, and <em>grouped</em> — offer significant speedups over the unoptimised case. Of these, the <em>parted</em> attribute delivers the best performance at scale. This aligns with best practices in KDB+, where the <em>sym</em> column in on-disk tables is often <em>parted</em> to optimise equality-based filters.</p>
+<h4 id="space"><a class="header" href="#space">Space</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>1.13</td><td>0.000946</td><td>0.000946</td><td>0.00140</td></tr>
+<tr><td>1,000,000</td><td>9.00</td><td>0.00259</td><td>0.00259</td><td>0.00452</td></tr>
+<tr><td>10,000,000</td><td>144</td><td>0.0356</td><td>0.0356</td><td>0.0668</td></tr>
+<tr><td>100,000,000</td><td>1150</td><td>0.282</td><td>0.282</td><td>0.532</td></tr>
+</tbody>
+</table>
+</div>
+<p>Using attributes also leads to drastic reductions in memory usage — by orders of magnitude. Notably, <em>sorted</em> and <em>parted</em> produce identical memory footprints, suggesting similar internal mechanisms in how the filter is executed. <em>Grouped</em> shows more memory use but still vastly outperforms the baseline.</p>
+<h3 id="query-max-price-by-sym"><a class="header" href="#query-max-price-by-sym">Query: <code>max price by sym</code></a></h3>
+<p>A common and often costly query pattern in KDB+ involves performing aggregations by a column — typically <em>sym</em>. These <code>select ... by ...</code> queries group data based on distinct values of a column, then apply an aggregation such as <code>max</code>, <code>min</code>, or <code>avg</code>.</p>
+<p>For this test, we perform a simple aggregation: finding the maximum price for each symbol.</p>
+<pre><code class="language-q">select max price by sym from table
+</code></pre>
+<p>We again compare performance across four attribute configurations for the <em>sym</em> column: No Attribute, <em>Sorted</em>, <em>Parted</em>, and <em>Grouped</em>.</p>
+<h4 id="time-1"><a class="header" href="#time-1">Time</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>31.6</td><td>38.4</td><td>15.4</td><td>30.6</td></tr>
+<tr><td>1,000,000</td><td>224</td><td>131</td><td>76.1</td><td>134</td></tr>
+<tr><td>10,000,000</td><td>1130</td><td>1080</td><td>543</td><td>1130</td></tr>
+<tr><td>100,000,000</td><td>12400</td><td>12300</td><td>5090</td><td>12200</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <em>parted</em> attribute yields the most significant performance improvement. This is because a <em>parted</em> column is already physically grouped by its unique values, allowing the aggregation to operate directly on these pre-formed groups without needing to reorganise the data.</p>
+<p>In contrast, <em>sorted</em> and <em>grouped</em> offer no meaningful performance advantage over the unoptimised case in this scenario.</p>
+<h4 id="space-1"><a class="header" href="#space-1">Space</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Row Count</th><th>No Attribute</th><th>Sorted</th><th>Parted</th><th>Grouped</th></tr>
+</thead>
+<tbody>
+<tr><td>100,000</td><td>1.13</td><td>1.06</td><td>0.313</td><td>1.13</td></tr>
+<tr><td>1,000,000</td><td>8.13</td><td>8.06</td><td>0.313</td><td>8.13</td></tr>
+<tr><td>10,000,000</td><td>128</td><td>128</td><td>0.313</td><td>128</td></tr>
+<tr><td>100,000,000</td><td>1024</td><td>1024</td><td>0.313</td><td>1024</td></tr>
+</tbody>
+</table>
+</div>
+<p>When using the <em>parted</em> attribute, memory usage remains constant regardless of dataset size. This suggests that no additional memory is consumed during grouping — likely because the data is already partitioned, and aggregation can proceed without intermediate allocation.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>KDB+ attributes offer a powerful way to optimise query performance by influencing how data is accessed and retrieved. As we’ve seen, each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — serves a specific purpose and can dramatically reduce query times when applied appropriately. Whether it’s enabling binary search through a <em>sorted</em> list, ensuring fast membership checks via <em>unique</em>, or accelerating group-based operations with <em>parted</em> and <em>grouped</em>, attributes are key to writing high-performance Q code.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
+<p><img src="images/attributes.png" title="Cover Image" alt="Cover Image"></p>
 <p>KDB+ provides four attributes — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — that can be applied to lists and table columns to significantly enhance query performance. However, understanding when these attributes are preserved, lost, or best applied can be subtle and often overlooked. This blog explores how these attributes behave under common operations, where they are most effectively used, and some special behaviours — particularly of the <em>sorted</em> attribute. Whether you’re optimising an RDB or HDB, mastering attribute behaviour is key to writing efficient, high-performance KDB+ code.</p>
 <h2 id="what-is-an-attribute"><a class="header" href="#what-is-an-attribute">What is an Attribute?</a></h2>
 <p>In KDB+, an attribute is a form of metadata that can be applied to a list (also dictionaries and tables for <em>sorted</em>), provided the list has a structure compatible with that attribute. This metadata instructs the Q interpreter to apply certain optimisations when processing the list, potentially leading to significant performance improvements in queries and operations.</p>
@@ -748,7 +1089,8 @@ q)10 20 30 40 50 bin 10000
 q)10 20 30 40 50 bin 5
 -1
 </code></pre>
-<p>Note:</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 <ul>
 <li>The <em>sorted</em> attribute must be applied to the entire dictionary.</li>
 <li>Applying it to just the key list does not create a step function:</li>
@@ -762,6 +1104,7 @@ q)attr key d
 q)d 19
 `
 </code></pre>
+</blockquote>
 <h3 id="tables-and-keyed-tables"><a class="header" href="#tables-and-keyed-tables">Tables and Keyed Tables</a></h3>
 <p>The behaviour of the <em>sorted</em> attribute differs depending on whether it’s applied to a simple table or a keyed table:</p>
 <h4 id="simple-tables"><a class="header" href="#simple-tables">Simple Tables</a></h4>
@@ -811,9 +1154,9 @@ col2| s
 col3| c
 col4| f
 </code></pre>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
-<p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="attr_perf_benefits.html">Performance Benefits of KDB+ Attributes</a>.</p>
+<p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="floating-point-datatypes-in-qkdb"><a class="header" href="#floating-point-datatypes-in-qkdb">Floating-Point Datatypes in Q/KDB+</a></h1>
 <p><img src="images/floating_point.png" title="Cover Image" alt="Cover Image"></p>
@@ -1003,7 +1346,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -1016,13 +1359,17 @@ q)0=a-b // Strict comparison
 <h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
 <p>To evaluate compression performance in Q/KDB+, I created a standalone tool available in the <a href="https://github.com/jkane17/qtools">QTools repository</a>. The specific script for measuring compression performance can be found <a href="https://github.com/jkane17/qtools/blob/main/src/zipPerf.q">here</a>. Simply copy or download this script to use it, and refer to the <a href="https://github.com/jkane17/qtools/blob/main/docs/zipPerf.md">documentation</a> for detailed instructions on the tool’s functions.</p>
 <p>I have included all the code used to generate the results, so you can see examples of how this tool is used throughout this blog.</p>
-<h3 id="key-notes"><a class="header" href="#key-notes">Key Notes</a></h3>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 <ul>
 <li>All times (write and read) are reported in milliseconds.</li>
 <li>Q/KDB+ version used: 4.1 (2024.05.31)</li>
 </ul>
-<h3 id="disclaimer"><a class="header" href="#disclaimer">Disclaimer</a></h3>
+</blockquote>
+<blockquote class="blockquote-tag blockquote-tag-important">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
 <p>The results of these tests can vary based on factors such as machine architecture, the specific random values used, and other environmental conditions. The results in this blog are illustrative and intended to guide you in conducting your own performance evaluations.</p>
+</blockquote>
 <h2 id="savingloading-results"><a class="header" href="#savingloading-results">Saving/Loading Results</a></h2>
 <p>Running some of these tests can be time-consuming. To avoid losing your results and allow for future analysis, you can save them to disk and reload them later. The following functions facilitate saving and loading data:</p>
 <pre><code class="language-q">dataDir:`:/&lt;DATA-PATH&gt;/data;
@@ -1417,7 +1764,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -1463,8 +1810,9 @@ readTime   70.03013 31.14028  40.45668
 <li><code>level</code> - The <a href="#compression-algorithms">compression (zip) level</a>.</li>
 <li><code>srcFile</code> - The path to the uncompressed source file.</li>
 </ul>
-<blockquote>
-<p><strong>Note:</strong> Performance depends heavily on the number of disk seeks. Placing the source and target files on separate physical disks can reduce seek time and improve performance.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>Performance depends heavily on the number of disk seeks. Placing the source and target files on separate physical disks can reduce seek time and improve performance.</p>
 </blockquote>
 <p><strong>Example</strong></p>
 <p>Let’s create a list of random data:</p>
@@ -1958,7 +2306,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -2401,7 +2749,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -2915,7 +3263,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -3266,7 +3614,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -3422,7 +3770,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
+<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
