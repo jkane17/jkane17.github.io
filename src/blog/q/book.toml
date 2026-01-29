@@ -1,6 +1,7 @@
 [book]
-title = "Q/KDB Blog"
+title = "Q/KDB+ Blog"
 authors = ["jkane17"]
+description = "Blogs for Q/KDB+"
 language = "en"
 
 [output.html]

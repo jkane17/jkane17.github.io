@@ -14,14 +14,12 @@ To evaluate compression performance in Q/KDB+, I created a standalone tool avail
 
 I have included all the code used to generate the results, so you can see examples of how this tool is used throughout this blog.
 
-### Key Notes
+> [!NOTE]
+> * All times (write and read) are reported in milliseconds.
+> * Q/KDB+ version used: 4.1 (2024.05.31)
 
-* All times (write and read) are reported in milliseconds.
-* Q/KDB+ version used: 4.1 (2024.05.31)
-
-### Disclaimer
-
-The results of these tests can vary based on factors such as machine architecture, the specific random values used, and other environmental conditions. The results in this blog are illustrative and intended to guide you in conducting your own performance evaluations.
+> [!IMPORTANT]
+> The results of these tests can vary based on factors such as machine architecture, the specific random values used, and other environmental conditions. The results in this blog are illustrative and intended to guide you in conducting your own performance evaluations.
 
 ## Saving/Loading Results
 

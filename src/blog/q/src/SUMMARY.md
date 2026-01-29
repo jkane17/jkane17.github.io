@@ -2,6 +2,7 @@
 
 [Introduction](./introduction.md)
 
+[Performance Benefits of KDB+ Attributes](./attr_perf_benefits.md)
 [KDB+ Attributes](./attributes.md)
 [Floating-Point Datatypes in Q/KDB+](./floating_point.md)
 [Measuring Compression Performance in Q/KDB+](./compression_perf.md)

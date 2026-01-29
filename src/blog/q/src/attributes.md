@@ -1,5 +1,7 @@
 # KDB+ Attributes
 
+![Cover Image](./images/attributes.png "Cover Image")
+
 KDB+ provides four attributes — *sorted*, *unique*, *parted*, and *grouped* — that can be applied to lists and table columns to significantly enhance query performance. However, understanding when these attributes are preserved, lost, or best applied can be subtle and often overlooked. This blog explores how these attributes behave under common operations, where they are most effectively used, and some special behaviours — particularly of the *sorted* attribute. Whether you’re optimising an RDB or HDB, mastering attribute behaviour is key to writing efficient, high-performance KDB+ code.
 
 ## What is an Attribute?
@@ -682,21 +684,19 @@ q)10 20 30 40 50 bin 5
 -1
 ```
 
-Note:
-
-* The *sorted* attribute must be applied to the entire dictionary.
-* Applying it to just the key list does not create a step function:
-
-```q
-// Not a step function – just a dictionary with a sorted key
-q)d:(`s#10 20 30 40 50)!`a`b`c`d`e
-q)attr d
-`
-q)attr key d
-`s
-q)d 19
-`
-```
+> [!NOTE]
+> * The *sorted* attribute must be applied to the entire dictionary.
+> * Applying it to just the key list does not create a step function:
+>```q
+>// Not a step function – just a dictionary with a sorted key
+>q)d:(`s#10 20 30 40 50)!`a`b`c`d`e
+>q)attr d
+>`
+>q)attr key d
+>`s
+>q)d 19
+>`
+>```
 
 ### Tables and Keyed Tables
 
