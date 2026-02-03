@@ -5,7 +5,7 @@ description = "Blogs for Q/KDB+"
 language = "en"
 
 [output.html]
-additional-css = ["theme/custom-highlight.css", "theme/navigation.css"]
+additional-css = ["theme/content.css","theme/custom-highlight.css", "theme/navigation.css"]
 additional-js = ["theme/navigation.js"]
 mathjax-support = true
 site-url = "/blog/q/"

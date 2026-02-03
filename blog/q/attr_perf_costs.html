@@ -1,0 +1,600 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Performance Costs of KDB+ Attributes - Q/KDB+ Blog</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Blogs for Q/KDB+">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/content-533a1c23.css">
+        <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
+        <link rel="stylesheet" href="theme/navigation-ccf6f99d.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-09616929.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-5440a831.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Q/KDB+ Blog</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="performance-costs-of-kdb-attributes"><a class="header" href="#performance-costs-of-kdb-attributes">Performance Costs of KDB+ Attributes</a></h1>
+<p><img src="./images/attr_perf_costs.png" title="Cover Image" alt="Cover Image"></p>
+<p>In my <a href="attr_perf_benefits.html">previous blog</a>, we explored how the four KDB+ attributes - <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> - can significantly improve query performance by enabling optimised search and aggregation strategies. However, these performance gains are not without cost.</p>
+<p>In this blog, we shift focus from performance gains to the performance costs associated with using attributes — specifically, their time and memory overheads. While attributes can make queries faster, they can also introduce additional processing during data updates or loading, and consume extra memory to maintain internal indexing structures such as hash maps.</p>
+<p>Through a series of targeted benchmarks and experiments, we’ll measure these overheads and derive practical models to help you predict the trade-offs. Whether you’re building real-time systems or managing large volumes of historical data, understanding the full cost profile of attributes is key to making informed design decisions in KDB+.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>Results were generated using Q/KDB+ version 4.1 (2025.04.28).</p>
+</blockquote>
+<h2 id="complexity"><a class="header" href="#complexity">Complexity</a></h2>
+<p>Firstly, there’s increased complexity in managing attributes. Certain list operations can remove an attribute, requiring developers to explicitly reapply it afterward. Failing to do so may result in unexpected performance regressions. It’s essential to be aware of such cases and apply proper safeguards.</p>
+<p>More on attribute preservation is available in my <a href="attributes.html">previous blog post</a>.</p>
+<h2 id="time-overhead"><a class="header" href="#time-overhead">Time Overhead</a></h2>
+<p>In addition to logical complexity, there’s a time cost involved when applying or maintaining attributes.</p>
+<h3 id="applying-attributes"><a class="header" href="#applying-attributes">Applying Attributes</a></h3>
+<p>Applying an attribute for the first time involves validation and setup work:</p>
+<ul>
+<li><em>sorted</em>, <em>unique</em>, and <em>parted</em> must verify order or uniqueness.</li>
+<li><em>unique</em>, <em>parted</em>, and <em>grouped</em> require the creation of internal hash maps, which grow in size with the list.</li>
+</ul>
+<p>To quantify this, we apply each attribute to a list created using <code>til N</code> and measure the average time taken:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>Sorted (ms)</th><th>Unique (ms)</th><th>Parted (ms)</th><th>Grouped (ms)</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000429</td><td>0.0246</td><td>0.0586</td><td>0.0868</td></tr>
+<tr><td>10,000</td><td>0.000291</td><td>0.234</td><td>0.556</td><td>0.965</td></tr>
+<tr><td>100,000</td><td>0.000412</td><td>3.33</td><td>9.77</td><td>16.1</td></tr>
+<tr><td>1,000,000</td><td>0.000438</td><td>38.5</td><td>86.5</td><td>155</td></tr>
+<tr><td>10,000,000</td><td>0.000306</td><td>604</td><td>1100</td><td>1610</td></tr>
+<tr><td>100,000,000</td><td>0.000796</td><td>8630</td><td>15600</td><td>28100</td></tr>
+</tbody>
+</table>
+</div>
+<p>These results show:</p>
+<ul>
+<li><em>sorted</em> is very fast to apply even for large lists.</li>
+<li><em>unique</em>, <em>parted</em>, and especially <em>grouped</em> take significantly more time, due to the hash map construction.</li>
+</ul>
+<p>We repeat the test on lists of non-unique values, created using <code>N?N div 4</code>, to see how this affects performance:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>Sorted (ms)</th><th>Parted (ms)</th><th>Grouped (ms)</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>0.000352</td><td>0.00540</td><td>0.0247</td></tr>
+<tr><td>10,000</td><td>0.000335</td><td>0.0708</td><td>0.252</td></tr>
+<tr><td>100,000</td><td>0.000329</td><td>1.13</td><td>3.00</td></tr>
+<tr><td>1,000,000</td><td>0.000542</td><td>11.9</td><td>24.8</td></tr>
+<tr><td>10,000,000</td><td>0.000610</td><td>304</td><td>457</td></tr>
+<tr><td>100,000,000</td><td>0.000357</td><td>2920</td><td>4590</td></tr>
+</tbody>
+</table>
+</div>
+<p>For a non-unique list, applying <em>parted</em> and <em>grouped</em> is faster — likely due to fewer unique keys, leading to smaller hash maps and lower memory requirements.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>If attributes are applied once at system start-up, these times are usually negligible. But, if attributes must be reapplied repeatedly — such as after frequent modifications — they can introduce real overhead.</p>
+</blockquote>
+<h3 id="maintaining-attributes"><a class="header" href="#maintaining-attributes">Maintaining Attributes</a></h3>
+<p>If you append to a list with an existing attribute and preserve the required structure (e.g., sorted order), the attribute is retained. However, maintaining it still incurs a performance cost, especially due to structure checks and hash map updates.</p>
+<p>We measure the average append time over multiple appends, where each append added 1,000 elements until the list reached 100 million elements.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Attribute</th><th>Average Append Time (ms)</th></tr>
+</thead>
+<tbody>
+<tr><td>None</td><td>0.0102</td></tr>
+<tr><td>Sorted</td><td>0.0117</td></tr>
+<tr><td>Unique</td><td>0.323</td></tr>
+<tr><td>Parted</td><td>0.0119</td></tr>
+<tr><td>Grouped</td><td>0.680</td></tr>
+</tbody>
+</table>
+</div>
+<p>The test was also repeated for 100,000 elements appends.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Attribute</th><th>Average Append Time (ms)</th></tr>
+</thead>
+<tbody>
+<tr><td>None</td><td>0.648</td></tr>
+<tr><td>Sorted</td><td>1.08</td></tr>
+<tr><td>Unique</td><td>44.8</td></tr>
+<tr><td>Parted</td><td>0.987</td></tr>
+<tr><td>Grouped</td><td>84.5</td></tr>
+</tbody>
+</table>
+</div>
+<p>These results show that:</p>
+<ul>
+<li><em>Grouped</em> and <em>unique</em> are most expensive to maintain during appends, largely due to hash map maintenance and uniqueness checks respectively.</li>
+<li>Larger appends incur a larger time cost.</li>
+</ul>
+<h2 id="space-overhead"><a class="header" href="#space-overhead">Space Overhead</a></h2>
+<p>In addition to time costs, attributes (except for <em>sorted</em>) also introduce space overhead.</p>
+<p>The <em>unique</em>, <em>parted</em>, and <em>grouped</em> attributes each maintain an internal hash map to support fast access, which increases memory usage. The size of this overhead depends on the list count and/or the count of unique elements.</p>
+<p>To measure this overhead, we use the following procedure:</p>
+<ol>
+<li>Create a list.</li>
+<li>Save it to disk.</li>
+<li>Record the file size using <code>hcount</code>.</li>
+<li>Apply the attribute.</li>
+<li>Record the new file size using <code>hcount</code>.</li>
+<li>Subtract the original size to calculate the overhead.</li>
+</ol>
+<h3 id="unique"><a class="header" href="#unique">Unique</a></h3>
+<p>The overhead introduced by the <em>unique</em> attribute depends solely on the count of the list, regardless of the data values.</p>
+<p>We measured this by applying the <em>unique</em> attribute to lists of increasing count (1 to 10,000 elements), and plotted the results:</p>
+<p><img src="../images/unique_attr_overhead.png" title="Impact of List Count on Unique Attribute Overhead" alt="Impact of List Count on Unique Attribute Overhead"></p>
+<p>The resulting step-wise growth pattern occurs because KDB+ uses a buddy memory allocation system. When the current memory block is insufficient for the hash map, the system allocates a new block twice as large, causing jumps in overhead.</p>
+<p>Interestingly, within each step, the overhead decreases linearly as list count increases — likely due to more efficient packing of the hash structure relative to the allocated memory.</p>
+<p>A portion of the data is shown below:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>List Count</th><th>Overhead (Bytes)</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td>0</td></tr>
+<tr><td><strong>1</strong></td><td><strong>16</strong></td></tr>
+<tr><td><strong>2</strong></td><td><strong>32</strong></td></tr>
+<tr><td>3</td><td>72</td></tr>
+<tr><td><strong>4</strong></td><td><strong>64</strong></td></tr>
+<tr><td>5</td><td>152</td></tr>
+<tr><td>6</td><td>144</td></tr>
+<tr><td>7</td><td>136</td></tr>
+<tr><td><strong>8</strong></td><td><strong>128</strong></td></tr>
+<tr><td>9</td><td>312</td></tr>
+<tr><td>..</td><td>..</td></tr>
+<tr><td><strong>16</strong></td><td><strong>256</strong></td></tr>
+<tr><td>17</td><td>632</td></tr>
+<tr><td>..</td><td>..</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Deriving a Formula</strong></p>
+<p>To generalise the memory overhead of the <em>unique</em> attribute, we begin by defining <em>p</em> as the next power of 2 greater than or equal to the list count <em>n</em>:</p>
+<p>\[
+p = 2 ^ {\lceil \log_{2}{n} \rceil}
+\]</p>
+<p>From the observed data, we note that whenever the list count <em>n</em> is an exact power of 2 (e.g., 1, 2, 4, 8, 16…), the overhead aligns with:</p>
+<p>\[
+\text{overhead} = 16n \quad \text{where} \space \space n = 2^k, \space \space k \in \mathbb{Z}_{\ge 0}
+\]</p>
+<p>This gives us the base overhead at each power-of-2 boundary. Between those boundaries — that is, for values of <em>n</em> such that \(n \in (p/2, p)\) — the overhead decreases by 8 bytes for every step closer to <em>p</em>. This decreasing pattern suggests the adjustment term:</p>
+<p>\[
+8(n - p)
+\]</p>
+<p>To express the general formula for any list count <em>n</em>, we substitute the fixed power-of-2 overhead (<em>16n</em>) with <em>16p</em>, since <em>p</em> is the power of 2 the list will eventually “grow into”. Applying the adjustment term, the formula becomes:</p>
+<p>\[
+\begin{align*}
+\text{overhead} &amp;= 16p - 8(n - p) \\
+&amp;= 8(3p - n)
+\end{align*}
+\]</p>
+<p>This can be computed in Q with:</p>
+<pre><code class="language-q">nextPower2:{[n] "j"$2 xexp ceiling 2 xlog n}
+
+uniqueOverhead:{[n] 8*(3*nextPower2 n)-n}
+</code></pre>
+<p>Example usage:</p>
+<pre><code class="language-q">q)uniqueOverhead 1+til 10
+16 32 72 64 152 144 136 128 312 304
+</code></pre>
+<h3 id="parted"><a class="header" href="#parted">Parted</a></h3>
+<p>The overhead of the <em>parted</em> attribute depends primarily on the count of unique elements in the list. This is because the internal hash map stores each unique value along with the index of its first occurrence.</p>
+<p>To analyse this, we tested 10,000-element lists with varying counts of unique values, from 1 to 10,000.</p>
+<p><img src="../images/parted_attr_overhead.png" title="Impact of Unique Value Count on Parted Attribute Overhead" alt="Impact of Unique Value Count on Parted Attribute Overhead"></p>
+<p>As with the <em>unique</em> attribute, we observe a step pattern, which results from KDB+ allocating memory in powers of 2 (buddy allocation system).</p>
+<p>Between each step, the overhead increases linearly with the count of unique values.</p>
+<p>A portion of the results is shown below:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Count of Unique Values</th><th>Overhead (Bytes)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>72</td></tr>
+<tr><td>2</td><td>104</td></tr>
+<tr><td>3</td><td>160</td></tr>
+<tr><td>4</td><td>168</td></tr>
+<tr><td>5</td><td>272</td></tr>
+<tr><td>6</td><td>280</td></tr>
+<tr><td>7</td><td>288</td></tr>
+<tr><td>8</td><td>296</td></tr>
+<tr><td>9</td><td>496</td></tr>
+<tr><td>..</td><td>..</td></tr>
+<tr><td>15</td><td>544</td></tr>
+<tr><td>16</td><td>552</td></tr>
+<tr><td>17</td><td>944</td></tr>
+<tr><td>..</td><td>..</td></tr>
+</tbody>
+</table>
+</div>
+<p>From this table, we see that at powers of 2 (1, 2, 4, 8, 16), the overheads are:</p>
+<pre><code>u:           1  2   4   8   16
+overhead:    72 104 168 296 552
+</code></pre>
+<p>Subtracting a constant base of 40 bytes (likely fixed overhead for the hash structure) gives:</p>
+<pre><code>32, 64, 128, 256, 512 = 32 × (1, 2, 4, 8, 16)
+</code></pre>
+<p>This suggests the overhead at powers of 2 follows:</p>
+<p>\[
+\text{overhead} = 40 + 32p
+\]</p>
+<p>where</p>
+<p>\[
+p = 2 ^ {\lceil \log_{2}{u} \rceil}
+\]</p>
+<p>and <em>u</em> is the count of unique values in the list.</p>
+<p><strong>General Formula</strong></p>
+<p>For non-power-of-2 <em>u</em>, we observe that the overhead increases by 8 bytes with each additional unique value until the next power-of-2 threshold. This incremental cost can be modelled as:</p>
+<p>\[
+8(u - p)
+\]</p>
+<p>Putting it all together, the complete formula becomes:</p>
+<p>\[
+\begin{align*}
+\text{overhead} &amp;= 40 + 32p + 8(u - p) \\
+&amp;= 8(3p + u + 5)
+\end{align*}
+\]</p>
+<p>In Q, it can be implemented as:</p>
+<pre><code class="language-q">partedOverhead:{[u] 8*5+u+3*nextPower2 u}
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)partedOverhead 1+til 10
+72 104 160 168 272 280 288 296 496 504
+</code></pre>
+<h3 id="grouped"><a class="header" href="#grouped">Grouped</a></h3>
+<p>The overhead of the <em>grouped</em> attribute depends on both the total count of the list (<em>n</em>) and the count of unique values (<em>u</em>). Internally, KDB+ builds a hash map that stores each unique value along with the indices of all its occurrences in the list, which explains this dual dependency.</p>
+<p>To measure the overhead, we tested lists of 10,000 and 20,000 elements with varying counts of unique values. For comparability, the 20,000-element list was tested only up to 10,000 unique values.</p>
+<p><img src="../images/grouped_attr_overhead.png" title="Impact of List Count &amp; Unique Value Count on Grouped Attribute Overhead" alt="Impact of List Count &amp; Unique Value Count on Grouped Attribute Overhead"></p>
+<p>The chart shows two lines — one for each total list count. For a given count of unique values, the larger list incurs higher overhead, confirming that the <em>grouped</em> attribute scales with both list count and the count of unique elements.</p>
+<h4 id="analysing-the-overhead"><a class="header" href="#analysing-the-overhead">Analysing the Overhead</a></h4>
+<p>Let’s look at a small snippet of the results for each total list count.</p>
+<p><strong>Snippet for List Count = 10,0000</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Count of Unique Values</th><th>Overhead (Bytes)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>80,088</td></tr>
+<tr><td>2</td><td>80,120</td></tr>
+<tr><td>3</td><td>80,176</td></tr>
+<tr><td>4</td><td>80,184</td></tr>
+<tr><td>5</td><td>80,288</td></tr>
+<tr><td>6</td><td>80,296</td></tr>
+<tr><td>7</td><td>80,304</td></tr>
+<tr><td>8</td><td>80,312</td></tr>
+<tr><td>9</td><td>80,512</td></tr>
+<tr><td>..</td><td>..</td></tr>
+<tr><td>15</td><td>80,560</td></tr>
+<tr><td>16</td><td>80,568</td></tr>
+<tr><td>17</td><td>80,960</td></tr>
+<tr><td>..</td><td>..</td></tr>
+</tbody>
+</table>
+</div>
+<p>At powers of 2 (1, 2, 4, 8, 16), we observe the following overheads:</p>
+<pre><code>u:         1       2       4       8       16
+overhead:  80,088  80,120  80,184  80,312  80,568
+</code></pre>
+<p>Subtracting 80,056 from these values gives:</p>
+<pre><code>32, 64, 128, 256, 512 = 32 × (1, 2, 4, 8, 16)
+</code></pre>
+<p>This suggests that for power-of-2 <em>u</em>, the overhead is:</p>
+<p>\[
+\text{overhead} = 80,056 + 32𝑝
+\]</p>
+<p>We’ll revisit the 80,056 in a moment.</p>
+<p><strong>Snippet for List Count = 20,0000</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Count of Unique Values</th><th>Overhead (Bytes)</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>160,088</td></tr>
+<tr><td>2</td><td>160,120</td></tr>
+<tr><td>3</td><td>160,176</td></tr>
+<tr><td>4</td><td>160,184</td></tr>
+<tr><td>5</td><td>160,288</td></tr>
+<tr><td>6</td><td>160,296</td></tr>
+<tr><td>7</td><td>160,304</td></tr>
+<tr><td>8</td><td>160,312</td></tr>
+<tr><td>9</td><td>160,512</td></tr>
+<tr><td>..</td><td>..</td></tr>
+<tr><td>15</td><td>160,560</td></tr>
+<tr><td>16</td><td>160,568</td></tr>
+<tr><td>17</td><td>160,960</td></tr>
+<tr><td>..</td><td>..</td></tr>
+</tbody>
+</table>
+</div>
+<p>Again, for powers of 2:</p>
+<pre><code>u:        1        2        4        8        16
+overhead: 160,088  160,120  160,184  160,312  160,568
+</code></pre>
+<p>Subtracting 160,056 yields the same \(32 × p\) pattern</p>
+<p><strong>Interpreting the Base Overhead</strong></p>
+<p>Notice that:</p>
+<ul>
+<li>For the 10,000-element list, the offset was 80,056</li>
+<li>For the 20,000-element list, it was 160,056</li>
+</ul>
+<p>This suggests the base overhead grows linearly with the list count. Specifically:</p>
+<p>\[
+\begin{align*}
+80,056 &amp;= 56 + 8 × 10,000 \\
+160,056 &amp;= 56+8×20,000
+\end{align*}
+\]</p>
+<p>So, the general base overhead is:</p>
+<p>\[
+base = 56 + 8n
+\]</p>
+<p>where <em>n</em> is the total count of the list, and 56 is likely a fixed base cost for the internal structure.</p>
+<h4 id="general-formula"><a class="header" href="#general-formula">General Formula</a></h4>
+<p>For non-power-of-2 u, we again see 8-byte increments per unique value until the next power-of-2 is reached. Thus, the total overhead can be expressed as:</p>
+<p>\[
+\begin{align*}
+\text{overhead} &amp;= 56 + 8n + 32p + 8(u - p) \\
+&amp;= 8(3p + n + u + 7)
+\end{align*}
+\]</p>
+<p>Where:</p>
+<ul>
+<li><em>n</em> is the list count.</li>
+<li><em>u</em> is the count of unique values.</li>
+<li><em>p</em> is the next power of 2 greater than or equal to <em>u</em>.</li>
+</ul>
+<p><strong>Q Implementation</strong></p>
+<pre><code class="language-q">groupedOverhead:{[n;u] 8*7+n+u+3*nextPower2 u}
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-q">q)groupedOverhead[10000;] 1+til 10
+80088 80120 80176 80184 80288 80296 80304 80312 80512 80520
+
+q)groupedOverhead[20000;] 1+til 10
+160088 160120 160176 160184 160288 160296 160304 160312 160512 160520
+</code></pre>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>The formulas derived for computing attribute overheads are based on the current internal implementation of KDB+. As such, they may change in future versions if the underlying architecture is modified.
+However, the methodology used to derive these formulas — through systematic measurement and pattern analysis — can still be applied to recalculate overheads if needed. The approach is general and remains valid even if the specific outcomes evolve over time.</p>
+</blockquote>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>While KDB+ attributes offer powerful query optimisations, we have shown that these benefits come with measurable costs in time and memory.</p>
+<p>We’ve seen that attributes like <em>unique</em>, <em>parted</em>, and <em>grouped</em> maintain internal data structure — typically hash maps — that vary in size depending on both the total count of the list and the count of unique values. This leads to non-trivial memory overhead, which can scale into hundreds of megabytes or more for large datasets.</p>
+<p>We also observed that applying attributes can incur time overhead during operations like loading, writing, or updating data — particularly for attributes that require hashing or maintaining metadata during write time.</p>
+<p>The key takeaway is that attributes are not free. Their use should be deliberate and informed. If the expected query performance improvement outweighs the storage and update costs, they can be extremely valuable. But for infrequently queried or write-heavy data, the overhead might not justify their use.</p>
+<p>As always with performance tuning, measure before and after, and choose the right tool for the workload.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="attr_perf_benefits.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="attr_perf_benefits.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-2c2089fd.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/navigation-8d154390.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
