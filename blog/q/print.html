@@ -41,10 +41,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-09616929.js";
+            window.path_to_searchindex_js = "searchindex-64b11320.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5440a831.js"></script>
+        <script src="toc-d1cf8374.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#kdb-x-modules">KDB-X Modules</a></strong></td><td>Nov 25, 2025</td><td>Learn the basics of the KDB-X module system.</td></tr>
 <tr><td><strong><a href="#performance-costs-of-kdb-attributes">Performance Costs of KDB+ Attributes</a></strong></td><td>Aug 15, 2025</td><td>Explore the performance costs that KDB+ attributes can have.</td></tr>
 <tr><td><strong><a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a></strong></td><td>Aug 4, 2025</td><td>See what performance benefits can be realised when using KDB+ attributes.</td></tr>
 <tr><td><strong><a href="#kdb-attributes">KDB+ Attributes</a></strong></td><td>May 6, 2025</td><td>Understand the basics of attributes in KDB+.</td></tr>
@@ -202,6 +203,218 @@
 </tbody>
 </table>
 </div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="kdb-x-modules"><a class="header" href="#kdb-x-modules">KDB-X Modules</a></h1>
+<p><img src="images/kdbx_modules.png" title="Cover Image" alt="Cover Image"></p>
+<p>Most modern programming languages provide a module system to support clean encapsulation, code reuse, and easy distribution of functionality. Q/KDB+, however, historically developed without such a system. Its smaller open-source ecosystem, combined with its primarily closed-source usage inside large financial institutions, meant that developers typically relied on manually copying small <code>.q</code> files directly into their projects.</p>
+<p>But the Q/KDB+ ecosystem has matured. As its community grows and expectations align more closely with those of other modern languages, the need for a proper module system has become clear. With the introduction of KDB-X, that gap has finally been filled: modules are now a first-class part of the language.</p>
+<p>In this blog, we’ll explore the new KDB-X module system — how it works, how to incorporate modules created by others into your own projects, and how to develop and share your own modules with the broader community.</p>
+<h2 id="what-are-modules"><a class="header" href="#what-are-modules">What Are Modules?</a></h2>
+<p>In KDB-X, a module is a self-contained unit of encapsulation: it has its own local namespace to hold functions, variables, and internal state, separate from the global q environment. Modules explicitly expose parts of their interface through an <code>export</code> dictionary, allowing other code to import and use only the intended elements via the <code>use</code> function. This design supports isolation (modules do not pollute the global namespace) and portability (each module lives in a well-defined file or directory structure).</p>
+<h2 id="creating-a-module"><a class="header" href="#creating-a-module">Creating A Module</a></h2>
+<p>To demonstrate how to build a module in KDB-X, let’s create a simple command-line argument parser called <code>clap.q</code>.</p>
+<p>We’ll start by defining a function to register command-line arguments. This function stores the argument name and associated metadata in a private table:</p>
+<pre><code class="language-q">// Table to hold command line arguments.
+args:([name:1#`] val:1#(); default:1#(); description:1#());
+
+// Register a command line argument to be parsed.
+register:{[name;default;description] 
+    `args upsert ([name;default;description]);
+ };
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>name</code> - the argument name (provided as <code>-name</code> on the command line).</li>
+<li><code>val</code> - the parsed value (set later when parsing).</li>
+<li><code>default</code> - the default value if the argument is not supplied (see my <a href="#command-line-arguments-in-qkdb">previous blog</a> for details on how <code>.Q.def</code> handles defaults).</li>
+<li><code>description</code> - a short human-readable description.</li>
+</ul>
+<p>To make <code>register</code> part of our public API, we export it. The <code>export</code> dictionary lists the functions or variables intended to be visible outside the module. Here we use the dictionary-literal syntax introduced in q 4.1:</p>
+<pre><code class="language-q">export:([register]);
+</code></pre>
+<p>Next, the module must live somewhere on q’s module search path (see <a href="https://code.kx.com/kdb-x/modules/module-framework/quickstart.html#search-path">Search path</a> in the KDB-X documentation). You could add your own directories to <code>QPATH</code>, but for simplicity we’ll copy <code>clap.q</code> into the default module directory:</p>
+<pre><code class="language-bash">$ cp clap.q $QHOME/mod/qlib/.
+</code></pre>
+<p>I’m using a <code>qlib</code> subdirectory to keep my own modules organised, but any name works. From here on, we will edit <code>$QHOME/mod/qlib/clap.q</code> directly.</p>
+<p>If <code>QHOME</code> is not set, it simply refers to the root of your KX installation—for example: <code>/home/user/.kx/.</code></p>
+<p>We can now load our module using the new <code>use</code> keyword:</p>
+<pre><code class="language-q">q)show clap:use`qlib.clap
+register| {[name;default;description]
+    `args upsert ([name;default;description]);
+ }
+</code></pre>
+<p>We see the exported <code>register</code> function, but not the private <code>args</code> table.</p>
+<h3 id="registering-an-argument"><a class="header" href="#registering-an-argument">Registering an Argument</a></h3>
+<p>Let’s register an argument:</p>
+<pre><code class="language-q">q)clap.register[`myArg; 0; "My argument of long type"]
+</code></pre>
+<p>No error is signalled, but we currently have no way to confirm whether it worked.</p>
+<p>To inspect things while developing, let’s temporarily expose <code>args</code> by adding it to export:</p>
+<pre><code class="language-q">export:([args; register]);
+</code></pre>
+<p>Reloading in a new q session:</p>
+<pre><code class="language-q">q)clap:use`qlib.clap
+
+q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.args
+name| val default description
+----| -----------------------
+    |  
+</code></pre>
+<p>The table is still empty. This illustrates a key behaviour of the module system: <strong>exported values are copies, not references</strong>. The module’s private data remains private unless you expose explicit accessors.</p>
+<p>Let’s add a getter:</p>
+<pre><code class="language-q">// Get the args table.
+getArgs:{[] args};
+
+// Don't forget to export getArgs.
+export:([getArgs; register]);
+</code></pre>
+<p>If we reload using <code>use</code>, nothing appears to change:</p>
+<pre><code class="language-q">q)show clap:use`qlib.clap
+args    | ...
+register| ...
+</code></pre>
+<p>This is because q caches modules. Reloading with <code>use</code> will not re-run the module unless forced. To refresh a module in the current session without restarting q, use <code>.Q.m.reuse</code>:</p>
+<pre><code class="language-q">q)show clap:.Q.m.reuse `qlib.clap
+getArgs | {[] args}
+register| ...
+</code></pre>
+<p>Now we see the updated exports.</p>
+<p>Registering again (since the module was reloaded) and running the <code>getArgs</code> function:</p>
+<pre><code class="language-q">q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.getArgs[]
+name| val default description
+----| -----------------------
+    |  
+</code></pre>
+<p>We still see an empty table. The problem is inside the <code>register</code> function itself.</p>
+<p>When we wrote:</p>
+<pre><code class="language-q">args upsert ...
+</code></pre>
+<p><code>args</code> resolves to a global variable, not the module’s private variable. Indeed:</p>
+<pre><code class="language-q">q)args
+name       | `myArg
+default    | 0
+description| "My argument of long type"
+</code></pre>
+<p>This is the row we attempted to upsert.</p>
+<p>Inside module code, names appear global, but at runtime the module is wrapped in its own namespace. To modify the module’s internal state, we must assign back into the namespace explicitly:</p>
+<pre><code class="language-q">register:{[name;default;description]
+    args::args upsert ([name;default;description]);
+ };
+</code></pre>
+<p>Trying again:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.getArgs[]                                         // Empty initially
+name| val default description
+----| -----------------------
+    |                        
+
+q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.getArgs[]                                         // We now see the registered argument
+name | val default description               
+-----| --------------------------------------
+     |     ()      ()                        
+myArg|     0       "My argument of long type"
+</code></pre>
+<p>Now we see the expected row. The empty first row is simply a “type-padding” row to prevent column type promotion (e.g., <code>val</code> and <code>default</code> may contain mixed types).</p>
+<h3 id="parsing-the-command-line"><a class="header" href="#parsing-the-command-line">Parsing the Command-Line</a></h3>
+<p>After registering arguments, we need to parse the command line. First, let’s add a utility to retrieve the raw parsed arguments:</p>
+<pre><code class="language-q">// Get the raw command line values, organised into a dictionary (name-value pairs).
+raw:{[] .Q.opt .z.X};
+
+export:([getArgs; raw; register]);
+</code></pre>
+<p>Reload:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.raw[]
+p| "5000"
+</code></pre>
+<p>Now restart q with more arguments:</p>
+<pre><code class="language-bash">$ q -p 5000 -myArg1 10 -myArg2 hello
+</code></pre>
+<p>Then:</p>
+<pre><code class="language-q">q)clap:use`qlib.clap
+
+q)clap.raw[]
+p     | "5000" 
+myArg1| "10"   
+myArg2| "hello
+</code></pre>
+<p>To parse arguments, we need to:</p>
+<ol>
+<li>Convert each supplied value to the correct type (falling back to the default when not supplied).</li>
+<li>Update the <code>val</code> column in the <code>args</code> table.</li>
+</ol>
+<p>We’ll add a <code>parse</code> function. Since <code>parse</code> is a reserved keyword in q, we define it inside the module namespace <code>.z.m</code>.</p>
+<pre><code class="language-q">// Parse command line.
+.z.m.parse:{[]
+    args::args upsert flip `name`val!(key;value)@\:
+        exec .Q.def[name!default;.z.m.raw[]] from args;
+ };
+
+export:([getArgs; .z.m.parse; raw; register]);
+</code></pre>
+<p>Reload and test:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.register[`myArg1; 0;   "Given argument of long type"]
+
+q)clap.register[`myArg3; 0.0; "Not given argument of float type"]
+
+q)clap.parse[]
+
+q)clap.getArgs[]
+name  | val      default description                       
+------| ---------------------------------------------------
+      | ()       ()      ()                                
+myArg1| 10       0       "Given argument of long type"     
+myArg3| 0f       0f      "Not given argument of float type"
+p     | ,"5000"  ()      ()                                
+myArg2| ,"hello" ()      ()
+</code></pre>
+<p>The results reflect:</p>
+<ul>
+<li><code>myArg1</code> → value from the command line (<code>10</code>)</li>
+<li><code>myArg3</code> → default value (<code>0f</code>)</li>
+<li><code>myArg2</code> and <code>p</code> → present but unregistered, so they remain raw enlisted strings</li>
+</ul>
+<h3 id="a-public-accessor-api"><a class="header" href="#a-public-accessor-api">A Public Accessor API</a></h3>
+<p><code>getArgs</code> has been useful for debugging but should not be part of a clean public API. Instead, let’s provide a simple accessor:</p>
+<pre><code class="language-q">// Get the value of an argument.
+.z.m.get:{[name] args[name;`val]};   // get is reserved, so use .z.m.get
+
+export:([.z.m.get; .z.m.parse; raw; register]);
+</code></pre>
+<p>Example usage (after reload, re-register, and parse):</p>
+<pre><code class="language-q">q)clap.get`myArg1
+10
+
+q)clap.get`myArg2
+"hello"
+
+q)clap.get`myArg3
+0f
+
+q)clap.get`p
+"5000"
+
+q)clap.get`nonExistingArg    // Returns ()
+</code></pre>
+<p>I’ve added many more features to the <em>clap</em> module, which you can find here: <a href="https://github.com/jkane17/qlib/tree/main">jkane17/qlib</a>.</p>
+<h2 id="sharing-your-modules"><a class="header" href="#sharing-your-modules">Sharing Your Modules</a></h2>
+<p>As of now, KDB-X does not yet have a dedicated package registry, largely because the module system is still new and the ecosystem is relatively small. Sharing modules is therefore straightforward: publish your code on GitHub or any similar hosting platform, and users can download it and place it into their own <code>mod/</code> directory (or anywhere else on their configured module search path).</p>
+<p>Note that while the only requirement for sharing a module is providing the q source file(s), it’s highly recommended to include documentation describing what the module does, how to use it, and any assumptions or dependencies it has. Clear documentation makes your module far easier for others to adopt, understand, and build upon.</p>
+<h2 id="using-modules-from-others"><a class="header" href="#using-modules-from-others">Using Modules From Others</a></h2>
+<p>KX ships a collection of official modules with every KDB-X installation, documented <a href="https://code.kx.com/kdb-x/modules/module-index.html#official-kx-modules">here</a>. The same page also catalogues a range of open-source modules, which are useful both as ready-made components and as examples of good module design. To use any external module, simply download its source files and place them somewhere on your module search path — commonly within your <code>mod/</code> directory — after which it can be imported with <code>use</code> like any other module.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The introduction of a module system in KDB-X marks an important step forward for the q ecosystem. Modules provide structure, encapsulation, and clarity — allowing developers to build cleaner codebases, share functionality more easily, and avoid the common pitfalls of global namespaces. Although the ecosystem is still young and a centralised package registry has yet to emerge, the foundations are now in place for a more collaborative and reusable approach to q development.</p>
+<p>Whether you are incorporating modules written by others or creating your own, the new system offers a practical, modern way to organise and distribute functionality. As the community continues to grow, shared modules and best practices will evolve alongside it. I hope this tutorial has given you a clear understanding of how KDB-X modules work and inspired you to start building and sharing your own.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="performance-costs-of-kdb-attributes"><a class="header" href="#performance-costs-of-kdb-attributes">Performance Costs of KDB+ Attributes</a></h1>
 <p><img src="images/attr_perf_costs.png" title="Cover Image" alt="Cover Image"></p>
@@ -557,7 +770,7 @@ q)groupedOverhead[20000;] 1+til 10
 <p>The formulas derived for computing attribute overheads are based on the current internal implementation of KDB+. As such, they may change in future versions if the underlying architecture is modified.
 However, the methodology used to derive these formulas — through systematic measurement and pattern analysis — can still be applied to recalculate overheads if needed. The approach is general and remains valid even if the specific outcomes evolve over time.</p>
 </blockquote>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>While KDB+ attributes offer powerful query optimisations, we have shown that these benefits come with measurable costs in time and memory.</p>
 <p>We’ve seen that attributes like <em>unique</em>, <em>parted</em>, and <em>grouped</em> maintain internal data structure — typically hash maps — that vary in size depending on both the total count of the list and the count of unique values. This leads to non-trivial memory overhead, which can scale into hundreds of megabytes or more for large datasets.</p>
 <p>We also observed that applying attributes can incur time overhead during operations like loading, writing, or updating data — particularly for attributes that require hashing or maintaining metadata during write time.</p>
@@ -900,7 +1113,7 @@ select time, side from table where sym=randSym
 </table>
 </div>
 <p>When using the <em>parted</em> attribute, memory usage remains constant regardless of dataset size. This suggests that no additional memory is consumed during grouping — likely because the data is already partitioned, and aggregation can proceed without intermediate allocation.</p>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>KDB+ attributes offer a powerful way to optimise query performance by influencing how data is accessed and retrieved. As we’ve seen, each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — serves a specific purpose and can dramatically reduce query times when applied appropriately. Whether it’s enabling binary search through a <em>sorted</em> list, ensuring fast membership checks via <em>unique</em>, or accelerating group-based operations with <em>parted</em> and <em>grouped</em>, attributes are key to writing high-performance Q code.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
@@ -1517,7 +1730,7 @@ col2| s
 col3| c
 col4| f
 </code></pre>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
 <p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1709,7 +1922,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -2127,7 +2340,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -2669,7 +2882,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -2966,7 +3179,7 @@ q).z.x
 "5000"
 </code></pre>
 <p>The first item in this list is the path to the Q executable, followed by all the options passed in the command line, including both custom and built-in options, in the order they were provided.</p>
-<h2 id="parsing-the-command-line"><a class="header" href="#parsing-the-command-line">Parsing the Command Line</a></h2>
+<h2 id="parsing-the-command-line-1"><a class="header" href="#parsing-the-command-line-1">Parsing the Command Line</a></h2>
 <p><code>.z.x</code> and <code>.z.X</code> provide a way to view the options and arguments supplied at the command line. However, extracting the values manually from these strings can be cumbersome.</p>
 <p>Fortunately, Q offers a more convenient way to parse the command line options.</p>
 <h3 id="converting-to-a-dictionary-with-qopt"><a class="header" href="#converting-to-a-dictionary-with-qopt">Converting to a Dictionary with <code>.Q.opt</code></a></h3>
@@ -3112,7 +3325,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -3626,7 +3839,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
+<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -3977,7 +4190,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
+<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -4133,7 +4346,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
+<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>

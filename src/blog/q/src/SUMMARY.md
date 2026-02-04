@@ -2,6 +2,7 @@
 
 [Introduction](./introduction.md)
 
+[KDB-X Modules](./kdbx_modules.md)
 [Performance Costs of KDB+ Attributes](./attr_perf_costs.md)
 [Performance Benefits of KDB+ Attributes](./attr_perf_benefits.md)
 [KDB+ Attributes](./attributes.md)

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Analysis of Q Memory Allocation - Q/KDB+ Blog</title>
+        <title>KDB-X Modules - Q/KDB+ Blog</title>
 
 
         <!-- Custom HTML head -->
@@ -179,168 +179,229 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="analysis-of-q-memory-allocation"><a class="header" href="#analysis-of-q-memory-allocation">Analysis of Q Memory Allocation</a></h1>
-<p><img src="./images/analysis_of_q_memory_allocation.png" title="Cover Image" alt="Cover Image"></p>
-<p>Memory allocation is a crucial aspect of any programming language, affecting performance and resource management. This blog delves into how the Q programming language handles memory allocation using the buddy memory allocation system.</p>
-<h2 id="buddy-memory-allocation-in-q"><a class="header" href="#buddy-memory-allocation-in-q">Buddy Memory Allocation in Q</a></h2>
-<p>Q uses a form of <a href="https://en.wikipedia.org/wiki/Buddy_memory_allocation">buddy memory allocation</a> for its memory management. Memory is requested in chunks whose sizes are powers of two, regardless of the actual memory required by an object.</p>
-<p>For instance, if an object needs 1,000 bytes, a block of 1,024 bytes (\(2^{10}\)) will be allocated. If the object grows to need 1,025 bytes, the allocated block size will increase to 2,048 bytes (\(2^{11}\)). This system allows efficient memory usage by minimising the frequency of allocations as objects grow.</p>
-<h2 id="list-memory-usage"><a class="header" href="#list-memory-usage">List Memory Usage</a></h2>
-<p>A long integer in Q is an 8-byte value. Thus, a list of <em>N</em> long integers requires \(8 \times N\) bytes of memory. We can use the <code>-22!</code> command to check the uncompressed length (in bytes) of a list.</p>
-<p><strong>Example</strong></p>
-<p>Creating a list of 10,000,000 long integers and viewing its memory usage:</p>
-<pre><code class="language-q">q)mylist:til 10000000
+                        <h1 id="kdb-x-modules"><a class="header" href="#kdb-x-modules">KDB-X Modules</a></h1>
+<p><img src="./images/kdbx_modules.png" title="Cover Image" alt="Cover Image"></p>
+<p>Most modern programming languages provide a module system to support clean encapsulation, code reuse, and easy distribution of functionality. Q/KDB+, however, historically developed without such a system. Its smaller open-source ecosystem, combined with its primarily closed-source usage inside large financial institutions, meant that developers typically relied on manually copying small <code>.q</code> files directly into their projects.</p>
+<p>But the Q/KDB+ ecosystem has matured. As its community grows and expectations align more closely with those of other modern languages, the need for a proper module system has become clear. With the introduction of KDB-X, that gap has finally been filled: modules are now a first-class part of the language.</p>
+<p>In this blog, we’ll explore the new KDB-X module system — how it works, how to incorporate modules created by others into your own projects, and how to develop and share your own modules with the broader community.</p>
+<h2 id="what-are-modules"><a class="header" href="#what-are-modules">What Are Modules?</a></h2>
+<p>In KDB-X, a module is a self-contained unit of encapsulation: it has its own local namespace to hold functions, variables, and internal state, separate from the global q environment. Modules explicitly expose parts of their interface through an <code>export</code> dictionary, allowing other code to import and use only the intended elements via the <code>use</code> function. This design supports isolation (modules do not pollute the global namespace) and portability (each module lives in a well-defined file or directory structure).</p>
+<h2 id="creating-a-module"><a class="header" href="#creating-a-module">Creating A Module</a></h2>
+<p>To demonstrate how to build a module in KDB-X, let’s create a simple command-line argument parser called <code>clap.q</code>.</p>
+<p>We’ll start by defining a function to register command-line arguments. This function stores the argument name and associated metadata in a private table:</p>
+<pre><code class="language-q">// Table to hold command line arguments.
+args:([name:1#`] val:1#(); default:1#(); description:1#());
 
-q)-22!mylist 
-80000014
+// Register a command line argument to be parsed.
+register:{[name;default;description] 
+    `args upsert ([name;default;description]);
+ };
 </code></pre>
-<p>The list requires 80,000,014 bytes. The extra 14 bytes store metadata about the list, such as type, count, reference count, and attributes. This overhead is consistent across lists in Q.</p>
-<pre><code class="language-q">// A list of 2 longs : (2 * 8) + 14 = 30
-q)-22!til 2
-30
-
-// A list of 5 chars : (5 * 1) + 14 = 19
-q)-22!"hello"
-19
-</code></pre>
-<h2 id="heap-allocation"><a class="header" href="#heap-allocation">Heap Allocation</a></h2>
-<h3 id="initial-memory-usage"><a class="header" href="#initial-memory-usage">Initial Memory Usage</a></h3>
-<p>In a fresh Q session, we can check the initial used and heap memory:</p>
-<pre><code class="language-q">q)show before:`used`heap#.Q.w[]
-used| 362736
-heap| 67108864
-</code></pre>
+<p>Here:</p>
 <ul>
-<li>
-<p><strong>Used Memory</strong>: Total memory currently used by all defined objects in the Q process, including internal structures.</p>
-</li>
-<li>
-<p><strong>Heap Memory</strong>: Total system memory allocated to the Q process, initially 64 MB (\(2^{26}\) bytes).</p>
-</li>
+<li><code>name</code> - the argument name (provided as <code>-name</code> on the command line).</li>
+<li><code>val</code> - the parsed value (set later when parsing).</li>
+<li><code>default</code> - the default value if the argument is not supplied (see my <a href="./command_line_args.html">previous blog</a> for details on how <code>.Q.def</code> handles defaults).</li>
+<li><code>description</code> - a short human-readable description.</li>
 </ul>
-<h3 id="dynamic-memory-allocation"><a class="header" href="#dynamic-memory-allocation">Dynamic Memory Allocation</a></h3>
-<p>As memory demands increase, the heap size will adjust accordingly. For instance, creating a list of 10,000,000 longs:</p>
-<pre><code class="language-q">q)mylist:til 10000000
-
-q)show after:`used`heap#.Q.w[]
-used| 134580608
-heap| 201326592
+<p>To make <code>register</code> part of our public API, we export it. The <code>export</code> dictionary lists the functions or variables intended to be visible outside the module. Here we use the dictionary-literal syntax introduced in q 4.1:</p>
+<pre><code class="language-q">export:([register]);
 </code></pre>
-<p>The heap size increased to accommodate the list. The heap size formula in Q is:</p>
-<p>\[
-2^{26} + 2^{n} \times x
-\]</p>
-<p>where \(n \ge 26\) and <em>x</em> is 0 or 1 depending on whether the initial memory is sufficient or not.</p>
-<h3 id="example-calculation"><a class="header" href="#example-calculation">Example Calculation</a></h3>
-<p>Creating a list of 10,000,000 longs requires 80,000,014 bytes. Initially, the heap size is 64 MB. After creating the list, the heap increases to 192 MB, i.e., \(2^{26} + 2^{27}\) bytes.</p>
-<h2 id="used-allocation"><a class="header" href="#used-allocation">Used Allocation</a></h2>
-<p>Used memory represents the actual memory required by objects, while allocated blocks follow the buddy system.</p>
-<p><strong>Example</strong></p>
-<p>Comparing memory before and after list creation:</p>
-<pre><code class="language-q">q)after-before
-used| 134217872
-heap| 134217728
+<p>Next, the module must live somewhere on q’s module search path (see <a href="https://code.kx.com/kdb-x/modules/module-framework/quickstart.html#search-path">Search path</a> in the KDB-X documentation). You could add your own directories to <code>QPATH</code>, but for simplicity we’ll copy <code>clap.q</code> into the default module directory:</p>
+<pre><code class="language-bash">$ cp clap.q $QHOME/mod/qlib/.
 </code></pre>
-<p>The increase in used memory by 134,217,872 bytes indicates the buddy system’s allocation, where the block size must be a power of two, plus some overhead and memory to store the <code>before</code> dictionary (\(134,217,872 = 134,217,728 + 144\), where the 144 bytes is the overhead to store the <code>before</code> dictionary).</p>
-<h2 id="object-reserved-memory"><a class="header" href="#object-reserved-memory">Object Reserved Memory</a></h2>
-<p>Q reserves memory blocks as powers of two for objects, allowing efficient growth without frequent reallocations.</p>
-<p><strong>Example</strong></p>
-<p>Appending 1,000,000 longs to a list of 10,000,000 longs:</p>
-<pre><code class="language-q">q)mylist:til 10000000
-
-q)show before:`used`heap#.Q.w[]
-used| 134580512
-heap| 201326592
-
-q)mylist,:til 1000000
-
-q)show after:`used`heap#.Q.w[]
-used| 134580608
-heap| 201326592
-
-q)after-before
-used| 96
-heap| 0
+<p>I’m using a <code>qlib</code> subdirectory to keep my own modules organised, but any name works. From here on, we will edit <code>$QHOME/mod/qlib/clap.q</code> directly.</p>
+<p>If <code>QHOME</code> is not set, it simply refers to the root of your KX installation—for example: <code>/home/user/.kx/.</code></p>
+<p>We can now load our module using the new <code>use</code> keyword:</p>
+<pre><code class="language-q">q)show clap:use`qlib.clap
+register| {[name;default;description]
+    `args upsert ([name;default;description]);
+ }
 </code></pre>
-<p>The used memory barely changes, as the additional longs fit into the reserved memory of the list.</p>
-<h3 id="new-list-allocation"><a class="header" href="#new-list-allocation">New List Allocation</a></h3>
-<p>If we create a new list, Q must allocate a different memory block for it, causing a significant increase in used memory:</p>
-<pre><code class="language-q">q)newlist:til 1000000
-
-q)show afterNewList:`used`heap#.Q.w[];
-used| 142968208
-heap| 201326592
-
-q)afterNewList-after
-used| 8387600
-heap| 0
+<p>We see the exported <code>register</code> function, but not the private <code>args</code> table.</p>
+<h3 id="registering-an-argument"><a class="header" href="#registering-an-argument">Registering an Argument</a></h3>
+<p>Let’s register an argument:</p>
+<pre><code class="language-q">q)clap.register[`myArg; 0; "My argument of long type"]
 </code></pre>
-<p>The creation of <code>newlist</code> increases the used memory by 8,387,600 bytes, reflecting the allocation of a new memory block.</p>
-<h2 id="releasing-reserved-memory"><a class="header" href="#releasing-reserved-memory">Releasing Reserved Memory</a></h2>
-<p>Clearing data from an object releases its memory back to the heap.</p>
-<p><strong>Example</strong></p>
-<p>Clearing a list:</p>
-<pre><code class="language-q">q)mylist:til 10000000
-
-q)show before:`used`heap#.Q.w[]
-used| 134579200
-heap| 201326592
-
-q)mylist:0#mylist
-
-q)show after:`used`heap#.Q.w[]
-used| 361584
-heap| 201326592
-
-q)after-before
-used| -134217616
-heap| 0
+<p>No error is signalled, but we currently have no way to confirm whether it worked.</p>
+<p>To inspect things while developing, let’s temporarily expose <code>args</code> by adding it to export:</p>
+<pre><code class="language-q">export:([args; register]);
 </code></pre>
-<p>The used memory returns to its initial state.</p>
-<h2 id="garbage-collection"><a class="header" href="#garbage-collection">Garbage Collection</a></h2>
-<p>Q’s default garbage collection mode is deferred, meaning it triggers in two cases:</p>
+<p>Reloading in a new q session:</p>
+<pre><code class="language-q">q)clap:use`qlib.clap
+
+q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.args
+name| val default description
+----| -----------------------
+    |  
+</code></pre>
+<p>The table is still empty. This illustrates a key behaviour of the module system: <strong>exported values are copies, not references</strong>. The module’s private data remains private unless you expose explicit accessors.</p>
+<p>Let’s add a getter:</p>
+<pre><code class="language-q">// Get the args table.
+getArgs:{[] args};
+
+// Don't forget to export getArgs.
+export:([getArgs; register]);
+</code></pre>
+<p>If we reload using <code>use</code>, nothing appears to change:</p>
+<pre><code class="language-q">q)show clap:use`qlib.clap
+args    | ...
+register| ...
+</code></pre>
+<p>This is because q caches modules. Reloading with <code>use</code> will not re-run the module unless forced. To refresh a module in the current session without restarting q, use <code>.Q.m.reuse</code>:</p>
+<pre><code class="language-q">q)show clap:.Q.m.reuse `qlib.clap
+getArgs | {[] args}
+register| ...
+</code></pre>
+<p>Now we see the updated exports.</p>
+<p>Registering again (since the module was reloaded) and running the <code>getArgs</code> function:</p>
+<pre><code class="language-q">q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.getArgs[]
+name| val default description
+----| -----------------------
+    |  
+</code></pre>
+<p>We still see an empty table. The problem is inside the <code>register</code> function itself.</p>
+<p>When we wrote:</p>
+<pre><code class="language-q">args upsert ...
+</code></pre>
+<p><code>args</code> resolves to a global variable, not the module’s private variable. Indeed:</p>
+<pre><code class="language-q">q)args
+name       | `myArg
+default    | 0
+description| "My argument of long type"
+</code></pre>
+<p>This is the row we attempted to upsert.</p>
+<p>Inside module code, names appear global, but at runtime the module is wrapped in its own namespace. To modify the module’s internal state, we must assign back into the namespace explicitly:</p>
+<pre><code class="language-q">register:{[name;default;description]
+    args::args upsert ([name;default;description]);
+ };
+</code></pre>
+<p>Trying again:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.getArgs[]                                         // Empty initially
+name| val default description
+----| -----------------------
+    |                        
+
+q)clap.register[`myArg; 0; "My argument of long type"]
+
+q)clap.getArgs[]                                         // We now see the registered argument
+name | val default description               
+-----| --------------------------------------
+     |     ()      ()                        
+myArg|     0       "My argument of long type"
+</code></pre>
+<p>Now we see the expected row. The empty first row is simply a “type-padding” row to prevent column type promotion (e.g., <code>val</code> and <code>default</code> may contain mixed types).</p>
+<h3 id="parsing-the-command-line"><a class="header" href="#parsing-the-command-line">Parsing the Command-Line</a></h3>
+<p>After registering arguments, we need to parse the command line. First, let’s add a utility to retrieve the raw parsed arguments:</p>
+<pre><code class="language-q">// Get the raw command line values, organised into a dictionary (name-value pairs).
+raw:{[] .Q.opt .z.X};
+
+export:([getArgs; raw; register]);
+</code></pre>
+<p>Reload:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.raw[]
+p| "5000"
+</code></pre>
+<p>Now restart q with more arguments:</p>
+<pre><code class="language-bash">$ q -p 5000 -myArg1 10 -myArg2 hello
+</code></pre>
+<p>Then:</p>
+<pre><code class="language-q">q)clap:use`qlib.clap
+
+q)clap.raw[]
+p     | "5000" 
+myArg1| "10"   
+myArg2| "hello
+</code></pre>
+<p>To parse arguments, we need to:</p>
+<ol>
+<li>Convert each supplied value to the correct type (falling back to the default when not supplied).</li>
+<li>Update the <code>val</code> column in the <code>args</code> table.</li>
+</ol>
+<p>We’ll add a <code>parse</code> function. Since <code>parse</code> is a reserved keyword in q, we define it inside the module namespace <code>.z.m</code>.</p>
+<pre><code class="language-q">// Parse command line.
+.z.m.parse:{[]
+    args::args upsert flip `name`val!(key;value)@\:
+        exec .Q.def[name!default;.z.m.raw[]] from args;
+ };
+
+export:([getArgs; .z.m.parse; raw; register]);
+</code></pre>
+<p>Reload and test:</p>
+<pre><code class="language-q">q)clap:.Q.m.reuse `qlib.clap
+
+q)clap.register[`myArg1; 0;   "Given argument of long type"]
+
+q)clap.register[`myArg3; 0.0; "Not given argument of float type"]
+
+q)clap.parse[]
+
+q)clap.getArgs[]
+name  | val      default description                       
+------| ---------------------------------------------------
+      | ()       ()      ()                                
+myArg1| 10       0       "Given argument of long type"     
+myArg3| 0f       0f      "Not given argument of float type"
+p     | ,"5000"  ()      ()                                
+myArg2| ,"hello" ()      ()
+</code></pre>
+<p>The results reflect:</p>
 <ul>
-<li><code>.Q.gc[]</code> is called manually.</li>
-<li>Memory limit is hit (set with <code>-w</code> on the command line).</li>
+<li><code>myArg1</code> → value from the command line (<code>10</code>)</li>
+<li><code>myArg3</code> → default value (<code>0f</code>)</li>
+<li><code>myArg2</code> and <code>p</code> → present but unregistered, so they remain raw enlisted strings</li>
 </ul>
-<p>It is important to think about how certain operations in Q work behind the scenes when it comes to memory.</p>
-<p>When we join items to a list using the join operator (<code>,</code>) Q will copy data from one list to the other. Therefore, at some stage, we will have two copies of the list, requiring double the memory of the original list to perform the operation.</p>
-<p><strong>Example</strong></p>
-<p>In a fresh Q session, we create an empty list of longs, then join 10,000,000 longs:</p>
-<pre><code class="language-q">q)mylist:"j"$()
+<h3 id="a-public-accessor-api"><a class="header" href="#a-public-accessor-api">A Public Accessor API</a></h3>
+<p><code>getArgs</code> has been useful for debugging but should not be part of a clean public API. Instead, let’s provide a simple accessor:</p>
+<pre><code class="language-q">// Get the value of an argument.
+.z.m.get:{[name] args[name;`val]};   // get is reserved, so use .z.m.get
 
-q)show before:`used`heap#.Q.w[]
-used| 362800
-heap| 67108864
-
-q)\ts mylist,:til 10000000
-28 268435680
-
-q)show after:`used`heap#.Q.w[]
-used| 134580608
-heap| 335544320
+export:([.z.m.get; .z.m.parse; raw; register]);
 </code></pre>
-<p>Previously, a heap size of 201,326,592 bytes was enough to accommodate our list of 10,000,000 longs. However, at one point in the join operation we will have two copies of 10,000,000 longs (20,000,000 longs in total). Therefore, we require more memory. Using the <code>\ts</code> command confirms this by showing us that the join operation used 268,435,680 bytes of memory to perform.</p>
-<p>After this operation, the heap is unnecessarily big, consuming system resources that we do not need. We can release this unused memory back to the OS by invoking <code>.Q.gc[]</code>:</p>
-<pre><code class="language-q">q).Q.gc[] // Manual garbage collection
-134217728
+<p>Example usage (after reload, re-register, and parse):</p>
+<pre><code class="language-q">q)clap.get`myArg1
+10
 
-q)show afterGC:`used`heap#.Q.w[]
-used| 134579456
-heap| 201326592
+q)clap.get`myArg2
+"hello"
+
+q)clap.get`myArg3
+0f
+
+q)clap.get`p
+"5000"
+
+q)clap.get`nonExistingArg    // Returns ()
 </code></pre>
-<p>The heap size reduces after garbage collection, freeing up system resources.</p>
+<p>I’ve added many more features to the <em>clap</em> module, which you can find here: <a href="https://github.com/jkane17/qlib/tree/main">jkane17/qlib</a>.</p>
+<h2 id="sharing-your-modules"><a class="header" href="#sharing-your-modules">Sharing Your Modules</a></h2>
+<p>As of now, KDB-X does not yet have a dedicated package registry, largely because the module system is still new and the ecosystem is relatively small. Sharing modules is therefore straightforward: publish your code on GitHub or any similar hosting platform, and users can download it and place it into their own <code>mod/</code> directory (or anywhere else on their configured module search path).</p>
+<p>Note that while the only requirement for sharing a module is providing the q source file(s), it’s highly recommended to include documentation describing what the module does, how to use it, and any assumptions or dependencies it has. Clear documentation makes your module far easier for others to adopt, understand, and build upon.</p>
+<h2 id="using-modules-from-others"><a class="header" href="#using-modules-from-others">Using Modules From Others</a></h2>
+<p>KX ships a collection of official modules with every KDB-X installation, documented <a href="https://code.kx.com/kdb-x/modules/module-index.html#official-kx-modules">here</a>. The same page also catalogues a range of open-source modules, which are useful both as ready-made components and as examples of good module design. To use any external module, simply download its source files and place them somewhere on your module search path — commonly within your <code>mod/</code> directory — after which it can be imported with <code>use</code> like any other module.</p>
 <h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
-<p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
+<p>The introduction of a module system in KDB-X marks an important step forward for the q ecosystem. Modules provide structure, encapsulation, and clarity — allowing developers to build cleaner codebases, share functionality more easily, and avoid the common pitfalls of global namespaces. Although the ecosystem is still young and a centralised package registry has yet to emerge, the foundations are now in place for a more collaborative and reusable approach to q development.</p>
+<p>Whether you are incorporating modules written by others or creating your own, the new system offers a practical, modern way to organise and distribute functionality. As the community continues to grow, shared modules and best practices will evolve alongside it. I hope this tutorial has given you a clear understanding of how KDB-X modules work and inspired you to start building and sharing your own.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="little_q_keywords_that_could.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="attr_perf_costs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -348,10 +409,13 @@ heap| 201326592
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="little_q_keywords_that_could.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="attr_perf_costs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
