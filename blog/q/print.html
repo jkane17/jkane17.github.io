@@ -41,10 +41,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-64b11320.js";
+            window.path_to_searchindex_js = "searchindex-1759a1b5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-d1cf8374.js"></script>
+        <script src="toc-fab612d3.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></strong></td><td>Feb 04, 2026</td><td>An in-depth look into how to maintain you datase.</td></tr>
 <tr><td><strong><a href="#kdb-x-modules">KDB-X Modules</a></strong></td><td>Nov 25, 2025</td><td>Learn the basics of the KDB-X module system.</td></tr>
 <tr><td><strong><a href="#performance-costs-of-kdb-attributes">Performance Costs of KDB+ Attributes</a></strong></td><td>Aug 15, 2025</td><td>Explore the performance costs that KDB+ attributes can have.</td></tr>
 <tr><td><strong><a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a></strong></td><td>Aug 4, 2025</td><td>See what performance benefits can be realised when using KDB+ attributes.</td></tr>
@@ -203,6 +204,710 @@
 </tbody>
 </table>
 </div>
+<h2 id="feedback--questions"><a class="header" href="#feedback--questions">Feedback &amp; Questions</a></h2>
+<p>If you spot an issue, have a suggestion for improvement, or want to ask a question about my blogs, feel free to get in touch. I’m always happy to hear feedback — especially when it helps make things clearer, more accurate, or more useful for others.</p>
+<p>You can reach me via email at <a href="mailto:jkane17x@gmail.com?subject=KDB%2B%20Blog%20Feedback">jkane17x@gmail.com</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="database-maintenance-in-kdb"><a class="header" href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></h1>
+<p><img src="images/maintenance.png" title="Cover Image" alt="Cover Image"></p>
+<p>KDB+ requires ongoing maintenance as datasets evolve and schemas change. KX provides <a href="https://github.com/KxSystems/kdb/blob/master/utils/dbmaint.q"><code>dbmaint.q</code></a> — a widely-used utility for partitioned databases. This blog walks through the original functions and re-implements them with improved efficiency, readability, and use of more modern language features.</p>
+<h2 id="dbm-kdb-x-module"><a class="header" href="#dbm-kdb-x-module">dbm KDB-X Module</a></h2>
+<p>We’ll make this script an importable module using the KDB-X module system. To use the script as a module:</p>
+<ol>
+<li>Copy or download the <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code></a> script and place it within your module search path (e.g. <code>/home/user/.kx/mod/qlib/dbm.q</code>).</li>
+<li>Define the module namespace in your KDB session:
+<pre><code class="language-q">dbm:use`qlib.dbm // Assuming dbm.q is within .../.kx/mod/qlib/
+</code></pre>
+</li>
+</ol>
+<p>You can find out more information about KDB-X modules in <a href="#kdb-x-modules">my other blog</a>.</p>
+<h3 id="notable-improvements"><a class="header" href="#notable-improvements">Notable Improvements</a></h3>
+<p>The modernised <code>dbm.q</code> provides:</p>
+<ul>
+<li>Clearer function and variable names.</li>
+<li>Supports splayed, partitioned, and segmented databases.</li>
+<li>Nested column type support.</li>
+<li>Parallelisation for large datasets.</li>
+</ul>
+<h2 id="creating-a-test-database"><a class="header" href="#creating-a-test-database">Creating a Test Database</a></h2>
+<p>To demonstrate the functionality, we’ll first set up a small test environment. This will include both a splayed database and a partitioned database, each containing a simple <code>trade</code> table.</p>
+<pre><code class="language-q">// Define a sample trade table
+trade:([]
+    time:5#.z.P;
+    sym:`IBM`AMZN`GOOGL`META`SPOT;
+    size:1 2 3 4 5;
+    price:10 20 30 40 50f;
+    company:(
+        "International Business Machines Corporation";
+        "Amazon.com, Inc.";
+        "Alphabet Inc.";
+        "Meta Platforms, Inc.";
+        "Spotify Technology S.A."
+    );
+    moves:3 cut -5+15?10
+ );
+
+// Create a splayed DB
+`:splayDB/trade/ set .Q.en[`:splayDB;trade];
+
+// Create a partitioned database (two partitions)
+{[db;dt;tname] 
+    .Q.dd[db;dt,tname,`] set .Q.en[db;get tname]
+ }[`:partDB;;`trade] each 2026.02.03 2026.02.04;
+</code></pre>
+<h2 id="listing-column-names"><a class="header" href="#listing-column-names">Listing Column Names</a></h2>
+<p>Let’s start with something simple: returning the list of column names from a table.</p>
+<p>In a splayed table, the column names are stored in the <code>.d</code> file inside the table’s directory (<code>tdir</code>). Reading this file gives us the column list directly.</p>
+<pre><code class="language-q">get tdir,`.d
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-q">q)get `:splayDB/trade,`.d
+`time`sym`size`price`company`moves
+</code></pre>
+<p>To make this reusable, we can wrap the logic in a helper function, <code>getColNames</code>. This function checks whether the <code>.d</code> file exists and, if so, reads it. Otherwise, it returns an empty symbol list.</p>
+<pre><code class="language-q">getColNames:{[tdir] $[count key .Q.dd[tdir;`.d]; get tdir,`.d; `$()]};
+</code></pre>
+<pre><code class="language-q">q)getColNames `:splayDB/trade
+`time`sym`size`price`company`moves
+</code></pre>
+<h3 id="wrapping-for-general-use"><a class="header" href="#wrapping-for-general-use">Wrapping for General Use</a></h3>
+<p>Public functions are intended to work across different database layouts (splayed, partitioned, segmented). To achieve this, we usually wrap helper functions so they can be applied to every partition where needed.</p>
+<p>For listing column names, however, it’s enough to read from just one partition (assuming schema consistency across partitions). Here’s the public version:</p>
+<pre><code class="language-q">// List all column names of the given table
+listCols:{[db;tname] getColNames last allTablePaths[db;tname]};
+</code></pre>
+<p>where</p>
+<ul>
+<li><code>db</code> - Path to database root.</li>
+<li><code>tname</code> - Table name.</li>
+</ul>
+<p><code>allTablePaths[db;tname]</code> retrieves all paths to the table within the database. We’ll define this utility in the next section.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<pre><code class="language-q">q)listCols[`:splayDB;`trade]
+`time`sym`size`price`company`moves
+
+q)listCols[`:partDB;`trade]
+`time`sym`size`price`company`moves
+</code></pre>
+<h3 id="why-not-just-use-cols"><a class="header" href="#why-not-just-use-cols">Why not just use <code>cols</code>?</a></h3>
+<p>The built-in <code>cols</code> function works perfectly well when a table is already mapped into memory. However, <code>listCols</code> avoids having to map a database into memory unnecessarily.</p>
+<h2 id="listing-table-paths"><a class="header" href="#listing-table-paths">Listing Table Paths</a></h2>
+<p>When dealing with different database layouts, the path to a table depends on the type of database:</p>
+<ul>
+<li><strong>Splayed</strong>: each table has a single directory in the database root.</li>
+<li><strong>Partitioned</strong> (or <strong>segmented</strong>): the same table name usually appears once per partition.</li>
+</ul>
+<p>Our “base” functions, such as <code>getColNames</code>, operate on a single splayed table path. To support partitioned and segmented databases, we first need a way to collect all table paths within a given database. This is the role of <code>allTablePaths</code>.</p>
+<h3 id="inspecting-the-database-root"><a class="header" href="#inspecting-the-database-root">Inspecting the Database Root</a></h3>
+<p>We can start by listing the contents of a database root (<code>db</code>) using <code>key</code>:</p>
+<pre><code class="language-q">// Files/directories in a splayed database
+q)key `:splayDB
+`s#`sym`trade
+
+// Files/directories in a partitioned database
+q)key `:partDB
+`s#`2026.02.03`2026.02.04`sym
+</code></pre>
+<p>If <code>key</code> returns an empty list, the database does not exist and we can return early:</p>
+<pre><code class="language-q">if[0=count files:key db; :`$()];
+</code></pre>
+<h3 id="identifying-partitions"><a class="header" href="#identifying-partitions">Identifying Partitions</a></h3>
+<p>Partition directories always start with a digit, since partition values must be of an integral type. We can detect these with a simple regex:</p>
+<pre><code class="language-q">where files like "[0-9]*"
+</code></pre>
+<p>For a splayed database this yields nothing:</p>
+<pre><code class="language-q">q)where key[`:splayDB] like "[0-9]*"
+`long$()
+</code></pre>
+<p>For a partitioned database we get the indices of partition directories:</p>
+<pre><code class="language-q">q)where key[`:partDB] like "[0-9]*"
+0 1
+</code></pre>
+<p>Filtering <code>files</code> down to only partitions looks like:</p>
+<pre><code class="language-q">files:key db;
+files@:where files like "[0-9]*";
+</code></pre>
+<h3 id="handling-splayed-vs-partitioned"><a class="header" href="#handling-splayed-vs-partitioned">Handling Splayed vs Partitioned</a></h3>
+<p>If no partitions are found, we must have a splayed database. In that case, just return the single table path (wrapped in enlist to ensure the result is always a list):</p>
+<pre><code class="language-q">enlist .Q.dd[db;tname]
+</code></pre>
+<p>If partitions exist, construct paths for each partition:</p>
+<pre><code class="language-q">(.Q.dd[db;] ,[;tname]@) each files
+</code></pre>
+<h3 id="handling-segmented-databases"><a class="header" href="#handling-segmented-databases">Handling Segmented Databases</a></h3>
+<p>Segmented databases introduce one additional wrinkle: the root contains a file <code>par.txt</code> listing the paths of all underlying partitioned databases. We can handle this by reading the file and recursively calling our function for each listed path:</p>
+<pre><code class="language-q">if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+</code></pre>
+<h3 id="final-cleanup"><a class="header" href="#final-cleanup">Final Cleanup</a></h3>
+<p>Up to this point, we’ve blindly appended the table name to each partition path. To avoid returning non-existent directories, we filter to keep only paths that actually exist:</p>
+<pre><code class="language-q">paths where 0&lt;(count key@) each paths
+</code></pre>
+<pre><code class="language-q">// Get all paths to a table within a database
+allTablePaths:{[db;tname]
+    if[0=count files:key db; :`$()];
+    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    files@:where files like "[0-9]*";
+    paths:$[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]];
+    paths where 0&lt;(count key@) each paths
+ };
+</code></pre>
+<pre><code class="language-q">q)allTablePaths[`:splayDB;`trade]
+,`:splayDB/trade
+
+q)allTablePaths[`:partDB;`trade]
+`:partDB/2026.02.03/trade`:partDB/2026.02.04/trade
+
+q)allTablePaths[`:nonExistingDB;`trade]
+`symbol$()
+
+q)allTablePaths[`:splayDB;`nonExistingTable]
+`symbol$()
+
+q)allTablePaths[`:partDB;`nonExistingTable]
+`symbol$()
+</code></pre>
+<h2 id="adding-a-new-column"><a class="header" href="#adding-a-new-column">Adding a New Column</a></h2>
+<p>To add a column to a table, create a helper <code>add1Col</code> that adds it to a single splayed directory:</p>
+<pre><code class="language-q">// Add a column to a single splayed table
+add1Col:{[tdir;cname;default]
+    if[not cname in colNames:getColNames tdir;
+        len:count get tdir,first colNames;
+        .[.Q.dd[tdir;cname];();:;len#default];
+        @[tdir;`.d;,;cname]
+    ]
+ };
+</code></pre>
+<p>Line-by-line breakdown:</p>
+<ol>
+<li>Checks that the new column name does not already exist within the table.</li>
+<li>Get the count/length of the table.</li>
+<li>Create the new column file, filling it with the correct number of default values to match the table count.</li>
+<li>Add the new column name to the <code>.d</code> file.</li>
+</ol>
+<h3 id="the-addcol-wrapper"><a class="header" href="#the-addcol-wrapper">The <code>addCol</code> Wrapper</a></h3>
+<p>Our wrapper function will do the following:</p>
+<p><strong>1. Validate the Column Name</strong></p>
+<p>A name is valid if it:</p>
+<ul>
+<li>adheres to Q name formatting (no spaces, special chars, etc.); and</li>
+<li>is not a reserved word.</li>
+</ul>
+<pre><code class="language-q">isValidName:{[name] (name=.Q.id name) and not name in .Q.res,key`.q};
+
+validateName:{[name] if[not isValidName name; '"Invalid name: ",string name]};
+</code></pre>
+<p>We use <code>.Q.id</code> to sanitise the name and, if it changed, then the given name did not adhere to Q name formatting. If a name is invalid, we reject it and signal an error.</p>
+<p><strong>2. Handle Symbol Enumeration</strong></p>
+<p>If the new column’s default values are of type symbol, they must be enumerated against the database’s symbol domain before being written to disk.</p>
+<p>This is handled by <code>enum</code>:</p>
+<pre><code class="language-q">default:enum[db;domain;default]
+</code></pre>
+<p>where</p>
+<pre><code class="language-q">enum:{[db;domain;vals] $[11h=abs type vals; .Q.dd[db;domain]?vals; vals]};
+</code></pre>
+<p><strong>3. Add the Column Across All Partitions</strong></p>
+<p>Finally, we apply <code>add1Col</code> to each table path.</p>
+<p>If the database is partitioned, this will add the column to every partition directory — in parallel — using <code>peach</code>:</p>
+<pre><code class="language-q">add1Col[;cname;default] peach allTablePaths[db;tname]
+</code></pre>
+<hr>
+<p>Bringing it all together, we have:</p>
+<pre><code class="language-q">addCol:{[db;domain;tname;cname;default]
+    validateName cname;
+    default:enum[db;domain;default];
+    add1Col[;cname;default] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)addCol[`:splayDB;`sym;`trade;`side;`b]
+
+q)addCol[`:partDB;`sym;`trade;`side;`b]
+</code></pre>
+<h3 id="the-symbol-file"><a class="header" href="#the-symbol-file">The Symbol File</a></h3>
+<p>In KDB+, the symbol type is an <a href="https://en.wikipedia.org/wiki/String_interning">interned string</a> — meaning that only one copy of each distinct string value is stored in memory, and all references point to that single instance.</p>
+<p>On disk, this concept is mirrored through <strong>enumeration</strong>. Any symbol columns in splayed or partitioned tables must be enumerated against the <strong>symbol file</strong> (often referred to as sym). This file stores a global list of unique symbols used across the database.</p>
+<p>When enumerating, KDB+ converts symbol values into integer indices corresponding to their positions in the symbol file. This ensures consistency and compactness across tables.</p>
+<p>If a symbol column is not enumerated before saving, KDB+ will raise an error — hence why enumeration is an essential part of the column addition process.</p>
+<h2 id="deleting-a-column"><a class="header" href="#deleting-a-column">Deleting a Column</a></h2>
+<p>To delete a column, we only need to remove the column file and update the table metadata accordingly.</p>
+<p>The process involves three straightforward steps:</p>
+<ol>
+<li>Confirm that the column exists
+<pre><code class="language-q">cname in colNames:getColNames tdir
+</code></pre>
+</li>
+<li>Delete the column file:
+<pre><code class="language-q">hdel .Q.dd[tdir;cname]
+</code></pre>
+</li>
+<li>Update the <code>.d</code> file
+<pre><code class="language-q">@[tdir;`.d;:;colNames except cname]
+</code></pre>
+</li>
+</ol>
+<h3 id="nested-columns"><a class="header" href="#nested-columns">Nested Columns</a></h3>
+<p>The original <code>dbmaint.q</code> script did not handle nested column types, which require a bit of extra care.</p>
+<p>In KDB+, nested columns can be splayed as long as they contain only simple lists (e.g. strings, longs). When a nested column is splayed, it’s actually stored as two files:</p>
+<ul>
+<li>one named after the column itself, and</li>
+<li>another with the same name suffixed by the <code>#</code> character.</li>
+</ul>
+<p>For example, our <code>trade</code> table contains two nested columns — <code>company</code> (a list of strings) and <code>moves</code> (a list of longs):</p>
+<pre><code class="language-q">q)key `:splayDB/trade
+`s#`.d`company`company#`moves`moves#`price`size`sym`time
+</code></pre>
+<p>As shown, each nested column (<code>company</code>, <code>moves</code>) has two associated files: the main column file and the hash-suffixed file (<code>company#</code>, <code>moves#</code>).</p>
+<p>When adding nested columns, we did not need to explicitly handle this case — KDB+ automatically creates both files when saving a nested column to disk.</p>
+<p>However, when deleting a column, we must ensure that the accompanying “hash column” (<code>colname#</code>) is also removed.</p>
+<p>We can achieve this by checking if the hash file exists and deleting it:</p>
+<pre><code class="language-q">if[(hname:`$string[cname],"#") in key tdir; hdel .Q.dd[tdir;hname]]
+</code></pre>
+<h3 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h3>
+<p>We can now define a helper function to delete a column — including nested columns — from a <strong>single splayed table</strong>:</p>
+<pre><code class="language-q">// Delete a column from a single splayed table
+del1Col:{[tdir;cname]
+    if[cname in colNames:getColNames tdir;
+        hdel .Q.dd[tdir;cname];
+        if[(hname:`$string[cname],"#") in key tdir; hdel .Q.dd[tdir;hname]];
+        @[tdir;`.d;:;colNames except cname]
+    ]
+ };
+</code></pre>
+<p>If the database is partitioned, we need to repeat this operation for every partition.</p>
+<p>To handle that, we define a simple wrapper function <code>delCol</code> that applies <code>del1Col</code> across all partition paths:</p>
+<pre><code class="language-q">delCol:{[db;tname;cname] del1Col[;cname] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)delCol[`:splayDB;`trade;`side]
+
+q)delCol[`:partDB;`trade;`side]
+
+// Delete nested
+q)delCol[`:splayDB;`trade;`moves]
+
+q)delCol[`:partDB;`trade;`moves]
+</code></pre>
+<h2 id="copying-a-column"><a class="header" href="#copying-a-column">Copying a Column</a></h2>
+<p>Copying a column involves three steps:</p>
+<p><strong>1. Verify that the column can be copied</strong></p>
+<ul>
+<li>The source column must exist.</li>
+<li>The destination column must not already exist.</li>
+</ul>
+<pre><code class="language-q">(srcCol in colNames) and not dstCol in colNames:getColNames tdir
+</code></pre>
+<p><strong>2. Copy the underlying column files</strong></p>
+<ul>
+<li>For simple columns, this is a single file.</li>
+<li>For nested columns, the corresponding hash file must also be copied.</li>
+<li>The column copy itself is performed at the filesystem level:
+<ul>
+<li>Linux/macOS/Solaris: <code>cp</code></li>
+<li>Windows: <code>copy /v /z</code></li>
+</ul>
+</li>
+</ul>
+<p>A helper flag identifies the operating system:</p>
+<pre><code class="language-q">isWindows:.z.o in `w32`w64;
+</code></pre>
+<p>Next, we define a platform-aware path formatter:</p>
+<pre><code class="language-q">convertPath:{[path]
+    path:string path;
+    if[isWindows; path[where"/"=path]:"\\"];
+    (":"=first path)_ path
+ };
+</code></pre>
+<p>And a wrapper to invoke the appropriate command:</p>
+<pre><code class="language-q">copy:{[src;dst] system $[isWindows; "copy /v /z "; "cp "]," " sv convertPath each src,dst;};
+</code></pre>
+<p>For nested columns, also copy the hash file:</p>
+<pre><code class="language-q">if[(hname:`$string[srcCol],"#") in key tdir; 
+    copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
+ ];
+</code></pre>
+<p><strong>3. Update the table’s metadata (<code>.d</code> file)</strong></p>
+<pre><code class="language-q">@[tdir;`.d;,;dstCol]
+</code></pre>
+<hr>
+<p>The full <code>copy1Col</code> function:</p>
+<pre><code class="language-q">// Copy srcCol → dstCol within a single on-disk table directory
+copy1Col:{[tdir;srcCol;dstCol]
+    if[(srcCol in colNames) and not dstCol in colNames:getColNames tdir;
+        copy . .Q.dd[tdir;] each srcCol,dstCol;
+        if[(hname:`$string[srcCol],"#") in key tdir; 
+            copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
+        ];
+        @[tdir;`.d;,;dstCol]
+    ]
+ };
+</code></pre>
+<h3 id="apply-to-all-partitions"><a class="header" href="#apply-to-all-partitions">Apply to All Partitions</a></h3>
+<p>The wrapper performs name validation and applies the operation across all table partitions:</p>
+<pre><code class="language-q">copyCol:{[db;tname;srcCol;dstCol] 
+    validateName dstCol;
+    copy1Col[;srcCol;dstCol] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)copyCol[`:splayDB;`trade;`size;`sizeCopy]
+
+q)copyCol[`:partDB;`trade;`size;`sizeCopy]
+
+// Copy nested
+q)copyCol[`:splayDB;`trade;`company;`companyCopy]
+
+q)copyCol[`:partDB;`trade;`company;`companyCopy]
+</code></pre>
+<h2 id="checking-if-a-column-exists"><a class="header" href="#checking-if-a-column-exists">Checking if a Column Exists</a></h2>
+<p>Determining whether a column exists is straightforward: we simply check whether the column name appears in the table’s <code>.d</code> file, which we access via <code>getColNames</code>.</p>
+<pre><code class="language-q">// Does the given column exist in a single partition directory?
+has1Col:{[tdir;cname] cname in getColNames tdir};
+</code></pre>
+<p>For a partitioned table, the presence of a column should be consistent across all partitions.</p>
+<p>We therefore apply <code>has1Col</code> to every partition directory and confirm that the result is true for all of them.</p>
+<pre><code class="language-q">// Does the given column exist in all partitions of the table?
+hasCol:{[db;tname;cname] 
+    $[count paths:allTablePaths[db;tname]; all has1Col[;cname] peach paths; 0b]
+ };
+</code></pre>
+<p>Note that we check if we get any paths. If not, we simply return <code>0b</code> as the table does not exist within the database.</p>
+<pre><code class="language-q">q)hasCol[`:splayDB;`trade;`size]
+1b
+
+q)hasCol[`:splayDB;`trade;`nonExistingCol]
+0b
+
+q)hasCol[`:splayDB;`nonExistingTab;`size]
+0b
+</code></pre>
+<h2 id="renaming-columns"><a class="header" href="#renaming-columns">Renaming Columns</a></h2>
+<p>Renaming a column follows a similar pattern as copying a column:</p>
+<p><strong>1. Validating Column Names</strong></p>
+<p>We begin by checking that the column we want to rename (<code>old</code>) exists and that the proposed name (<code>new</code>) does not:</p>
+<pre><code class="language-q">(old in colNames) and not new in colNames:getColNames tdir
+</code></pre>
+<p><strong>2. Renaming the Column File</strong></p>
+<p>The file-level rename operation uses the OS’s native move command (<code>mv</code> on Unix-like systems, <code>move</code> on Windows).</p>
+<p>We wrap this in a helper that handles platform-specific behaviour and path formatting:</p>
+<pre><code class="language-q">rename:{[src;dst] system $[isWindows; "move "; "mv "]," " sv convertPath each src,dst;}
+</code></pre>
+<p>Renaming the column’s data file is then simply:</p>
+<pre><code class="language-q">rename . .Q.dd[tdir;] each old,new;
+</code></pre>
+<p>For nested columns:</p>
+<pre><code class="language-q">if[(hname:`$string[old],"#") in key tdir; 
+    rename . .Q.dd[tdir;] each hname,`$string[new],"#"
+ ];
+</code></pre>
+<p><strong>4. Updating .d</strong></p>
+<p>Finally, we update the <code>.d</code> metadata file.</p>
+<p>Unlike copying, where we append, renaming requires modifying the existing list while preserving its order:</p>
+<pre><code class="language-q">@[tdir;`.d;:;.[colNames;where colNames=old;:;new]]
+</code></pre>
+<hr>
+<p>The full <code>rename1Col</code> function:</p>
+<pre><code class="language-q">// Rename a column in a single on-disk table directory.
+rename1Col:{[tdir;old;new]
+    if[(old in colNames) and not new in colNames:getColNames tdir
+        rename . .Q.dd[tdir;] each old,new;
+        if[(hname:`$string[old],"#") in key tdir; 
+            rename . .Q.dd[tdir;] each hname,`$string[new],"#"
+        ];
+        @[tdir;`.d;:;.[colNames;where colNames=old;:;new]]
+    ]
+ };
+</code></pre>
+<p>Apply across all partitions:</p>
+<pre><code class="language-q">// Rename a column across all partitions of a table.
+renameCol:{[db;tname;old;new] 
+    validateName new;
+    rename1Col[;old;new] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)renameCol[`:splayDB;`trade;`sizeCopy;`sizeRenamed]
+
+q)renameCol[`:splayDB;`trade;`companyCopy;`companyRenamed]
+</code></pre>
+<h2 id="reordering-columns"><a class="header" href="#reordering-columns">Reordering Columns</a></h2>
+<p>Reorder columns by updating the <code>.d</code> file (no data changes needed):</p>
+<p><strong>1. Validating User Input</strong></p>
+<p>Before applying a new order, we confirm that every name provided by the user corresponds to an existing column:</p>
+<pre><code class="language-q">if[not all exists:order in colNames:getColNames tdir;
+    '"Unknown column(s): ","," sv string order where not exists
+ ];
+</code></pre>
+<p>This raises an informative error listing only the invalid names.</p>
+<p><strong>2. Constructing the New Order</strong></p>
+<p>We reorder the <code>.d</code> file by placing the user-specified columns first, followed by any remaining columns in their original order:</p>
+<pre><code class="language-q">@[tdir;`.d;:;order,colNames except order];
+</code></pre>
+<p>This mirrors the behaviour of <code>xcols</code>: the caller only needs to specify the priority columns, not the full list of column names.</p>
+<p><strong>3. Putting It Into a Function</strong></p>
+<pre><code class="language-q">// Reorder the columns in a single database table
+reorder1Cols:{[tdir;order]
+    if[not all exists:order in colNames:getColNames tdir;
+        '"Unknown column(s): ","," sv string order where not exists
+    ];
+    @[tdir;`.d;:;order,colNames except order];
+ };
+</code></pre>
+<p><strong>4. Applying the Reorder Across All Partitions</strong></p>
+<p>For partitioned tables, the column order must be updated consistently everywhere:</p>
+<pre><code class="language-q">// Reorder the columns across all partitions of a table
+reorderCols:{[db;tname;order] reorder1Cols[;order] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)getColNames .Q.dd[`:splayDB;`trade]
+`time`sym`size`price`company`sizeRenamed`companyRenamed
+
+q)reorderCols[`:splayDB;`trade;`time`sym`price`company]
+
+q)getColNames .Q.dd[`:splayDB;`trade]
+`time`sym`price`company`size`sizeRenamed`companyRenamed
+</code></pre>
+<h2 id="applying-a-function-to-a-column"><a class="header" href="#applying-a-function-to-a-column">Applying a Function To a Column</a></h2>
+<p>Another useful operation is being able to apply some function to column data and persisting the updated data. For example, we want to scale the values in a column by 100, so we apply a function that multiplies all values in the column by 100, and then saves these values back into the column file.</p>
+<p>We start by checking that the column we want to update actually exists within the table:</p>
+<pre><code class="language-q">cname in getColNames tdir
+</code></pre>
+<p>Next, we load the column values into memory:</p>
+<pre><code class="language-q">oldVal:get tdir,cname;
+</code></pre>
+<p>We only want to do the on-disk update if something actually changed. This could be the values in the column, but also, the attribute on the column (for example when the function we are applying is to set/remove a column attribute). Thus, we store the current attribute for later comparison:</p>
+<pre><code class="language-q">oldAttr:attr oldVal
+</code></pre>
+<p>Apply the function to the column values:</p>
+<pre><code class="language-q">newVal:fn oldVal
+</code></pre>
+<p>Note that the function (<code>fn</code>) is a unary function that takes the column values as its argument and returns the new column values (count of list must be maintained).</p>
+<p>Then, we get the attribute of the updated column:</p>
+<pre><code class="language-q">newAttr:attr newVal
+</code></pre>
+<p>Next, check if anything actually changed:</p>
+<pre><code class="language-q">$[oldAttr~newAttr;not oldVal~newVal;1b]
+</code></pre>
+<p>This conditional says: if the attributes changed, return <code>1b</code>, since we have a change and want to write the update to disk. Otherwise, check if the column values changed, if so, we also want to do the on-disk update.</p>
+<p>If the above if-else returns <code>1b</code> we proceed with the on-disk update:</p>
+<pre><code class="language-q">.[.Q.dd[tdir;cname];();:;newVal]
+</code></pre>
+<h3 id="putting-it-all-together-1"><a class="header" href="#putting-it-all-together-1">Putting it All Together</a></h3>
+<pre><code class="language-q">// Apply a function to a single database table
+fn1Col:{[tdir;cname;fn]
+    if[cname in getColNames tdir;
+        oldAttr:attr oldVal:get tdir,cname;
+        newAttr:attr newVal:fn oldVal;
+        if[$[oldAttr~newAttr;not oldVal~newVal;1b];
+            .[.Q.dd[tdir;cname];();:;newVal]
+        ]
+    ]
+ };
+</code></pre>
+<p>and the wrapper function:</p>
+<pre><code class="language-q">// Apply a function to a column across all partitions of a table
+fnCol:{[db;tname;cname;fn] fn1Col[;cname;fn] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)get `:splayDB`trade`size
+1 2 3 4 5
+
+q)fnCol[`:splayDB;`trade;`size;100*] 
+
+q)get `:splayDB`trade`size
+100 200 300 400 500
+</code></pre>
+<h3 id="using-fncol"><a class="header" href="#using-fncol">Using <code>fnCol</code></a></h3>
+<p>We can make use of <code>fnCol</code> to derive a few more useful functions:</p>
+<pre><code class="language-q">// Cast a column to a given type
+castCol:{[db;tname;cname;typ] fnCol[db;tname;cname;typ$];};
+
+// Set an attribute on a column
+setAttr:{[db;tname;cname;attrb] fnCol[db;tname;cname;attrb#];};
+
+// Remove an attribute from a column
+rmAttr:{[db;tname;cname] setAttr[db;tname;cname;`];};
+</code></pre>
+<p><code>castCol</code> casts a column to a new data type. It does this by passing <code>typ$</code> as the <code>fn</code> argument to <code>fnCol</code>, where <code>typ</code> is the new data type and can be any of the values that can be the left argument of the <code>$</code> operator when casting (i.e., <code>short</code>, <code>char</code>, or <code>symbol</code>).</p>
+<p><code>setAttr</code> is used to set an attribute on a table column. It does this by passing <code>attrb#</code> as the <code>fn</code> argument to <code>fnCol</code>, where <code>attrb</code> is the attribute to apply (<code>`</code>, <code>`s</code>, <code>`u</code>, <code>`p</code>, <code>`g</code>).</p>
+<p><code>rmAttr</code> is used to remove an attribute from a table column and it simply passed <code>`</code> to <code>setAttr</code> to achieve this.</p>
+<h2 id="adding-missing-columns"><a class="header" href="#adding-missing-columns">Adding Missing Columns</a></h2>
+<p>Over time, it is common for a database to accumulate schema drift: earlier partitions may be missing columns that were added later as the schema evolved.</p>
+<p>To maintain consistency across the database, it is often necessary to retrofit older partitions so that all partitions share the same set of columns. A practical way to do this is to treat a “good” table — typically from a recent partition — as a schema template, and add any missing columns to older partitions using appropriate default values.</p>
+<p><strong>1. Identifying Missing Columns</strong></p>
+<p>Given:</p>
+<ul>
+<li><code>goodTdir</code>: the directory of the template table (with the complete schema)</li>
+<li><code>tdir</code>: the directory of a table we want to fix</li>
+</ul>
+<p>We determine which columns are missing by comparing their <code>.d</code> files:</p>
+<pre><code class="language-q">goodCols:getColNames goodTdir
+missing:goodCols except getColNames tdir
+</code></pre>
+<p>This produces the list of columns that exist in the good table but not in the target table.</p>
+<p><strong>2. Generating Default Values</strong></p>
+<p>Each missing column must be added with a correctly typed default value.</p>
+<p>We infer the column’s type from the template table’s metadata:</p>
+<pre><code class="language-q">t:"*"^meta[goodTdir][cname;`t]
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>meta[goodTdir][cname;`t]</code> returns the column’s type character</li>
+<li><code>"*"</code> is used as a fallback when the type is null (<code>" "</code>), which represents a general list</li>
+</ul>
+<p>We then construct an empty value of the correct type:</p>
+<pre><code class="language-q">t$()
+</code></pre>
+<p><strong>3. Handling Nested Columns</strong></p>
+<p>Nested columns (lists of lists) require special handling. These are identified by:</p>
+<ul>
+<li>an uppercase type character (<code>"A"</code> – <code>"Z"</code>), or</li>
+<li><code>"*"</code> for general nested lists</li>
+</ul>
+<p>For these cases, the default value must itself be <strong>enlisted</strong>, producing a list of empty lists:</p>
+<pre><code class="language-q">$[(t="*") or t within "AZ";enlist;] t$()
+</code></pre>
+<p><strong>4. Reorder Columns</strong></p>
+<p>To maintain consistency, the columns of the table that had the missing column(s) are reordered to match the ordering of the good table:</p>
+<pre><code class="language-q">reorder1Cols[tdir;goodCols]
+</code></pre>
+<p><strong>5. Adding Missing Columns to a Single Table</strong></p>
+<p>We can now combine the above logic into a helper that adds all missing columns to a single table directory:</p>
+<pre><code class="language-q">// Add missing columns to a single database table
+add1MissingCols:{[tdir;goodTdir]
+    goodCols:getColNames goodTdir;
+    if[count missing:goodCols except getColNames tdir;
+        {[d;g;c] 
+            add1Col[d;c;] $[(t="*") or t within "AZ";enlist;] (t:"*"^meta[g][c;`t])$()
+        }[tdir;goodTdir;] each missing;
+        reorder1Cols[tdir;goodCols]
+    ]
+ };
+</code></pre>
+<p><strong>6. Applying Across All Partitions</strong></p>
+<p>Finally, we wrap this helper to apply it across all partitions of a table — excluding the template partition itself:</p>
+<pre><code class="language-q">// Add missing columns across all partitions of a table
+addMissingCols:{[db;tname;goodTdir]
+    add1MissingCols[;goodTdir] peach allTablePaths[db;tname] except goodTdir;
+ };
+</code></pre>
+<pre><code class="language-q">// Remove column from older partition
+q)hdel .Q.dd[`:partDB;2026.02.03,`trade`size]
+`:partDB/2026.02.03/trade/size
+q){@[x;`.d;:;get[x,`.d] except `size]} .Q.dd[`:partDB;2026.02.03,`trade]
+`:partDB/2026.02.03/trade
+
+// size column gone
+q)getColNames .Q.dd[`:partDB;2026.02.03,`trade]
+`time`sym`price`company`sizeCopy`companyCopy
+
+q)addMissingCols[`:partDB;tname;.Q.dd[`:partDB;2026.02.04,`trade]]
+
+// size column back and in correct position
+q)getColNames .Q.dd[`:partDB;2026.02.03,`trade]
+`time`sym`size`price`company`sizeCopy`companyCopy
+
+// Values are null and of the correct type
+q)get .Q.dd[`:partDB;2026.02.03,`trade`size]
+0N 0N 0N 0N 0N
+</code></pre>
+<h2 id="adding-a-table"><a class="header" href="#adding-a-table">Adding a Table</a></h2>
+<p>To add a new table, we create an empty schema in every partition where it should exist.</p>
+<p><strong>1. Creating a Table in a Single Partition</strong></p>
+<p>We begin by defining a helper that creates an empty table schema at a given table directory:</p>
+<pre><code class="language-q">// Add a single new table
+add1Tab:{[db;domain;tdir;schema] @[tdir;`;:;.Q.ens[db;0#schema;domain]];};
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>schema</code> is a table definition (column names and types)</li>
+<li><code>0#schema</code> ensures the schema is empty</li>
+<li><code>.Q.ens</code> enumerates any symbol columns against the chosen domain</li>
+</ul>
+<p>If the schema contains no symbol columns, <code>.Q.ens</code> is effectively a no-op and simply returns the table unchanged.</p>
+<p>Writing this empty table to <code>tdir</code> creates the table’s on-disk structure.</p>
+<p><strong>2. Building Paths for Tables That Don’t Yet Exist</strong></p>
+<p>To create a new table across all partitions, we need to generate table paths even when the table does not yet exist.</p>
+<p>Previously, <code>allTablePaths</code> filtered out non-existing tables, which prevents table creation. To solve this, we split the logic into two functions:</p>
+<ul>
+<li><code>buildTablePaths</code>: constructs all possible table paths</li>
+<li><code>allTablePaths</code>: filters those paths to only existing tables</li>
+</ul>
+<pre><code class="language-q">buildTablePaths:{[db;tname]
+    if[0=count files:key db; :`$()];
+    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    files@:where files like "[0-9]*";
+    $[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]]
+ };
+
+allTablePaths:{[db;tname] paths where 0&lt;(count key@) each paths:buildTablePaths[db;tname]};
+</code></pre>
+<p>This preserves the original behaviour of <code>allTablePaths</code> for operations that should only apply to existing tables.</p>
+<p><strong>3. Creating the Table Across All Partitions</strong></p>
+<p>With <code>buildTablePaths</code>, we can now create a new table everywhere it should exist by applying <code>add1Tab</code> to each generated path:</p>
+<pre><code class="language-q">// Add a new table to all partitions of a database
+addTab:{[db;domain;tname;schema] add1Tab[db;domain;;schema] peach buildTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)key `:splayDB
+`s#`sym`trade
+
+q)addTab[`:splayDB;`sym;`quote;([] ask:"f"$(); bid:"f"$())]
+
+q)key `:splayDB
+`s#`quote`sym`trade
+
+q)get `:splayDB`quote
+ask bid
+-------
+</code></pre>
+<h2 id="deleting-a-table"><a class="header" href="#deleting-a-table">Deleting a Table</a></h2>
+<p>Deleting a table is a filesystem operation: we remove all files belonging to the table and then delete the table directory itself.</p>
+<p><strong>1. Checking That the Table Exists</strong></p>
+<p>Before attempting deletion, we verify that the table directory exists and is non-empty:</p>
+<pre><code class="language-q">not ()~files:key tdir
+</code></pre>
+<p><strong>2. Deleting Files and the Directory</strong></p>
+<p>Q’s <code>hdel</code> function can only remove directories once they are empty, so we must first delete all files within the table directory and then remove the directory itself.</p>
+<pre><code class="language-q">(hdel .Q.dd[tdir;]@) each files,`
+</code></pre>
+<p>The trailing backtick ensures that the directory itself is deleted after its contents.</p>
+<p><strong>3. Deleting a Table in a Single Partition</strong></p>
+<pre><code class="language-q">del1Tab:{[tdir] if[not ()~files:key tdir; (hdel .Q.dd[tdir;]@) each files,`]};
+</code></pre>
+<p><strong>4. Deleting a Table Across All Partitions</strong></p>
+<pre><code class="language-q">delTab:{[db;tname] del1Tab peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)delTab[`:splayDB;`quote]
+
+q)key `:splayDB
+`s#`sym`trade
+</code></pre>
+<h2 id="renaming-a-table"><a class="header" href="#renaming-a-table">Renaming a Table</a></h2>
+<p>Renaming a table involves renaming its directory in each partition directory. As with column renaming, this is done using the filesystem rather than modifying any metadata files.</p>
+<p><strong>1. Validating the New Table Name</strong></p>
+<p>First, we ensure the new name is not already being used within the database:</p>
+<pre><code class="language-q">()~key new
+</code></pre>
+<p><strong>2. Renaming the Table Directory</strong></p>
+<pre><code class="language-q">rename[old;new]
+</code></pre>
+<p><strong>3. Renaming a Table in a Single Partition</strong></p>
+<pre><code class="language-q">rename1Tab:{[old;new] if[()~key new; rename[old;new]]};
+</code></pre>
+<p><strong>4. Applying the Rename Across All Partitions</strong></p>
+<p>To rename a table consistently across a partitioned database, we:</p>
+<ol>
+<li>Validate the new name</li>
+<li>Build old/new table paths for each partition</li>
+<li>Apply the rename in parallel</li>
+</ol>
+<pre><code class="language-q">renameTab:{[db;old;new] 
+    validateName new;
+    .[rename1Tab;] peach flip buildTablePaths[db;] each old,new;
+ };
+</code></pre>
+<p>Wrapping <code>rename1Tab</code> with <code>.[;]</code> allows it to be used as a binary function with peach.</p>
+<pre><code class="language-q">q)renameTab[`:splayDB;`trade;`tradeRenamed]
+
+q)key `:splayDB
+`s#`sym`tradeRenamed
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Maintaining on-disk KDB+ databases is fundamentally a filesystem problem, and the utilities explored in this post embrace that reality directly. By operating at the directory and file level, we can perform structural changes—adding, removing, renaming, and reshaping tables and columns—without mapping data into memory or relying on fragile, ad hoc scripts. The resulting approach is explicit, predictable, and scalable across splayed, partitioned, and segmented layouts.</p>
+<p>The reworked <code>dbm.q</code> module aims to modernise the original <code>dbmaint.q</code> ideas by improving readability, performance via parallel execution, and extending support to nested columns. More importantly, it provides a composable toolkit for database evolution: one that can be safely automated, reasoned about, and adapted as schemas inevitably change over time. As databases grow and operational requirements become stricter, having well-defined, filesystem-aware maintenance primitives becomes not just convenient, but essential.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-x-modules"><a class="header" href="#kdb-x-modules">KDB-X Modules</a></h1>
 <p><img src="images/kdbx_modules.png" title="Cover Image" alt="Cover Image"></p>
@@ -412,7 +1117,7 @@ q)clap.get`nonExistingArg    // Returns ()
 <p>Note that while the only requirement for sharing a module is providing the q source file(s), it’s highly recommended to include documentation describing what the module does, how to use it, and any assumptions or dependencies it has. Clear documentation makes your module far easier for others to adopt, understand, and build upon.</p>
 <h2 id="using-modules-from-others"><a class="header" href="#using-modules-from-others">Using Modules From Others</a></h2>
 <p>KX ships a collection of official modules with every KDB-X installation, documented <a href="https://code.kx.com/kdb-x/modules/module-index.html#official-kx-modules">here</a>. The same page also catalogues a range of open-source modules, which are useful both as ready-made components and as examples of good module design. To use any external module, simply download its source files and place them somewhere on your module search path — commonly within your <code>mod/</code> directory — after which it can be imported with <code>use</code> like any other module.</p>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>The introduction of a module system in KDB-X marks an important step forward for the q ecosystem. Modules provide structure, encapsulation, and clarity — allowing developers to build cleaner codebases, share functionality more easily, and avoid the common pitfalls of global namespaces. Although the ecosystem is still young and a centralised package registry has yet to emerge, the foundations are now in place for a more collaborative and reusable approach to q development.</p>
 <p>Whether you are incorporating modules written by others or creating your own, the new system offers a practical, modern way to organise and distribute functionality. As the community continues to grow, shared modules and best practices will evolve alongside it. I hope this tutorial has given you a clear understanding of how KDB-X modules work and inspired you to start building and sharing your own.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -770,7 +1475,7 @@ q)groupedOverhead[20000;] 1+til 10
 <p>The formulas derived for computing attribute overheads are based on the current internal implementation of KDB+. As such, they may change in future versions if the underlying architecture is modified.
 However, the methodology used to derive these formulas — through systematic measurement and pattern analysis — can still be applied to recalculate overheads if needed. The approach is general and remains valid even if the specific outcomes evolve over time.</p>
 </blockquote>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>While KDB+ attributes offer powerful query optimisations, we have shown that these benefits come with measurable costs in time and memory.</p>
 <p>We’ve seen that attributes like <em>unique</em>, <em>parted</em>, and <em>grouped</em> maintain internal data structure — typically hash maps — that vary in size depending on both the total count of the list and the count of unique values. This leads to non-trivial memory overhead, which can scale into hundreds of megabytes or more for large datasets.</p>
 <p>We also observed that applying attributes can incur time overhead during operations like loading, writing, or updating data — particularly for attributes that require hashing or maintaining metadata during write time.</p>
@@ -1113,7 +1818,7 @@ select time, side from table where sym=randSym
 </table>
 </div>
 <p>When using the <em>parted</em> attribute, memory usage remains constant regardless of dataset size. This suggests that no additional memory is consumed during grouping — likely because the data is already partitioned, and aggregation can proceed without intermediate allocation.</p>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>KDB+ attributes offer a powerful way to optimise query performance by influencing how data is accessed and retrieved. As we’ve seen, each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — serves a specific purpose and can dramatically reduce query times when applied appropriately. Whether it’s enabling binary search through a <em>sorted</em> list, ensuring fast membership checks via <em>unique</em>, or accelerating group-based operations with <em>parted</em> and <em>grouped</em>, attributes are key to writing high-performance Q code.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
@@ -1730,7 +2435,7 @@ col2| s
 col3| c
 col4| f
 </code></pre>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
 <p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1922,7 +2627,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -2340,7 +3045,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -2882,7 +3587,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -3325,7 +4030,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
+<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -3839,7 +4544,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
+<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -4190,7 +4895,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
+<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -4346,7 +5051,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
+<h2 id="conclusion-11"><a class="header" href="#conclusion-11">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>

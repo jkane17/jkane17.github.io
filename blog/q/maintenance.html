@@ -1,0 +1,940 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Database Maintenance in KDB+ - Q/KDB+ Blog</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Blogs for Q/KDB+">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/content-533a1c23.css">
+        <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
+        <link rel="stylesheet" href="theme/navigation-ccf6f99d.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-1759a1b5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-fab612d3.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Q/KDB+ Blog</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="database-maintenance-in-kdb"><a class="header" href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></h1>
+<p><img src="./images/maintenance.png" title="Cover Image" alt="Cover Image"></p>
+<p>KDB+ requires ongoing maintenance as datasets evolve and schemas change. KX provides <a href="https://github.com/KxSystems/kdb/blob/master/utils/dbmaint.q"><code>dbmaint.q</code></a> — a widely-used utility for partitioned databases. This blog walks through the original functions and re-implements them with improved efficiency, readability, and use of more modern language features.</p>
+<h2 id="dbm-kdb-x-module"><a class="header" href="#dbm-kdb-x-module">dbm KDB-X Module</a></h2>
+<p>We’ll make this script an importable module using the KDB-X module system. To use the script as a module:</p>
+<ol>
+<li>Copy or download the <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code></a> script and place it within your module search path (e.g. <code>/home/user/.kx/mod/qlib/dbm.q</code>).</li>
+<li>Define the module namespace in your KDB session:
+<pre><code class="language-q">dbm:use`qlib.dbm // Assuming dbm.q is within .../.kx/mod/qlib/
+</code></pre>
+</li>
+</ol>
+<p>You can find out more information about KDB-X modules in <a href="./kdbx_modules.html">my other blog</a>.</p>
+<h3 id="notable-improvements"><a class="header" href="#notable-improvements">Notable Improvements</a></h3>
+<p>The modernised <code>dbm.q</code> provides:</p>
+<ul>
+<li>Clearer function and variable names.</li>
+<li>Supports splayed, partitioned, and segmented databases.</li>
+<li>Nested column type support.</li>
+<li>Parallelisation for large datasets.</li>
+</ul>
+<h2 id="creating-a-test-database"><a class="header" href="#creating-a-test-database">Creating a Test Database</a></h2>
+<p>To demonstrate the functionality, we’ll first set up a small test environment. This will include both a splayed database and a partitioned database, each containing a simple <code>trade</code> table.</p>
+<pre><code class="language-q">// Define a sample trade table
+trade:([]
+    time:5#.z.P;
+    sym:`IBM`AMZN`GOOGL`META`SPOT;
+    size:1 2 3 4 5;
+    price:10 20 30 40 50f;
+    company:(
+        "International Business Machines Corporation";
+        "Amazon.com, Inc.";
+        "Alphabet Inc.";
+        "Meta Platforms, Inc.";
+        "Spotify Technology S.A."
+    );
+    moves:3 cut -5+15?10
+ );
+
+// Create a splayed DB
+`:splayDB/trade/ set .Q.en[`:splayDB;trade];
+
+// Create a partitioned database (two partitions)
+{[db;dt;tname] 
+    .Q.dd[db;dt,tname,`] set .Q.en[db;get tname]
+ }[`:partDB;;`trade] each 2026.02.03 2026.02.04;
+</code></pre>
+<h2 id="listing-column-names"><a class="header" href="#listing-column-names">Listing Column Names</a></h2>
+<p>Let’s start with something simple: returning the list of column names from a table.</p>
+<p>In a splayed table, the column names are stored in the <code>.d</code> file inside the table’s directory (<code>tdir</code>). Reading this file gives us the column list directly.</p>
+<pre><code class="language-q">get tdir,`.d
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-q">q)get `:splayDB/trade,`.d
+`time`sym`size`price`company`moves
+</code></pre>
+<p>To make this reusable, we can wrap the logic in a helper function, <code>getColNames</code>. This function checks whether the <code>.d</code> file exists and, if so, reads it. Otherwise, it returns an empty symbol list.</p>
+<pre><code class="language-q">getColNames:{[tdir] $[count key .Q.dd[tdir;`.d]; get tdir,`.d; `$()]};
+</code></pre>
+<pre><code class="language-q">q)getColNames `:splayDB/trade
+`time`sym`size`price`company`moves
+</code></pre>
+<h3 id="wrapping-for-general-use"><a class="header" href="#wrapping-for-general-use">Wrapping for General Use</a></h3>
+<p>Public functions are intended to work across different database layouts (splayed, partitioned, segmented). To achieve this, we usually wrap helper functions so they can be applied to every partition where needed.</p>
+<p>For listing column names, however, it’s enough to read from just one partition (assuming schema consistency across partitions). Here’s the public version:</p>
+<pre><code class="language-q">// List all column names of the given table
+listCols:{[db;tname] getColNames last allTablePaths[db;tname]};
+</code></pre>
+<p>where</p>
+<ul>
+<li><code>db</code> - Path to database root.</li>
+<li><code>tname</code> - Table name.</li>
+</ul>
+<p><code>allTablePaths[db;tname]</code> retrieves all paths to the table within the database. We’ll define this utility in the next section.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<pre><code class="language-q">q)listCols[`:splayDB;`trade]
+`time`sym`size`price`company`moves
+
+q)listCols[`:partDB;`trade]
+`time`sym`size`price`company`moves
+</code></pre>
+<h3 id="why-not-just-use-cols"><a class="header" href="#why-not-just-use-cols">Why not just use <code>cols</code>?</a></h3>
+<p>The built-in <code>cols</code> function works perfectly well when a table is already mapped into memory. However, <code>listCols</code> avoids having to map a database into memory unnecessarily.</p>
+<h2 id="listing-table-paths"><a class="header" href="#listing-table-paths">Listing Table Paths</a></h2>
+<p>When dealing with different database layouts, the path to a table depends on the type of database:</p>
+<ul>
+<li><strong>Splayed</strong>: each table has a single directory in the database root.</li>
+<li><strong>Partitioned</strong> (or <strong>segmented</strong>): the same table name usually appears once per partition.</li>
+</ul>
+<p>Our “base” functions, such as <code>getColNames</code>, operate on a single splayed table path. To support partitioned and segmented databases, we first need a way to collect all table paths within a given database. This is the role of <code>allTablePaths</code>.</p>
+<h3 id="inspecting-the-database-root"><a class="header" href="#inspecting-the-database-root">Inspecting the Database Root</a></h3>
+<p>We can start by listing the contents of a database root (<code>db</code>) using <code>key</code>:</p>
+<pre><code class="language-q">// Files/directories in a splayed database
+q)key `:splayDB
+`s#`sym`trade
+
+// Files/directories in a partitioned database
+q)key `:partDB
+`s#`2026.02.03`2026.02.04`sym
+</code></pre>
+<p>If <code>key</code> returns an empty list, the database does not exist and we can return early:</p>
+<pre><code class="language-q">if[0=count files:key db; :`$()];
+</code></pre>
+<h3 id="identifying-partitions"><a class="header" href="#identifying-partitions">Identifying Partitions</a></h3>
+<p>Partition directories always start with a digit, since partition values must be of an integral type. We can detect these with a simple regex:</p>
+<pre><code class="language-q">where files like "[0-9]*"
+</code></pre>
+<p>For a splayed database this yields nothing:</p>
+<pre><code class="language-q">q)where key[`:splayDB] like "[0-9]*"
+`long$()
+</code></pre>
+<p>For a partitioned database we get the indices of partition directories:</p>
+<pre><code class="language-q">q)where key[`:partDB] like "[0-9]*"
+0 1
+</code></pre>
+<p>Filtering <code>files</code> down to only partitions looks like:</p>
+<pre><code class="language-q">files:key db;
+files@:where files like "[0-9]*";
+</code></pre>
+<h3 id="handling-splayed-vs-partitioned"><a class="header" href="#handling-splayed-vs-partitioned">Handling Splayed vs Partitioned</a></h3>
+<p>If no partitions are found, we must have a splayed database. In that case, just return the single table path (wrapped in enlist to ensure the result is always a list):</p>
+<pre><code class="language-q">enlist .Q.dd[db;tname]
+</code></pre>
+<p>If partitions exist, construct paths for each partition:</p>
+<pre><code class="language-q">(.Q.dd[db;] ,[;tname]@) each files
+</code></pre>
+<h3 id="handling-segmented-databases"><a class="header" href="#handling-segmented-databases">Handling Segmented Databases</a></h3>
+<p>Segmented databases introduce one additional wrinkle: the root contains a file <code>par.txt</code> listing the paths of all underlying partitioned databases. We can handle this by reading the file and recursively calling our function for each listed path:</p>
+<pre><code class="language-q">if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+</code></pre>
+<h3 id="final-cleanup"><a class="header" href="#final-cleanup">Final Cleanup</a></h3>
+<p>Up to this point, we’ve blindly appended the table name to each partition path. To avoid returning non-existent directories, we filter to keep only paths that actually exist:</p>
+<pre><code class="language-q">paths where 0&lt;(count key@) each paths
+</code></pre>
+<pre><code class="language-q">// Get all paths to a table within a database
+allTablePaths:{[db;tname]
+    if[0=count files:key db; :`$()];
+    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    files@:where files like "[0-9]*";
+    paths:$[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]];
+    paths where 0&lt;(count key@) each paths
+ };
+</code></pre>
+<pre><code class="language-q">q)allTablePaths[`:splayDB;`trade]
+,`:splayDB/trade
+
+q)allTablePaths[`:partDB;`trade]
+`:partDB/2026.02.03/trade`:partDB/2026.02.04/trade
+
+q)allTablePaths[`:nonExistingDB;`trade]
+`symbol$()
+
+q)allTablePaths[`:splayDB;`nonExistingTable]
+`symbol$()
+
+q)allTablePaths[`:partDB;`nonExistingTable]
+`symbol$()
+</code></pre>
+<h2 id="adding-a-new-column"><a class="header" href="#adding-a-new-column">Adding a New Column</a></h2>
+<p>To add a column to a table, create a helper <code>add1Col</code> that adds it to a single splayed directory:</p>
+<pre><code class="language-q">// Add a column to a single splayed table
+add1Col:{[tdir;cname;default]
+    if[not cname in colNames:getColNames tdir;
+        len:count get tdir,first colNames;
+        .[.Q.dd[tdir;cname];();:;len#default];
+        @[tdir;`.d;,;cname]
+    ]
+ };
+</code></pre>
+<p>Line-by-line breakdown:</p>
+<ol>
+<li>Checks that the new column name does not already exist within the table.</li>
+<li>Get the count/length of the table.</li>
+<li>Create the new column file, filling it with the correct number of default values to match the table count.</li>
+<li>Add the new column name to the <code>.d</code> file.</li>
+</ol>
+<h3 id="the-addcol-wrapper"><a class="header" href="#the-addcol-wrapper">The <code>addCol</code> Wrapper</a></h3>
+<p>Our wrapper function will do the following:</p>
+<p><strong>1. Validate the Column Name</strong></p>
+<p>A name is valid if it:</p>
+<ul>
+<li>adheres to Q name formatting (no spaces, special chars, etc.); and</li>
+<li>is not a reserved word.</li>
+</ul>
+<pre><code class="language-q">isValidName:{[name] (name=.Q.id name) and not name in .Q.res,key`.q};
+
+validateName:{[name] if[not isValidName name; '"Invalid name: ",string name]};
+</code></pre>
+<p>We use <code>.Q.id</code> to sanitise the name and, if it changed, then the given name did not adhere to Q name formatting. If a name is invalid, we reject it and signal an error.</p>
+<p><strong>2. Handle Symbol Enumeration</strong></p>
+<p>If the new column’s default values are of type symbol, they must be enumerated against the database’s symbol domain before being written to disk.</p>
+<p>This is handled by <code>enum</code>:</p>
+<pre><code class="language-q">default:enum[db;domain;default]
+</code></pre>
+<p>where</p>
+<pre><code class="language-q">enum:{[db;domain;vals] $[11h=abs type vals; .Q.dd[db;domain]?vals; vals]};
+</code></pre>
+<p><strong>3. Add the Column Across All Partitions</strong></p>
+<p>Finally, we apply <code>add1Col</code> to each table path.</p>
+<p>If the database is partitioned, this will add the column to every partition directory — in parallel — using <code>peach</code>:</p>
+<pre><code class="language-q">add1Col[;cname;default] peach allTablePaths[db;tname]
+</code></pre>
+<hr>
+<p>Bringing it all together, we have:</p>
+<pre><code class="language-q">addCol:{[db;domain;tname;cname;default]
+    validateName cname;
+    default:enum[db;domain;default];
+    add1Col[;cname;default] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)addCol[`:splayDB;`sym;`trade;`side;`b]
+
+q)addCol[`:partDB;`sym;`trade;`side;`b]
+</code></pre>
+<h3 id="the-symbol-file"><a class="header" href="#the-symbol-file">The Symbol File</a></h3>
+<p>In KDB+, the symbol type is an <a href="https://en.wikipedia.org/wiki/String_interning">interned string</a> — meaning that only one copy of each distinct string value is stored in memory, and all references point to that single instance.</p>
+<p>On disk, this concept is mirrored through <strong>enumeration</strong>. Any symbol columns in splayed or partitioned tables must be enumerated against the <strong>symbol file</strong> (often referred to as sym). This file stores a global list of unique symbols used across the database.</p>
+<p>When enumerating, KDB+ converts symbol values into integer indices corresponding to their positions in the symbol file. This ensures consistency and compactness across tables.</p>
+<p>If a symbol column is not enumerated before saving, KDB+ will raise an error — hence why enumeration is an essential part of the column addition process.</p>
+<h2 id="deleting-a-column"><a class="header" href="#deleting-a-column">Deleting a Column</a></h2>
+<p>To delete a column, we only need to remove the column file and update the table metadata accordingly.</p>
+<p>The process involves three straightforward steps:</p>
+<ol>
+<li>Confirm that the column exists
+<pre><code class="language-q">cname in colNames:getColNames tdir
+</code></pre>
+</li>
+<li>Delete the column file:
+<pre><code class="language-q">hdel .Q.dd[tdir;cname]
+</code></pre>
+</li>
+<li>Update the <code>.d</code> file
+<pre><code class="language-q">@[tdir;`.d;:;colNames except cname]
+</code></pre>
+</li>
+</ol>
+<h3 id="nested-columns"><a class="header" href="#nested-columns">Nested Columns</a></h3>
+<p>The original <code>dbmaint.q</code> script did not handle nested column types, which require a bit of extra care.</p>
+<p>In KDB+, nested columns can be splayed as long as they contain only simple lists (e.g. strings, longs). When a nested column is splayed, it’s actually stored as two files:</p>
+<ul>
+<li>one named after the column itself, and</li>
+<li>another with the same name suffixed by the <code>#</code> character.</li>
+</ul>
+<p>For example, our <code>trade</code> table contains two nested columns — <code>company</code> (a list of strings) and <code>moves</code> (a list of longs):</p>
+<pre><code class="language-q">q)key `:splayDB/trade
+`s#`.d`company`company#`moves`moves#`price`size`sym`time
+</code></pre>
+<p>As shown, each nested column (<code>company</code>, <code>moves</code>) has two associated files: the main column file and the hash-suffixed file (<code>company#</code>, <code>moves#</code>).</p>
+<p>When adding nested columns, we did not need to explicitly handle this case — KDB+ automatically creates both files when saving a nested column to disk.</p>
+<p>However, when deleting a column, we must ensure that the accompanying “hash column” (<code>colname#</code>) is also removed.</p>
+<p>We can achieve this by checking if the hash file exists and deleting it:</p>
+<pre><code class="language-q">if[(hname:`$string[cname],"#") in key tdir; hdel .Q.dd[tdir;hname]]
+</code></pre>
+<h3 id="putting-it-all-together"><a class="header" href="#putting-it-all-together">Putting It All Together</a></h3>
+<p>We can now define a helper function to delete a column — including nested columns — from a <strong>single splayed table</strong>:</p>
+<pre><code class="language-q">// Delete a column from a single splayed table
+del1Col:{[tdir;cname]
+    if[cname in colNames:getColNames tdir;
+        hdel .Q.dd[tdir;cname];
+        if[(hname:`$string[cname],"#") in key tdir; hdel .Q.dd[tdir;hname]];
+        @[tdir;`.d;:;colNames except cname]
+    ]
+ };
+</code></pre>
+<p>If the database is partitioned, we need to repeat this operation for every partition.</p>
+<p>To handle that, we define a simple wrapper function <code>delCol</code> that applies <code>del1Col</code> across all partition paths:</p>
+<pre><code class="language-q">delCol:{[db;tname;cname] del1Col[;cname] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)delCol[`:splayDB;`trade;`side]
+
+q)delCol[`:partDB;`trade;`side]
+
+// Delete nested
+q)delCol[`:splayDB;`trade;`moves]
+
+q)delCol[`:partDB;`trade;`moves]
+</code></pre>
+<h2 id="copying-a-column"><a class="header" href="#copying-a-column">Copying a Column</a></h2>
+<p>Copying a column involves three steps:</p>
+<p><strong>1. Verify that the column can be copied</strong></p>
+<ul>
+<li>The source column must exist.</li>
+<li>The destination column must not already exist.</li>
+</ul>
+<pre><code class="language-q">(srcCol in colNames) and not dstCol in colNames:getColNames tdir
+</code></pre>
+<p><strong>2. Copy the underlying column files</strong></p>
+<ul>
+<li>For simple columns, this is a single file.</li>
+<li>For nested columns, the corresponding hash file must also be copied.</li>
+<li>The column copy itself is performed at the filesystem level:
+<ul>
+<li>Linux/macOS/Solaris: <code>cp</code></li>
+<li>Windows: <code>copy /v /z</code></li>
+</ul>
+</li>
+</ul>
+<p>A helper flag identifies the operating system:</p>
+<pre><code class="language-q">isWindows:.z.o in `w32`w64;
+</code></pre>
+<p>Next, we define a platform-aware path formatter:</p>
+<pre><code class="language-q">convertPath:{[path]
+    path:string path;
+    if[isWindows; path[where"/"=path]:"\\"];
+    (":"=first path)_ path
+ };
+</code></pre>
+<p>And a wrapper to invoke the appropriate command:</p>
+<pre><code class="language-q">copy:{[src;dst] system $[isWindows; "copy /v /z "; "cp "]," " sv convertPath each src,dst;};
+</code></pre>
+<p>For nested columns, also copy the hash file:</p>
+<pre><code class="language-q">if[(hname:`$string[srcCol],"#") in key tdir; 
+    copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
+ ];
+</code></pre>
+<p><strong>3. Update the table’s metadata (<code>.d</code> file)</strong></p>
+<pre><code class="language-q">@[tdir;`.d;,;dstCol]
+</code></pre>
+<hr>
+<p>The full <code>copy1Col</code> function:</p>
+<pre><code class="language-q">// Copy srcCol → dstCol within a single on-disk table directory
+copy1Col:{[tdir;srcCol;dstCol]
+    if[(srcCol in colNames) and not dstCol in colNames:getColNames tdir;
+        copy . .Q.dd[tdir;] each srcCol,dstCol;
+        if[(hname:`$string[srcCol],"#") in key tdir; 
+            copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
+        ];
+        @[tdir;`.d;,;dstCol]
+    ]
+ };
+</code></pre>
+<h3 id="apply-to-all-partitions"><a class="header" href="#apply-to-all-partitions">Apply to All Partitions</a></h3>
+<p>The wrapper performs name validation and applies the operation across all table partitions:</p>
+<pre><code class="language-q">copyCol:{[db;tname;srcCol;dstCol] 
+    validateName dstCol;
+    copy1Col[;srcCol;dstCol] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)copyCol[`:splayDB;`trade;`size;`sizeCopy]
+
+q)copyCol[`:partDB;`trade;`size;`sizeCopy]
+
+// Copy nested
+q)copyCol[`:splayDB;`trade;`company;`companyCopy]
+
+q)copyCol[`:partDB;`trade;`company;`companyCopy]
+</code></pre>
+<h2 id="checking-if-a-column-exists"><a class="header" href="#checking-if-a-column-exists">Checking if a Column Exists</a></h2>
+<p>Determining whether a column exists is straightforward: we simply check whether the column name appears in the table’s <code>.d</code> file, which we access via <code>getColNames</code>.</p>
+<pre><code class="language-q">// Does the given column exist in a single partition directory?
+has1Col:{[tdir;cname] cname in getColNames tdir};
+</code></pre>
+<p>For a partitioned table, the presence of a column should be consistent across all partitions.</p>
+<p>We therefore apply <code>has1Col</code> to every partition directory and confirm that the result is true for all of them.</p>
+<pre><code class="language-q">// Does the given column exist in all partitions of the table?
+hasCol:{[db;tname;cname] 
+    $[count paths:allTablePaths[db;tname]; all has1Col[;cname] peach paths; 0b]
+ };
+</code></pre>
+<p>Note that we check if we get any paths. If not, we simply return <code>0b</code> as the table does not exist within the database.</p>
+<pre><code class="language-q">q)hasCol[`:splayDB;`trade;`size]
+1b
+
+q)hasCol[`:splayDB;`trade;`nonExistingCol]
+0b
+
+q)hasCol[`:splayDB;`nonExistingTab;`size]
+0b
+</code></pre>
+<h2 id="renaming-columns"><a class="header" href="#renaming-columns">Renaming Columns</a></h2>
+<p>Renaming a column follows a similar pattern as copying a column:</p>
+<p><strong>1. Validating Column Names</strong></p>
+<p>We begin by checking that the column we want to rename (<code>old</code>) exists and that the proposed name (<code>new</code>) does not:</p>
+<pre><code class="language-q">(old in colNames) and not new in colNames:getColNames tdir
+</code></pre>
+<p><strong>2. Renaming the Column File</strong></p>
+<p>The file-level rename operation uses the OS’s native move command (<code>mv</code> on Unix-like systems, <code>move</code> on Windows).</p>
+<p>We wrap this in a helper that handles platform-specific behaviour and path formatting:</p>
+<pre><code class="language-q">rename:{[src;dst] system $[isWindows; "move "; "mv "]," " sv convertPath each src,dst;}
+</code></pre>
+<p>Renaming the column’s data file is then simply:</p>
+<pre><code class="language-q">rename . .Q.dd[tdir;] each old,new;
+</code></pre>
+<p>For nested columns:</p>
+<pre><code class="language-q">if[(hname:`$string[old],"#") in key tdir; 
+    rename . .Q.dd[tdir;] each hname,`$string[new],"#"
+ ];
+</code></pre>
+<p><strong>4. Updating .d</strong></p>
+<p>Finally, we update the <code>.d</code> metadata file.</p>
+<p>Unlike copying, where we append, renaming requires modifying the existing list while preserving its order:</p>
+<pre><code class="language-q">@[tdir;`.d;:;.[colNames;where colNames=old;:;new]]
+</code></pre>
+<hr>
+<p>The full <code>rename1Col</code> function:</p>
+<pre><code class="language-q">// Rename a column in a single on-disk table directory.
+rename1Col:{[tdir;old;new]
+    if[(old in colNames) and not new in colNames:getColNames tdir
+        rename . .Q.dd[tdir;] each old,new;
+        if[(hname:`$string[old],"#") in key tdir; 
+            rename . .Q.dd[tdir;] each hname,`$string[new],"#"
+        ];
+        @[tdir;`.d;:;.[colNames;where colNames=old;:;new]]
+    ]
+ };
+</code></pre>
+<p>Apply across all partitions:</p>
+<pre><code class="language-q">// Rename a column across all partitions of a table.
+renameCol:{[db;tname;old;new] 
+    validateName new;
+    rename1Col[;old;new] peach allTablePaths[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">q)renameCol[`:splayDB;`trade;`sizeCopy;`sizeRenamed]
+
+q)renameCol[`:splayDB;`trade;`companyCopy;`companyRenamed]
+</code></pre>
+<h2 id="reordering-columns"><a class="header" href="#reordering-columns">Reordering Columns</a></h2>
+<p>Reorder columns by updating the <code>.d</code> file (no data changes needed):</p>
+<p><strong>1. Validating User Input</strong></p>
+<p>Before applying a new order, we confirm that every name provided by the user corresponds to an existing column:</p>
+<pre><code class="language-q">if[not all exists:order in colNames:getColNames tdir;
+    '"Unknown column(s): ","," sv string order where not exists
+ ];
+</code></pre>
+<p>This raises an informative error listing only the invalid names.</p>
+<p><strong>2. Constructing the New Order</strong></p>
+<p>We reorder the <code>.d</code> file by placing the user-specified columns first, followed by any remaining columns in their original order:</p>
+<pre><code class="language-q">@[tdir;`.d;:;order,colNames except order];
+</code></pre>
+<p>This mirrors the behaviour of <code>xcols</code>: the caller only needs to specify the priority columns, not the full list of column names.</p>
+<p><strong>3. Putting It Into a Function</strong></p>
+<pre><code class="language-q">// Reorder the columns in a single database table
+reorder1Cols:{[tdir;order]
+    if[not all exists:order in colNames:getColNames tdir;
+        '"Unknown column(s): ","," sv string order where not exists
+    ];
+    @[tdir;`.d;:;order,colNames except order];
+ };
+</code></pre>
+<p><strong>4. Applying the Reorder Across All Partitions</strong></p>
+<p>For partitioned tables, the column order must be updated consistently everywhere:</p>
+<pre><code class="language-q">// Reorder the columns across all partitions of a table
+reorderCols:{[db;tname;order] reorder1Cols[;order] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)getColNames .Q.dd[`:splayDB;`trade]
+`time`sym`size`price`company`sizeRenamed`companyRenamed
+
+q)reorderCols[`:splayDB;`trade;`time`sym`price`company]
+
+q)getColNames .Q.dd[`:splayDB;`trade]
+`time`sym`price`company`size`sizeRenamed`companyRenamed
+</code></pre>
+<h2 id="applying-a-function-to-a-column"><a class="header" href="#applying-a-function-to-a-column">Applying a Function To a Column</a></h2>
+<p>Another useful operation is being able to apply some function to column data and persisting the updated data. For example, we want to scale the values in a column by 100, so we apply a function that multiplies all values in the column by 100, and then saves these values back into the column file.</p>
+<p>We start by checking that the column we want to update actually exists within the table:</p>
+<pre><code class="language-q">cname in getColNames tdir
+</code></pre>
+<p>Next, we load the column values into memory:</p>
+<pre><code class="language-q">oldVal:get tdir,cname;
+</code></pre>
+<p>We only want to do the on-disk update if something actually changed. This could be the values in the column, but also, the attribute on the column (for example when the function we are applying is to set/remove a column attribute). Thus, we store the current attribute for later comparison:</p>
+<pre><code class="language-q">oldAttr:attr oldVal
+</code></pre>
+<p>Apply the function to the column values:</p>
+<pre><code class="language-q">newVal:fn oldVal
+</code></pre>
+<p>Note that the function (<code>fn</code>) is a unary function that takes the column values as its argument and returns the new column values (count of list must be maintained).</p>
+<p>Then, we get the attribute of the updated column:</p>
+<pre><code class="language-q">newAttr:attr newVal
+</code></pre>
+<p>Next, check if anything actually changed:</p>
+<pre><code class="language-q">$[oldAttr~newAttr;not oldVal~newVal;1b]
+</code></pre>
+<p>This conditional says: if the attributes changed, return <code>1b</code>, since we have a change and want to write the update to disk. Otherwise, check if the column values changed, if so, we also want to do the on-disk update.</p>
+<p>If the above if-else returns <code>1b</code> we proceed with the on-disk update:</p>
+<pre><code class="language-q">.[.Q.dd[tdir;cname];();:;newVal]
+</code></pre>
+<h3 id="putting-it-all-together-1"><a class="header" href="#putting-it-all-together-1">Putting it All Together</a></h3>
+<pre><code class="language-q">// Apply a function to a single database table
+fn1Col:{[tdir;cname;fn]
+    if[cname in getColNames tdir;
+        oldAttr:attr oldVal:get tdir,cname;
+        newAttr:attr newVal:fn oldVal;
+        if[$[oldAttr~newAttr;not oldVal~newVal;1b];
+            .[.Q.dd[tdir;cname];();:;newVal]
+        ]
+    ]
+ };
+</code></pre>
+<p>and the wrapper function:</p>
+<pre><code class="language-q">// Apply a function to a column across all partitions of a table
+fnCol:{[db;tname;cname;fn] fn1Col[;cname;fn] peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)get `:splayDB`trade`size
+1 2 3 4 5
+
+q)fnCol[`:splayDB;`trade;`size;100*] 
+
+q)get `:splayDB`trade`size
+100 200 300 400 500
+</code></pre>
+<h3 id="using-fncol"><a class="header" href="#using-fncol">Using <code>fnCol</code></a></h3>
+<p>We can make use of <code>fnCol</code> to derive a few more useful functions:</p>
+<pre><code class="language-q">// Cast a column to a given type
+castCol:{[db;tname;cname;typ] fnCol[db;tname;cname;typ$];};
+
+// Set an attribute on a column
+setAttr:{[db;tname;cname;attrb] fnCol[db;tname;cname;attrb#];};
+
+// Remove an attribute from a column
+rmAttr:{[db;tname;cname] setAttr[db;tname;cname;`];};
+</code></pre>
+<p><code>castCol</code> casts a column to a new data type. It does this by passing <code>typ$</code> as the <code>fn</code> argument to <code>fnCol</code>, where <code>typ</code> is the new data type and can be any of the values that can be the left argument of the <code>$</code> operator when casting (i.e., <code>short</code>, <code>char</code>, or <code>symbol</code>).</p>
+<p><code>setAttr</code> is used to set an attribute on a table column. It does this by passing <code>attrb#</code> as the <code>fn</code> argument to <code>fnCol</code>, where <code>attrb</code> is the attribute to apply (<code>`</code>, <code>`s</code>, <code>`u</code>, <code>`p</code>, <code>`g</code>).</p>
+<p><code>rmAttr</code> is used to remove an attribute from a table column and it simply passed <code>`</code> to <code>setAttr</code> to achieve this.</p>
+<h2 id="adding-missing-columns"><a class="header" href="#adding-missing-columns">Adding Missing Columns</a></h2>
+<p>Over time, it is common for a database to accumulate schema drift: earlier partitions may be missing columns that were added later as the schema evolved.</p>
+<p>To maintain consistency across the database, it is often necessary to retrofit older partitions so that all partitions share the same set of columns. A practical way to do this is to treat a “good” table — typically from a recent partition — as a schema template, and add any missing columns to older partitions using appropriate default values.</p>
+<p><strong>1. Identifying Missing Columns</strong></p>
+<p>Given:</p>
+<ul>
+<li><code>goodTdir</code>: the directory of the template table (with the complete schema)</li>
+<li><code>tdir</code>: the directory of a table we want to fix</li>
+</ul>
+<p>We determine which columns are missing by comparing their <code>.d</code> files:</p>
+<pre><code class="language-q">goodCols:getColNames goodTdir
+missing:goodCols except getColNames tdir
+</code></pre>
+<p>This produces the list of columns that exist in the good table but not in the target table.</p>
+<p><strong>2. Generating Default Values</strong></p>
+<p>Each missing column must be added with a correctly typed default value.</p>
+<p>We infer the column’s type from the template table’s metadata:</p>
+<pre><code class="language-q">t:"*"^meta[goodTdir][cname;`t]
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>meta[goodTdir][cname;`t]</code> returns the column’s type character</li>
+<li><code>"*"</code> is used as a fallback when the type is null (<code>" "</code>), which represents a general list</li>
+</ul>
+<p>We then construct an empty value of the correct type:</p>
+<pre><code class="language-q">t$()
+</code></pre>
+<p><strong>3. Handling Nested Columns</strong></p>
+<p>Nested columns (lists of lists) require special handling. These are identified by:</p>
+<ul>
+<li>an uppercase type character (<code>"A"</code> – <code>"Z"</code>), or</li>
+<li><code>"*"</code> for general nested lists</li>
+</ul>
+<p>For these cases, the default value must itself be <strong>enlisted</strong>, producing a list of empty lists:</p>
+<pre><code class="language-q">$[(t="*") or t within "AZ";enlist;] t$()
+</code></pre>
+<p><strong>4. Reorder Columns</strong></p>
+<p>To maintain consistency, the columns of the table that had the missing column(s) are reordered to match the ordering of the good table:</p>
+<pre><code class="language-q">reorder1Cols[tdir;goodCols]
+</code></pre>
+<p><strong>5. Adding Missing Columns to a Single Table</strong></p>
+<p>We can now combine the above logic into a helper that adds all missing columns to a single table directory:</p>
+<pre><code class="language-q">// Add missing columns to a single database table
+add1MissingCols:{[tdir;goodTdir]
+    goodCols:getColNames goodTdir;
+    if[count missing:goodCols except getColNames tdir;
+        {[d;g;c] 
+            add1Col[d;c;] $[(t="*") or t within "AZ";enlist;] (t:"*"^meta[g][c;`t])$()
+        }[tdir;goodTdir;] each missing;
+        reorder1Cols[tdir;goodCols]
+    ]
+ };
+</code></pre>
+<p><strong>6. Applying Across All Partitions</strong></p>
+<p>Finally, we wrap this helper to apply it across all partitions of a table — excluding the template partition itself:</p>
+<pre><code class="language-q">// Add missing columns across all partitions of a table
+addMissingCols:{[db;tname;goodTdir]
+    add1MissingCols[;goodTdir] peach allTablePaths[db;tname] except goodTdir;
+ };
+</code></pre>
+<pre><code class="language-q">// Remove column from older partition
+q)hdel .Q.dd[`:partDB;2026.02.03,`trade`size]
+`:partDB/2026.02.03/trade/size
+q){@[x;`.d;:;get[x,`.d] except `size]} .Q.dd[`:partDB;2026.02.03,`trade]
+`:partDB/2026.02.03/trade
+
+// size column gone
+q)getColNames .Q.dd[`:partDB;2026.02.03,`trade]
+`time`sym`price`company`sizeCopy`companyCopy
+
+q)addMissingCols[`:partDB;tname;.Q.dd[`:partDB;2026.02.04,`trade]]
+
+// size column back and in correct position
+q)getColNames .Q.dd[`:partDB;2026.02.03,`trade]
+`time`sym`size`price`company`sizeCopy`companyCopy
+
+// Values are null and of the correct type
+q)get .Q.dd[`:partDB;2026.02.03,`trade`size]
+0N 0N 0N 0N 0N
+</code></pre>
+<h2 id="adding-a-table"><a class="header" href="#adding-a-table">Adding a Table</a></h2>
+<p>To add a new table, we create an empty schema in every partition where it should exist.</p>
+<p><strong>1. Creating a Table in a Single Partition</strong></p>
+<p>We begin by defining a helper that creates an empty table schema at a given table directory:</p>
+<pre><code class="language-q">// Add a single new table
+add1Tab:{[db;domain;tdir;schema] @[tdir;`;:;.Q.ens[db;0#schema;domain]];};
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>schema</code> is a table definition (column names and types)</li>
+<li><code>0#schema</code> ensures the schema is empty</li>
+<li><code>.Q.ens</code> enumerates any symbol columns against the chosen domain</li>
+</ul>
+<p>If the schema contains no symbol columns, <code>.Q.ens</code> is effectively a no-op and simply returns the table unchanged.</p>
+<p>Writing this empty table to <code>tdir</code> creates the table’s on-disk structure.</p>
+<p><strong>2. Building Paths for Tables That Don’t Yet Exist</strong></p>
+<p>To create a new table across all partitions, we need to generate table paths even when the table does not yet exist.</p>
+<p>Previously, <code>allTablePaths</code> filtered out non-existing tables, which prevents table creation. To solve this, we split the logic into two functions:</p>
+<ul>
+<li><code>buildTablePaths</code>: constructs all possible table paths</li>
+<li><code>allTablePaths</code>: filters those paths to only existing tables</li>
+</ul>
+<pre><code class="language-q">buildTablePaths:{[db;tname]
+    if[0=count files:key db; :`$()];
+    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    files@:where files like "[0-9]*";
+    $[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]]
+ };
+
+allTablePaths:{[db;tname] paths where 0&lt;(count key@) each paths:buildTablePaths[db;tname]};
+</code></pre>
+<p>This preserves the original behaviour of <code>allTablePaths</code> for operations that should only apply to existing tables.</p>
+<p><strong>3. Creating the Table Across All Partitions</strong></p>
+<p>With <code>buildTablePaths</code>, we can now create a new table everywhere it should exist by applying <code>add1Tab</code> to each generated path:</p>
+<pre><code class="language-q">// Add a new table to all partitions of a database
+addTab:{[db;domain;tname;schema] add1Tab[db;domain;;schema] peach buildTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)key `:splayDB
+`s#`sym`trade
+
+q)addTab[`:splayDB;`sym;`quote;([] ask:"f"$(); bid:"f"$())]
+
+q)key `:splayDB
+`s#`quote`sym`trade
+
+q)get `:splayDB`quote
+ask bid
+-------
+</code></pre>
+<h2 id="deleting-a-table"><a class="header" href="#deleting-a-table">Deleting a Table</a></h2>
+<p>Deleting a table is a filesystem operation: we remove all files belonging to the table and then delete the table directory itself.</p>
+<p><strong>1. Checking That the Table Exists</strong></p>
+<p>Before attempting deletion, we verify that the table directory exists and is non-empty:</p>
+<pre><code class="language-q">not ()~files:key tdir
+</code></pre>
+<p><strong>2. Deleting Files and the Directory</strong></p>
+<p>Q’s <code>hdel</code> function can only remove directories once they are empty, so we must first delete all files within the table directory and then remove the directory itself.</p>
+<pre><code class="language-q">(hdel .Q.dd[tdir;]@) each files,`
+</code></pre>
+<p>The trailing backtick ensures that the directory itself is deleted after its contents.</p>
+<p><strong>3. Deleting a Table in a Single Partition</strong></p>
+<pre><code class="language-q">del1Tab:{[tdir] if[not ()~files:key tdir; (hdel .Q.dd[tdir;]@) each files,`]};
+</code></pre>
+<p><strong>4. Deleting a Table Across All Partitions</strong></p>
+<pre><code class="language-q">delTab:{[db;tname] del1Tab peach allTablePaths[db;tname];};
+</code></pre>
+<pre><code class="language-q">q)delTab[`:splayDB;`quote]
+
+q)key `:splayDB
+`s#`sym`trade
+</code></pre>
+<h2 id="renaming-a-table"><a class="header" href="#renaming-a-table">Renaming a Table</a></h2>
+<p>Renaming a table involves renaming its directory in each partition directory. As with column renaming, this is done using the filesystem rather than modifying any metadata files.</p>
+<p><strong>1. Validating the New Table Name</strong></p>
+<p>First, we ensure the new name is not already being used within the database:</p>
+<pre><code class="language-q">()~key new
+</code></pre>
+<p><strong>2. Renaming the Table Directory</strong></p>
+<pre><code class="language-q">rename[old;new]
+</code></pre>
+<p><strong>3. Renaming a Table in a Single Partition</strong></p>
+<pre><code class="language-q">rename1Tab:{[old;new] if[()~key new; rename[old;new]]};
+</code></pre>
+<p><strong>4. Applying the Rename Across All Partitions</strong></p>
+<p>To rename a table consistently across a partitioned database, we:</p>
+<ol>
+<li>Validate the new name</li>
+<li>Build old/new table paths for each partition</li>
+<li>Apply the rename in parallel</li>
+</ol>
+<pre><code class="language-q">renameTab:{[db;old;new] 
+    validateName new;
+    .[rename1Tab;] peach flip buildTablePaths[db;] each old,new;
+ };
+</code></pre>
+<p>Wrapping <code>rename1Tab</code> with <code>.[;]</code> allows it to be used as a binary function with peach.</p>
+<pre><code class="language-q">q)renameTab[`:splayDB;`trade;`tradeRenamed]
+
+q)key `:splayDB
+`s#`sym`tradeRenamed
+</code></pre>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Maintaining on-disk KDB+ databases is fundamentally a filesystem problem, and the utilities explored in this post embrace that reality directly. By operating at the directory and file level, we can perform structural changes—adding, removing, renaming, and reshaping tables and columns—without mapping data into memory or relying on fragile, ad hoc scripts. The resulting approach is explicit, predictable, and scalable across splayed, partitioned, and segmented layouts.</p>
+<p>The reworked <code>dbm.q</code> module aims to modernise the original <code>dbmaint.q</code> ideas by improving readability, performance via parallel execution, and extending support to nested columns. More importantly, it provides a composable toolkit for database evolution: one that can be safely automated, reasoned about, and adapted as schemas inevitably change over time. As databases grow and operational requirements become stricter, having well-defined, filesystem-aware maintenance primitives becomes not just convenient, but essential.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="kdbx_modules.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="kdbx_modules.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-2c2089fd.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/navigation-8d154390.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
