@@ -6,7 +6,8 @@ Welcome to the Q/KDB+ Blog. Here you'll find articles exploring various aspects 
 
 | Title                                                                                      | Published    | Description                                                                                               |
 | ------------------------------------------------------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------- |
-| **[Database Maintenance in KDB+](./maintenance.md)**                                                     | Feb 04, 2026 | An in-depth look into how to maintain you datase.                                                              |
+| **[Recursion vs Iteration in Q/KDB+](./recursion_vs_iteration.md)**                        | Feb 12, 2026 | Examine the intricate details of recursion and iteration in Q/KDB+.                                       |
+| **[Database Maintenance in KDB+](./maintenance.md)**                                       | Feb 04, 2026 | An in-depth look into how to maintain you datase.                                                         |
 | **[KDB-X Modules](./kdbx_modules.md)**                                                     | Nov 25, 2025 | Learn the basics of the KDB-X module system.                                                              |
 | **[Performance Costs of KDB+ Attributes](./attr_perf_costs.md)**                           | Aug 15, 2025 | Explore the performance costs that KDB+ attributes can have.                                              |
 | **[Performance Benefits of KDB+ Attributes](./attr_perf_benefits.md)**                     | Aug 4, 2025  | See what performance benefits can be realised when using KDB+ attributes.                                 |
