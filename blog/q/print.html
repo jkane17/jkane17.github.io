@@ -41,10 +41,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1759a1b5.js";
+            window.path_to_searchindex_js = "searchindex-afddf6d9.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fab612d3.js"></script>
+        <script src="toc-2bf62657.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#recursion-vs-iteration-in-qkdb">Recursion vs Iteration in Q/KDB+</a></strong></td><td>Feb 12, 2026</td><td>Examine the intricate details of recursion and iteration in Q/KDB+.</td></tr>
 <tr><td><strong><a href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></strong></td><td>Feb 04, 2026</td><td>An in-depth look into how to maintain you datase.</td></tr>
 <tr><td><strong><a href="#kdb-x-modules">KDB-X Modules</a></strong></td><td>Nov 25, 2025</td><td>Learn the basics of the KDB-X module system.</td></tr>
 <tr><td><strong><a href="#performance-costs-of-kdb-attributes">Performance Costs of KDB+ Attributes</a></strong></td><td>Aug 15, 2025</td><td>Explore the performance costs that KDB+ attributes can have.</td></tr>
@@ -207,6 +208,495 @@
 <h2 id="feedback--questions"><a class="header" href="#feedback--questions">Feedback &amp; Questions</a></h2>
 <p>If you spot an issue, have a suggestion for improvement, or want to ask a question about my blogs, feel free to get in touch. I’m always happy to hear feedback — especially when it helps make things clearer, more accurate, or more useful for others.</p>
 <p>You can reach me via email at <a href="mailto:jkane17x@gmail.com?subject=KDB%2B%20Blog%20Feedback">jkane17x@gmail.com</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="recursion-vs-iteration-in-qkdb"><a class="header" href="#recursion-vs-iteration-in-qkdb">Recursion vs Iteration in Q/KDB+</a></h1>
+<p><img src="images/recursion_vs_iteration.png" title="Cover Image" alt="Cover Image"></p>
+<p>Mathematically, recursion and iteration both describe the repeated application of a rule to successive results. In programming, they often produce identical outputs and can frequently be used to express the same algorithms.</p>
+<p>However, they are not equivalent in how they are evaluated. The difference lies in how each approach is executed internally — particularly in how state is managed and how the call stack (or lack of it) is used. These implementation details can have significant implications for performance, memory usage, and even correctness in non-trivial cases.</p>
+<p>In Q/KDB+, where iteration is a first-class concept and functional constructs are deeply embedded in the language, the distinction becomes especially important. This blog explores the similarities between recursion and iteration, and more importantly, the practical differences in how recursive and iterative functions are defined and executed in Q.</p>
+<h2 id="what-is-a-recursive-function"><a class="header" href="#what-is-a-recursive-function">What is a Recursive Function</a></h2>
+<p>A recursive function is one that calls itself within its own body.</p>
+<p>A recursive algorithm works by reducing a problem to a smaller (or simpler) version of itself. This process continues until a point is reached where the answer is known directly. This stopping condition is referred to as the base case.</p>
+<p>Without a base case, the function would continue calling itself indefinitely — or more realistically, until the program exhausts the call stack and crashes.</p>
+<p>When designing a recursive algorithm, there are two key components to consider:</p>
+<ul>
+<li><strong>Problem reduction</strong>: How can the original problem be transformed into a simpler instance of the same problem?</li>
+<li><strong>Base case</strong>: At what point can recursion stop and begin returning results back up the call stack?</li>
+</ul>
+<h3 id="example--summing-a-list-of-numbers"><a class="header" href="#example--summing-a-list-of-numbers">Example – Summing a List of Numbers</a></h3>
+<p>Suppose we are given a list of numbers and want to compute their sum.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>This is a contrived example, since Q already provides the built-in function <code>sum</code>. The purpose here is purely illustrative.</p>
+</blockquote>
+<p>We can define the following recursive function:</p>
+<pre><code class="language-q">// Sum a list of numbers
+sumList:{[list]
+    $[0&lt;count list;
+        (first list)+sumList 1_list;
+        0
+    ]
+ }
+</code></pre>
+<p>And use it as follows:</p>
+<pre><code class="language-q">q)sumList 1 2 3 4 5
+15
+</code></pre>
+<p>The function first checks whether the list contains any elements using <code>count</code>. This serves as the base case. If the list is empty (count of the list is zero), the function returns <code>0</code>.</p>
+<p>Otherwise, the function:</p>
+<ol>
+<li>Takes the first element (<code>first list</code>)</li>
+<li>Recursively calls <code>sumList</code> on the remainder of the list (<code>1_list</code> drops the first element)</li>
+<li>Adds the first element to the result of the recursive call</li>
+</ol>
+<hr>
+<p><strong>Visualisation</strong></p>
+<p>To understand what happens internally, consider:</p>
+<pre><code>sumList 1 2 3 4 5
+
+-&gt; 1 + sumList 2 3 4 5
+    -&gt; 2 + sumList 3 4 5
+       -&gt; 3 + sumList 4 5
+            -&gt; 4 + sumList 5
+                -&gt; 5 + sumList ()
+                    -&gt; 0
+                    &lt;- 0
+                &lt;- 5 + 0 = 5
+            &lt;- 4 + 5 = 9
+        &lt;- 3 + 9 = 12
+    &lt;- 2 + 12 = 14
+&lt;- 1 + 14 = 15
+</code></pre>
+<p>At the top level, we begin with <code>1 + sumList 2 3 4 5</code>. However, the addition cannot be performed until <code>sumList 2 3 4 5</code> has been evaluated.</p>
+<p>What happens behind the scenes is that each pending addition (<code>1 +</code>, <code>2 +</code>, <code>3 +</code>, …) is stored on the call stack while deeper recursive calls are evaluated. Once the base case is reached and <code>0</code> is returned, the function begins to unwind, resolving each stored operation in reverse order.</p>
+<p>Each recursive call therefore consumes stack space to store:</p>
+<ul>
+<li>The function arguments</li>
+<li>The return address</li>
+<li>Any intermediate state required to complete the computation</li>
+</ul>
+<p>This is the primary disadvantage of naive recursion: stack usage grows linearly with input size. For sufficiently large inputs, this can lead to stack overflow, whereas an iterative approach may avoid this cost.</p>
+<hr>
+<p><strong>Improvements to <code>sumList</code></strong></p>
+<p>There are two small improvements we can make to <code>sumList</code>.</p>
+<p><strong>1. Improve the Base Case</strong></p>
+<p>In the original version, the base case occurs when the list is empty. However, we can eliminate one recursive step by using a slightly stronger base case: if the list contains a single element, we simply return that element.</p>
+<pre><code class="language-q">sumList:{[list]
+    $[1&lt;count list;
+        (first list)+sumList 1_list;
+        first list
+    ]
+ } 
+</code></pre>
+<p>This avoids the final recursive call on an empty list.</p>
+<p><strong>2. Use <code>.z.s</code> for Self-Reference</strong></p>
+<p>Q provides the built-in <code>.z.s</code>, which refers to the currently executing function. Using <code>.z.s</code>, we can avoid hard-coding the function name inside its own definition:</p>
+<pre><code class="language-q">sumList:{[list]
+    $[1&lt;count list;
+        (first list)+.z.s 1_list;
+        first list
+    ]
+ }
+</code></pre>
+<p>Here, <code>.z.s</code> replaces the explicit call to <code>sumList</code>. This has a practical advantage: if the function is later renamed or assigned to a different symbol, the recursive call does not need to be updated. The function becomes self-contained and name-independent. Using <code>.z.s</code> is especially helpful if the function is passed around anonymously or stored in different variables.</p>
+<h3 id="why-use-recursive-algorithms"><a class="header" href="#why-use-recursive-algorithms">Why Use Recursive Algorithms?</a></h3>
+<p>The main advantage of recursion is clarity. Recursive solutions often mirror the structure of the problem itself, which can make them easier to design, reason about, and verify.</p>
+<p>If input sizes are small, or performance constraints are not critical, recursion can be an elegant and expressive choice. However, when working with large datasets, especially in a performance-sensitive environment like Q/KDB+, the cost of stack growth becomes an important consideration.</p>
+<h2 id="what-is-an-iterative-function"><a class="header" href="#what-is-an-iterative-function">What is an Iterative Function</a></h2>
+<p>An iterative function is one that repeatedly applies a rule to successive results until some terminating condition is reached.</p>
+<p>With each iteration, the intermediate result moves closer to the final answer. Once the input is exhausted (or the stopping condition is met), the computation terminates and the result is returned.</p>
+<p>In some programming languages, particularly Lisp dialects, iteration can look like recursion. A function may call itself, but if that call appears in tail position (i.e. its result is returned directly), the compiler/interpreter can apply tail call optimisation (TCO).</p>
+<p>With TCO, the runtime does not allocate a new stack frame for the recursive call. Instead, it reuses the current frame and updates the state. Although the code is written recursively, it executes as an iterative process.</p>
+<p>Q/KDB+, however, takes a different approach. Iteration is explicit and built into the language via higher-order functions such as:</p>
+<ul>
+<li><code>over</code> (<code>/</code>)</li>
+<li><code>scan</code> (<code>\</code>)</li>
+</ul>
+<p>These constructs express iteration directly, without relying on recursion.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<p>Returning to the earlier example of summing a list of numbers, we can define an iterative version:</p>
+<pre><code class="language-q">sumList:({x+y}/)
+</code></pre>
+<p>And use it as before:</p>
+<pre><code class="language-q">q)sumList 1 2 3 4 5
+15
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>{x+y}</code> is a small binary lambda.</li>
+<li>Applying <code>/</code> transforms it into an iterator using <em>over</em>.</li>
+<li>The surrounding parentheses ensure the function is treated as unary, since <code>/</code> is overloaded and also has a binary form.</li>
+</ul>
+<p>In this case, <code>/</code> acts as a left fold (accumulate). Iteration stops once all elements in the list have been consumed.</p>
+<hr>
+<p><strong>Visualisation</strong></p>
+<p>To understand what happens conceptually:</p>
+<pre><code>sumList 1 2 3 4 5
+
+-&gt; {x + y}/ 1 2 3 4 5
+-&gt; {1 + y}/ 2 3 4 5
+-&gt; {1 + 2}/ 3 4 5
+-&gt; {3 + 3}/ 4 5
+-&gt; {6 + 4}/ 5
+-&gt; {10 + 5}/ ()
+-&gt; 15
+</code></pre>
+<p>Within the lambda:</p>
+<ul>
+<li><code>x</code> represents the accumulated value so far.</li>
+<li><code>y</code> represents the next element of the list.</li>
+</ul>
+<p>On the first step, there is no prior accumulated value, so <code>x</code> is set to the first element (<code>1</code>). Each subsequent iteration combines the accumulated result with the next value and updates <code>x</code> accordingly.</p>
+<p>Unlike recursion, there is no growing chain of deferred operations waiting on the call stack. Only the current accumulated value needs to be retained.</p>
+<hr>
+<p><strong>Improvements to <code>sumList</code></strong></p>
+<p>The explicit lambda <code>{x+y}</code> helps illustrate what is happening, but we can simplify further:</p>
+<pre><code class="language-q">sumList:(+/)
+</code></pre>
+<p>This is exactly how <code>sum</code> was historically defined.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>From version 4.0, <code>sum</code> is implemented internally to allow implicit parellisation.</p>
+</blockquote>
+<p>The related operator <code>scan</code> (<code>\</code>) performs the same iteration but returns all intermediate accumulated results:</p>
+<pre><code class="language-q">q)(+\) 1 2 3 4 5
+1 3 6 10 15
+
+// sums is equivalent
+q)sums
+(+\)
+
+q)sums 1 2 3 4 5
+1 3 6 10 15
+</code></pre>
+<p>Where <code>/</code> returns only the final result, <code>\</code> returns the entire sequence of intermediate states.</p>
+<h3 id="why-use-iterative-algorithms"><a class="header" href="#why-use-iterative-algorithms">Why Use Iterative Algorithms?</a></h3>
+<p>An iterative approach stores only the current state (for example, the accumulated value in <code>sumList</code>). It does not require one stack frame per element, and therefore has constant stack usage.</p>
+<p>In Q/KDB+, iteration via <code>/</code> and <code>\</code> is typically:</p>
+<ul>
+<li>More memory-efficient</li>
+<li>Faster</li>
+<li>More idiomatic</li>
+</ul>
+<p>Recursive solutions can sometimes feel more direct when modelling a problem structurally. However, for large inputs or performance-sensitive workloads, which are common in KDB+ environments, explicit iteration is generally preferred.</p>
+<h2 id="comparing-performance-of-recursive--iterative-algorithms"><a class="header" href="#comparing-performance-of-recursive--iterative-algorithms">Comparing Performance of Recursive &amp; Iterative Algorithms</a></h2>
+<h3 id="sumlist"><a class="header" href="#sumlist"><code>sumList</code></a></h3>
+<p>Let us compare the recursive and iterative implementations of <code>sumList</code>:</p>
+<pre><code class="language-q">// Create list
+q)list:til 1000
+
+// Results equal
+q)sumListRecursive list
+499500
+q)sumListIterative list
+499500
+
+// Time and sapce
+q)\ts:1000 sumListRecursive list
+234 5468128
+q)\ts:1000 sumListIterative list
+0 560
+</code></pre>
+<p>Both implementations produce the same result. However, the performance characteristics differ dramatically.</p>
+<p>The recursive version:</p>
+<ul>
+<li>Takes significantly longer to execute</li>
+<li>Allocates substantially more memory</li>
+</ul>
+<p>By contrast, the iterative version using <code>/</code> is both faster and far more memory-efficient.</p>
+<p>The difference in memory usage reflects stack growth in the recursive implementation. Each recursive call consumes additional stack space, whereas the iterative version maintains only the current accumulated state.</p>
+<p>If we increase the size of the input, the problem becomes even clearer:</p>
+<pre><code class="language-q">q)list:til 10000
+
+q)sumListRecursive list
+'stack
+</code></pre>
+<p>For sufficiently large inputs, the recursive implementation exhausts the stack and fails. The iterative version does not suffer from this limitation.</p>
+<hr>
+<p><strong>Confirming That Q Does Not Apply Tail Call Optimisation</strong></p>
+<p>We can further confirm that Q does not perform tail call optimisation (TCO) by testing a tail-recursive version of <code>sumList</code>.</p>
+<pre><code class="language-q">sumListRecursive:{sumListAcc[x;0];}
+
+sumListAcc:{[list;acc]
+    $[0&lt;count list;
+        .z.s[1_list; acc+first list];
+        acc
+    ]
+ }
+</code></pre>
+<p>Although this function is structurally tail-recursive (the recursive call is in tail position) it still overflows the stack for large inputs:</p>
+<pre><code class="language-q">q)list:til 10000
+
+q)sumListRecursive list
+'stack
+</code></pre>
+<p>If Q implemented TCO, this version would execute in constant stack space. The fact that it still fails demonstrates that Q does not eliminate stack frames for tail calls.</p>
+<h3 id="factorial"><a class="header" href="#factorial">Factorial</a></h3>
+<p>The factorial of a number <em>n</em>, denoted \(n!\), is defined as the product of all positive integers less than or equal to <em>n</em>:</p>
+<p>\[
+n! = n \times (n - 1) \times (n - 2) \times … \times 1
+\]</p>
+<p>By definition, \(0! = 1\).</p>
+<p>This mathematical definition translates directly into a recursive algorithm:</p>
+<pre><code class="language-q">factorialRecursive:{[n] $[n&gt;1; n*.z.s n-1; 1]};
+</code></pre>
+<p>If <code>n</code> is greater than 1, we multiply <code>n</code> by the factorial of <code>n-1</code>. Otherwise, we return 1.</p>
+<p>The iterative version computes the product of all integers from 1 to <em>n</em>:</p>
+<pre><code class="language-q">factorialIterative:{[n] (*/) 1+til n};
+</code></pre>
+<p>Here:</p>
+<ul>
+<li><code>til n</code> produces <code>0 1 2 ... n-1</code></li>
+<li><code>1+til n</code> shifts this to <code>1 2 ... n</code></li>
+<li><code>*/</code> performs an <em>over</em> using multiplication</li>
+</ul>
+<hr>
+<p><strong>Comparison</strong></p>
+<pre><code class="language-q">// Results equal
+q)factorialRecursive 20
+2432902008176640000
+q)factorialIterative 20
+2432902008176640000
+
+// Time and sapce
+q)\ts:100000 factorialRecursive 20
+234 1728
+q)\ts:100000 factorialIterative 20
+43 672
+</code></pre>
+<p>Both implementations produce the same result. However, as with <code>sumList</code>, the iterative version is:</p>
+<ul>
+<li>Faster</li>
+<li>More memory-efficient</li>
+</ul>
+<p>Even for a relatively small input such as 20, the recursive version allocates more memory due to stack growth.</p>
+<h3 id="fibonacci-sequence"><a class="header" href="#fibonacci-sequence">Fibonacci sequence</a></h3>
+<p>The Fibonacci sequence is defined by the recurrence:</p>
+<p>\[
+F_n = F_{n - 1} + F_{n - 2}, \quad n &gt; 1
+\]</p>
+<p>with base cases:</p>
+<p>\[
+F_0 = 0, \quad F_1 = 1
+\]</p>
+<p>Because the definition itself is recursive, it translates directly into a recursive function:</p>
+<pre><code class="language-q">fibRecursive:{[n] $[n&gt;1; .z.s[n-1]+.z.s n-2; n]};
+</code></pre>
+<p>If <code>n &gt; 1</code>, we sum the two preceding Fibonacci numbers. Otherwise, we return <code>n</code>, which correctly handles the base cases <code>0</code> and <code>1</code>.</p>
+<p><strong>Iterative Form</strong></p>
+<p>The iterative version is less obvious.</p>
+<p>Since each term depends only on the previous two, we can maintain a state consisting of the last two values. Starting with:</p>
+<pre><code class="language-q">q)x:0 1
+</code></pre>
+<p>The next term is simply:</p>
+<pre><code class="language-q">q)sum x
+1
+</code></pre>
+<p>To move forward, we update the state by:</p>
+<ul>
+<li>Dropping the first element</li>
+<li>Appending the new sum</li>
+</ul>
+<p>Conceptually:</p>
+<pre><code class="language-q">// 1st iteration
+q)show x:(x 1;sum x)
+1 1
+
+// 2nd iteration
+q)show x:(x 1;sum x)
+1 2
+
+// 3rd iteration
+q)show x:(x 1;sum x)
+2 3
+
+// 4th iteration
+q)show x:(x 1;sum x)
+3 5
+
+..
+</code></pre>
+<p>At each step, <code>x</code> always holds the two most recent Fibonacci numbers.</p>
+<p><strong>Using the <em>do</em> Form of <code>/</code></strong></p>
+<p>If we want the 10th Fibonacci number, we must iterate \(n − 1\) times, since the initial state already contains the first two terms (<code>0 1</code>).</p>
+<p>The <em>do</em> form of <code>/</code> takes:</p>
+<ul>
+<li>A fixed number of iterations</li>
+<li>An initial state</li>
+</ul>
+<p>We can compute:</p>
+<pre><code class="language-q">q){(x 1;sum x)}/[9;0 1]
+34 55
+</code></pre>
+<p>This returns the 9th and 10th Fibonacci numbers. To obtain the 10th term:</p>
+<pre><code class="language-q">q)last {(x 1;sum x)}/[9;0 1]
+55
+</code></pre>
+<p><strong>Handling the Edge Case</strong></p>
+<p>If \(n = 0\), we should return <code>0</code>. However:</p>
+<pre><code class="language-q">q)last {(x 1;sum x)}/[-1;0 1]
+1
+</code></pre>
+<p>When the iteration count is zero or negative, <code>/</code> simply returns the initial state (<code>0 1</code>). Taking <code>last</code> therefore returns <code>1</code>, which is incorrect for \(F_0\).</p>
+<p>We handle this explicitly:</p>
+<pre><code class="language-q">fibIterative:{[n] $[n&lt;1; n; last {(x 1;sum x)}/[n-1;0 1]]};
+</code></pre>
+<hr>
+<p><strong>Comparison</strong></p>
+<pre><code class="language-q">// Results equal
+q)fibRecursive 25
+75025
+q)fibIterative 25
+75025
+
+// Time and sapce
+q)\ts:100 fibRecursive 25
+2424 2512
+q)\ts:100 fibIterative 25
+0 560
+</code></pre>
+<p>The iterative version is dramatically more efficient.</p>
+<p>This difference is not just due to stack usage.</p>
+<p>The naive recursive Fibonacci implementation performs massive recomputation. For example:</p>
+<pre><code>fib[5]
+
+-&gt; fib[3] + fib[4]
+    -&gt; (fib[1] + fib[2]) + (fib[2] + fib[3])
+        -&gt; ..
+</code></pre>
+<p>The same values are recalculated repeatedly:</p>
+<ul>
+<li><code>fib[3]</code> appears multiple times</li>
+<li><code>fib[2]</code> appears multiple times</li>
+<li>and so on</li>
+</ul>
+<p>This leads to exponential time complexity.</p>
+<p>By contrast, the iterative version computes each Fibonacci number exactly once, resulting in linear time complexity.</p>
+<h3 id="exponentiation"><a class="header" href="#exponentiation">Exponentiation</a></h3>
+<p>Exponentiation is repeated multiplication of a base <em>b</em> by itself <em>n</em> times:</p>
+<p>\[
+b^n = b \times b \times … \times b \quad \text{(n times)}
+\]</p>
+<p>with the base case:</p>
+<p>\[
+b^0 = 1
+\]</p>
+<p>A naive implementation would require \(O(n)\) multiplications. However, we can use exponentiation by squaring, which reduces the complexity to \(O(\log n)\):</p>
+<p>\[
+\begin{align*}
+b^n &amp;= b^\frac{n}{2} \times b^\frac{n}{2} \quad \text{if n is even} \\
+b^n &amp;= b \times b^{n - 1} \quad \text{if n is odd}
+\end{align*}
+\]</p>
+<p><strong>Recursive Implementation</strong></p>
+<p>This definition translates naturally into a recursive function:</p>
+<pre><code class="language-q">expRecursive:{[b;n]
+    $[
+        n=0; 1;
+        0=n mod 2; {x*x} .z.s[b;n div 2];
+        b*.z.s[b;n-1]
+    ]
+ };
+</code></pre>
+<ul>
+<li>If \(n = 0\), return <code>1</code></li>
+<li>If <em>n</em> is even, compute \(b^\frac{n}{2}\) and square it</li>
+<li>If <em>n</em> is odd, compute \(b \times b^{n - 1}\)</li>
+</ul>
+<p>Because each recursive step roughly halves <em>n</em>, the recursion depth is \(O(\log ⁡n)\).</p>
+<p><strong>Iterative Implementation (<em>while</em> Form of <code>/</code>)</strong></p>
+<p>We can implement the same logic iteratively using the <em>while</em> form of <code>/</code>.</p>
+<pre><code class="language-q">expIterative:{[b;n]
+    last {
+        b:x 0; n:x 1; a:x 2; 
+        $[0=n mod 2;
+            (b*b; n div 2; a);
+            (b; n-1; b*a)
+        ]
+    }/[{0&lt;x 1}; (b;n;1)]
+ };
+</code></pre>
+<p>Here:</p>
+<ul>
+<li>The state is a list <code>(b; n; a)</code> where:
+<ul>
+<li><code>b</code> is the current base</li>
+<li><code>n</code> is the remaining exponent</li>
+<li><code>a</code> is the accumulated result</li>
+</ul>
+</li>
+<li>The predicate <code>{0&lt;x 1}</code> checks whether \(n &gt; 0\)</li>
+<li>On each iteration:
+<ul>
+<li>If <code>n</code> is even, we square <code>b</code> and halve <code>n</code></li>
+<li>If <code>n</code> is odd, we multiply the accumulator and decrement <code>n</code></li>
+</ul>
+</li>
+</ul>
+<p>This mirrors the recursive structure closely, but expresses it as an explicit state transition.</p>
+<hr>
+<p><strong>Comparison</strong></p>
+<pre><code class="language-q">// Results equal
+q)expRecursive[2;10]
+1024
+q)expIterative[2;10]
+1024
+
+// Time and sapce
+q)\ts:100000 expRecursive[2;10]
+286 928
+q)\ts:100000 expIterative[2;10]
+402 928
+</code></pre>
+<p>Interestingly:</p>
+<ul>
+<li>Both implementations use the same amount of memory.</li>
+<li>The recursive version is slightly faster in this case.</li>
+</ul>
+<p>This differs from earlier examples. Why?</p>
+<p>Because:</p>
+<ul>
+<li>Recursion depth is only \(O(\log ⁡n)\)</li>
+<li>There is no exponential recomputation</li>
+<li>The recursive structure is compact and direct</li>
+</ul>
+<p>Here, recursion is not inherently inefficient.</p>
+<hr>
+<p><strong>A More Idiomatic Iterative Version</strong></p>
+<p>The previous iterative implementation was intentionally written to mirror the recursive algorithm as closely as possible.</p>
+<p>However, in Q we can write a much simpler version:</p>
+<pre><code class="language-q">expIterativeBetter:{[b;n] (*/) n#b};
+</code></pre>
+<p>This constructs a list of <code>n</code> copies of <code>b</code> and multiplies them using <code>*/</code>.</p>
+<p>While this version:</p>
+<ul>
+<li>Allocates a list of length <code>n</code></li>
+<li>Has \(O(n)\) time complexity</li>
+</ul>
+<p>it is still highly optimised in Q and performs very well:</p>
+<pre><code class="language-q">// Time and sapce
+q)\ts:100000 expIterativeBetter[2;10]
+26 960
+</code></pre>
+<p>It uses slightly more memory due to <code>n#b</code>, but benefits from highly optimised vector operations.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Recursion and iteration are mathematically equivalent, but in Q/KDB+ they are not equivalent in execution.</p>
+<p>From the examples we saw:</p>
+<ul>
+<li>Naive recursion grows the stack linearly (<code>sumList</code>).</li>
+<li>Tail recursion does not help, because Q does not implement tail call optimisation.</li>
+<li>Recursive Fibonacci is inefficient both due to stack growth and repeated recomputation.</li>
+<li>Recursive exponentiation performs well because its depth is logarithmic.</li>
+<li>Vectorised primitives are typically the most efficient approach.</li>
+</ul>
+<p>The key lesson is not simply that iteration is faster than recursion. Performance depends on:</p>
+<ul>
+<li>Algorithmic complexity</li>
+<li>Recursion depth</li>
+<li>How well the solution maps to Q’s built-in vector operations</li>
+</ul>
+<p>In practice, idiomatic Q favours explicit iteration (<code>/</code>, <code>\</code>) and vector primitives. Recursion can be elegant and expressive, but it must be used with an understanding of its stack behaviour and performance implications.</p>
+<p>Writing efficient Q is ultimately about choosing the execution model that fits the problem — not just the mathematical definition.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="database-maintenance-in-kdb"><a class="header" href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></h1>
 <p><img src="images/maintenance.png" title="Cover Image" alt="Cover Image"></p>
@@ -905,7 +1395,7 @@ q)key `:splayDB
 q)key `:splayDB
 `s#`sym`tradeRenamed
 </code></pre>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Maintaining on-disk KDB+ databases is fundamentally a filesystem problem, and the utilities explored in this post embrace that reality directly. By operating at the directory and file level, we can perform structural changes—adding, removing, renaming, and reshaping tables and columns—without mapping data into memory or relying on fragile, ad hoc scripts. The resulting approach is explicit, predictable, and scalable across splayed, partitioned, and segmented layouts.</p>
 <p>The reworked <code>dbm.q</code> module aims to modernise the original <code>dbmaint.q</code> ideas by improving readability, performance via parallel execution, and extending support to nested columns. More importantly, it provides a composable toolkit for database evolution: one that can be safely automated, reasoned about, and adapted as schemas inevitably change over time. As databases grow and operational requirements become stricter, having well-defined, filesystem-aware maintenance primitives becomes not just convenient, but essential.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1117,7 +1607,7 @@ q)clap.get`nonExistingArg    // Returns ()
 <p>Note that while the only requirement for sharing a module is providing the q source file(s), it’s highly recommended to include documentation describing what the module does, how to use it, and any assumptions or dependencies it has. Clear documentation makes your module far easier for others to adopt, understand, and build upon.</p>
 <h2 id="using-modules-from-others"><a class="header" href="#using-modules-from-others">Using Modules From Others</a></h2>
 <p>KX ships a collection of official modules with every KDB-X installation, documented <a href="https://code.kx.com/kdb-x/modules/module-index.html#official-kx-modules">here</a>. The same page also catalogues a range of open-source modules, which are useful both as ready-made components and as examples of good module design. To use any external module, simply download its source files and place them somewhere on your module search path — commonly within your <code>mod/</code> directory — after which it can be imported with <code>use</code> like any other module.</p>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>The introduction of a module system in KDB-X marks an important step forward for the q ecosystem. Modules provide structure, encapsulation, and clarity — allowing developers to build cleaner codebases, share functionality more easily, and avoid the common pitfalls of global namespaces. Although the ecosystem is still young and a centralised package registry has yet to emerge, the foundations are now in place for a more collaborative and reusable approach to q development.</p>
 <p>Whether you are incorporating modules written by others or creating your own, the new system offers a practical, modern way to organise and distribute functionality. As the community continues to grow, shared modules and best practices will evolve alongside it. I hope this tutorial has given you a clear understanding of how KDB-X modules work and inspired you to start building and sharing your own.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1475,7 +1965,7 @@ q)groupedOverhead[20000;] 1+til 10
 <p>The formulas derived for computing attribute overheads are based on the current internal implementation of KDB+. As such, they may change in future versions if the underlying architecture is modified.
 However, the methodology used to derive these formulas — through systematic measurement and pattern analysis — can still be applied to recalculate overheads if needed. The approach is general and remains valid even if the specific outcomes evolve over time.</p>
 </blockquote>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>While KDB+ attributes offer powerful query optimisations, we have shown that these benefits come with measurable costs in time and memory.</p>
 <p>We’ve seen that attributes like <em>unique</em>, <em>parted</em>, and <em>grouped</em> maintain internal data structure — typically hash maps — that vary in size depending on both the total count of the list and the count of unique values. This leads to non-trivial memory overhead, which can scale into hundreds of megabytes or more for large datasets.</p>
 <p>We also observed that applying attributes can incur time overhead during operations like loading, writing, or updating data — particularly for attributes that require hashing or maintaining metadata during write time.</p>
@@ -1818,7 +2308,7 @@ select time, side from table where sym=randSym
 </table>
 </div>
 <p>When using the <em>parted</em> attribute, memory usage remains constant regardless of dataset size. This suggests that no additional memory is consumed during grouping — likely because the data is already partitioned, and aggregation can proceed without intermediate allocation.</p>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>KDB+ attributes offer a powerful way to optimise query performance by influencing how data is accessed and retrieved. As we’ve seen, each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — serves a specific purpose and can dramatically reduce query times when applied appropriately. Whether it’s enabling binary search through a <em>sorted</em> list, ensuring fast membership checks via <em>unique</em>, or accelerating group-based operations with <em>parted</em> and <em>grouped</em>, attributes are key to writing high-performance Q code.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
@@ -2435,7 +2925,7 @@ col2| s
 col3| c
 col4| f
 </code></pre>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
 <p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -2627,7 +3117,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -3045,7 +3535,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -3587,7 +4077,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
+<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -4030,7 +4520,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
+<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -4544,7 +5034,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
+<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -4895,7 +5385,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
+<h2 id="conclusion-11"><a class="header" href="#conclusion-11">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -5051,7 +5541,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-11"><a class="header" href="#conclusion-11">Conclusion</a></h2>
+<h2 id="conclusion-12"><a class="header" href="#conclusion-12">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>

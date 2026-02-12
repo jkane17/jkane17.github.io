@@ -2,6 +2,7 @@
 
 [Introduction](./introduction.md)
 
+[Recursion vs Iteration in Q/KDB+](./recursion_vs_iteration.md)
 [Database Maintenance in KDB+](./maintenance.md)
 [KDB-X Modules](./kdbx_modules.md)
 [Performance Costs of KDB+ Attributes](./attr_perf_costs.md)
