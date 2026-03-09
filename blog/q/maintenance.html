@@ -40,10 +40,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-afddf6d9.js";
+            window.path_to_searchindex_js = "searchindex-5d889c37.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2bf62657.js"></script>
+        <script src="toc-6ef6afd0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -307,7 +307,7 @@ files@:where files like "[0-9]*";
 </code></pre>
 <h3 id="handling-segmented-databases"><a class="header" href="#handling-segmented-databases">Handling Segmented Databases</a></h3>
 <p>Segmented databases introduce one additional wrinkle: the root contains a file <code>par.txt</code> listing the paths of all underlying partitioned databases. We can handle this by reading the file and recursively calling our function for each listed path:</p>
-<pre><code class="language-q">if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+<pre><code class="language-q">if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
 </code></pre>
 <h3 id="final-cleanup"><a class="header" href="#final-cleanup">Final Cleanup</a></h3>
 <p>Up to this point, we’ve blindly appended the table name to each partition path. To avoid returning non-existent directories, we filter to keep only paths that actually exist:</p>
@@ -316,7 +316,7 @@ files@:where files like "[0-9]*";
 <pre><code class="language-q">// Get all paths to a table within a database
 allTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     paths:$[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]];
     paths where 0&lt;(count key@) each paths
@@ -701,59 +701,40 @@ rmAttr:{[db;tname;cname] setAttr[db;tname;cname;`];};
 <p><strong>1. Identifying Missing Columns</strong></p>
 <p>Given:</p>
 <ul>
-<li><code>goodTdir</code>: the directory of the template table (with the complete schema)</li>
+<li><code>good</code>: template table (with the complete schema)</li>
 <li><code>tdir</code>: the directory of a table we want to fix</li>
 </ul>
-<p>We determine which columns are missing by comparing their <code>.d</code> files:</p>
-<pre><code class="language-q">goodCols:getColNames goodTdir
+<p>We determine which columns are missing by comparing their columns:</p>
+<pre><code class="language-q">goodCols:cols good
 missing:goodCols except getColNames tdir
 </code></pre>
 <p>This produces the list of columns that exist in the good table but not in the target table.</p>
 <p><strong>2. Generating Default Values</strong></p>
 <p>Each missing column must be added with a correctly typed default value.</p>
-<p>We infer the column’s type from the template table’s metadata:</p>
-<pre><code class="language-q">t:"*"^meta[goodTdir][cname;`t]
+<p>We can generate an empty default of the correct type using <code>0#</code> on a good column:</p>
+<pre><code class="language-q">0#good col
 </code></pre>
-<p>Here:</p>
-<ul>
-<li><code>meta[goodTdir][cname;`t]</code> returns the column’s type character</li>
-<li><code>"*"</code> is used as a fallback when the type is null (<code>" "</code>), which represents a general list</li>
-</ul>
-<p>We then construct an empty value of the correct type:</p>
-<pre><code class="language-q">t$()
-</code></pre>
-<p><strong>3. Handling Nested Columns</strong></p>
-<p>Nested columns (lists of lists) require special handling. These are identified by:</p>
-<ul>
-<li>an uppercase type character (<code>"A"</code> – <code>"Z"</code>), or</li>
-<li><code>"*"</code> for general nested lists</li>
-</ul>
-<p>For these cases, the default value must itself be <strong>enlisted</strong>, producing a list of empty lists:</p>
-<pre><code class="language-q">$[(t="*") or t within "AZ";enlist;] t$()
-</code></pre>
-<p><strong>4. Reorder Columns</strong></p>
+<p><strong>3. Reorder Columns</strong></p>
 <p>To maintain consistency, the columns of the table that had the missing column(s) are reordered to match the ordering of the good table:</p>
 <pre><code class="language-q">reorder1Cols[tdir;goodCols]
 </code></pre>
-<p><strong>5. Adding Missing Columns to a Single Table</strong></p>
+<p><strong>4. Adding Missing Columns to a Single Table</strong></p>
 <p>We can now combine the above logic into a helper that adds all missing columns to a single table directory:</p>
 <pre><code class="language-q">// Add missing columns to a single database table
-add1MissingCols:{[tdir;goodTdir]
-    goodCols:getColNames goodTdir;
+add1MissingCols:{[tdir;good]
+    goodCols:cols good;
     if[count missing:goodCols except getColNames tdir;
-        {[d;g;c] 
-            add1Col[d;c;] $[(t="*") or t within "AZ";enlist;] (t:"*"^meta[g][c;`t])$()
-        }[tdir;goodTdir;] each missing;
+        {[d;g;c] add1Col[d;c;0#g c]}[tdir;good;] each missing;
         reorder1Cols[tdir;goodCols]
     ]
- };
+ }
 </code></pre>
-<p><strong>6. Applying Across All Partitions</strong></p>
+<p><strong>5. Applying Across All Partitions</strong></p>
 <p>Finally, we wrap this helper to apply it across all partitions of a table — excluding the template partition itself:</p>
 <pre><code class="language-q">// Add missing columns across all partitions of a table
-addMissingCols:{[db;tname;goodTdir]
-    add1MissingCols[;goodTdir] peach allTablePaths[db;tname] except goodTdir;
- };
+addMissingCols:{[db:`s;tname:`s;goodTdir:`s]
+    add1MissingCols[;0#get goodTdir] peach allTablePaths[db;tname] except goodTdir;
+ }
 </code></pre>
 <pre><code class="language-q">// Remove column from older partition
 q)hdel .Q.dd[`:partDB;2026.02.03,`trade`size]
@@ -799,7 +780,7 @@ add1Tab:{[db;domain;tdir;schema] @[tdir;`;:;.Q.ens[db;0#schema;domain]];};
 </ul>
 <pre><code class="language-q">buildTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     $[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]]
  };

@@ -1,0 +1,880 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Sym File Maintenance in KDB+ - Q/KDB+ Blog</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Blogs for Q/KDB+">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/content-533a1c23.css">
+        <link rel="stylesheet" href="theme/custom-highlight-00a73c7c.css">
+        <link rel="stylesheet" href="theme/navigation-ccf6f99d.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-5d889c37.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-6ef6afd0.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Q/KDB+ Blog</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="sym-file-maintenance-in-kdb"><a class="header" href="#sym-file-maintenance-in-kdb">Sym File Maintenance in KDB+</a></h1>
+<p><img src="./images/sym_file_maintenance.png" title="Cover Image" alt="Cover Image"></p>
+<p>The sym file is one of the most critical components of a KDB+ database. It provides significant improvements in both memory efficiency and query performance. However, to preserve these benefits, the sym file must be properly maintained. Excessively large sym files can negatively impact database load times and overall system performance, making it important to keep them as compact as reasonably possible.</p>
+<p>This blog examines the considerations involved in database design to minimise sym file growth. It also explores practical techniques for reducing the size of an existing sym file when it becomes excessively large.</p>
+<p>This post builds on the concepts introduced in my <a href="./maintenance.html">previous blog</a> on general KDB+ database maintenance. If you are unfamiliar with those fundamentals, I recommend reading that post first, as many of the practices discussed there form the foundation for effective sym file maintenance. Additionally, the code described throughout this blog is available within the <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code> module</a>.</p>
+<blockquote class="blockquote-tag blockquote-tag-warning">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>Operations on sym files can fail for many reasons. To avoid data loss, always back up your database before performing any of the operations described in this blog.</p>
+</blockquote>
+<h2 id="symbols-and-enumeration"><a class="header" href="#symbols-and-enumeration">Symbols and Enumeration</a></h2>
+<p>In KDB+, the <em>symbol</em> type is an <a href="https://en.wikipedia.org/wiki/String_interning">interned string</a>. This means only one copy of each distinct string value is stored in memory, and all references point to that single instance.</p>
+<p>On disk, this concept is implemented through <strong>enumeration</strong>. Enumerating a list of symbols converts each symbol into an integer index referencing a unique list of symbols known as the <strong>domain</strong>. This domain is stored in the sym file.</p>
+<p>Symbol columns in splayed or partitioned tables must be enumerated. Instead of storing the symbol values directly, these columns store integer indexes into the domain. When the database is mapped into memory, these indexes are resolved back to their corresponding symbol values transparently.</p>
+<p>Enumeration provides several important benefits:</p>
+<ul>
+<li><strong>Reduced memory and disk usage</strong> — only one copy of each unique symbol is stored, while references use fixed-width integer indexes.</li>
+<li><strong>Improved query performance</strong> — integer comparisons are significantly faster than string comparisons.</li>
+<li><strong>Efficient memory mapping</strong> — fixed-width representations improve cache efficiency and access speed.</li>
+</ul>
+<p>However, enumeration also introduces operational complexity:</p>
+<ul>
+<li>Tables must be properly enumerated before being written to disk.</li>
+<li>The sym file becomes a critical dependency; corruption or inconsistency can lead to severe data integrity issues.</li>
+<li>The sym file grows over time as new unique symbols are added. This growth, often referred to as <strong>sym file bloat</strong>, can significantly increase database load times.</li>
+</ul>
+<h2 id="why-sym-file-maintenance-matters"><a class="header" href="#why-sym-file-maintenance-matters">Why Sym File Maintenance Matters</a></h2>
+<p>The sym file (or files) is loaded into memory when a database is opened. Its size therefore directly impacts startup time and memory usage. In systems with high symbol cardinality, such as trade identifiers or user-generated strings, the sym file can grow rapidly.</p>
+<p>Uncontrolled growth can lead to:</p>
+<ul>
+<li>Slow database startup times</li>
+<li>Increased memory consumption</li>
+<li>Reduced overall system efficiency</li>
+<li>Longer recovery times during failover or restart</li>
+</ul>
+<p>Proper design and ongoing maintenance are essential to prevent these issues.</p>
+<h2 id="design-considerations"><a class="header" href="#design-considerations">Design Considerations</a></h2>
+<p>When designing a database, the choice of datatype for columns is an important consideration. A common decision is whether to use the symbol or string type for values containing alphanumeric characters. In many cases, it may not be immediately obvious which type is most appropriate.</p>
+<p>In practice, the following guidelines can help inform that choice:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Symbol</th><th>String</th></tr>
+</thead>
+<tbody>
+<tr><td>Values contain only alphanumeric, underscore, or dot characters (<code>0-9A-Za-z_.</code>)</td><td>Values contain spaces or special characters (which can make certain operations more cumbersome)</td></tr>
+<tr><td>High repetition of values</td><td>Low repetition of values</td></tr>
+<tr><td>Column frequently used in comparison operations</td><td>Column rarely used in comparison operations</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>Forward slashes can be used in file symbols without any cumbersome handling. However, in such cases the use of a symbol is usually deliberate, as the value is intended to represent a file path.</p>
+</blockquote>
+<p>You may also encounter identifier columns that are highly unique but frequently used in comparison operations. In such cases, consider using the GUID type, which provides efficient comparisons without introducing large numbers of entries into a symbol domain.</p>
+<h3 id="creating-a-decision-function"><a class="header" href="#creating-a-decision-function">Creating a Decision Function</a></h3>
+<p>We can create a helper function that analyses a list of values (provided as strings) and suggests whether they should be stored as strings or symbols.</p>
+<p>First, given a string <code>x</code>, we check whether it contains any characters that are unsuitable for symbols:</p>
+<pre><code class="language-q">hasBadSymChar:{0&lt;count x except .Q.nA,.Q.a,"_."}
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)hasBadSymChar each ("abc";"def";"g.h";"i_j";"k@l")
+00001b
+</code></pre>
+<p>If any value in the list contains such characters, the column should remain a string:</p>
+<pre><code class="language-q">any hasBadSymChar each vals
+</code></pre>
+<hr>
+<p><strong>Measuring Uniqueness</strong></p>
+<p>Next, we compute the <strong>uniqueness ratio</strong> (also called relative cardinality):</p>
+<p>\[
+\text{Uniqueness Ratio} = \frac{\text{Number of Unique Elements}}{\text{Total Number of Elements}}
+\]</p>
+<p>In q:</p>
+<pre><code class="language-q">(count distinct vals)%count vals
+</code></pre>
+<p>A ratio of 1 indicates that all values are unique, while a ratio approaching 0 indicates a high level of repetition.</p>
+<p>The interpretation of this ratio depends on the dataset, but one possible guideline might be:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Ratio</th><th>Cardinality</th></tr>
+</thead>
+<tbody>
+<tr><td>&gt; 0.9</td><td>Very high</td></tr>
+<tr><td>0.5 - 0.9</td><td>High</td></tr>
+<tr><td>0.1 - 0.5</td><td>Medium</td></tr>
+<tr><td>0.01 - 0.1</td><td>Low</td></tr>
+<tr><td>&lt; 0.01</td><td>Very low</td></tr>
+</tbody>
+</table>
+</div>
+<p>However, the ratio alone does not tell the full story. Consider the following examples:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Total Values</th><th>Distinct Values</th><th>Uniqueness Ratio</th></tr>
+</thead>
+<tbody>
+<tr><td>10</td><td>5</td><td>0.5</td></tr>
+<tr><td>1,000,000</td><td>500,000</td><td>0.5</td></tr>
+</tbody>
+</table>
+</div>
+<p>Both datasets have the same ratio, yet the second introduces 500,000 unique symbols into the domain. Depending on the application, this may still be considered very high cardinality.</p>
+<p>For this reason, we should also consider <strong>absolute cardinality</strong> (the number of distinct values).</p>
+<hr>
+<p><strong>Combining Relative and Absolute Cardinality</strong></p>
+<p>We can define both <strong>relative</strong> and <strong>absolute</strong> thresholds. If both thresholds are exceeded, the values should remain strings; otherwise, they can be stored as symbols.</p>
+<pre><code class="language-q">(relThreshold&lt;uniqueCount%count vals) and
+    absThreshold&lt;uniqueCount:count distinct vals
+</code></pre>
+<p>The final helper function returns the values either as strings or symbols depending on these checks:</p>
+<pre><code class="language-q">decideType:{[absThreshold;relThreshold;vals]
+    $[
+        any hasBadSymChar each vals; vals;
+        (relThreshold&lt;uniqueCount%count vals) and
+            absThreshold&lt;uniqueCount:count distinct vals; vals;
+        `$vals
+    ]
+ };
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">decideType[10000;0.5;] ("abc";"def";"ghi";..)
+</code></pre>
+<p>Here, the <strong>absolute cardinality threshold</strong> is set to <code>10,000</code> and the <strong>relative cardinality threshold</strong> to <code>0.5</code>. This means that values will be stored as <strong>symbols</strong> only if:</p>
+<ul>
+<li>the uniqueness ratio is below <code>0.5</code>, and</li>
+<li>the number of distinct values is below <code>10,000</code>.</li>
+</ul>
+<p>Otherwise, the values remain <strong>strings</strong>.</p>
+<p>When choosing the <strong>absolute threshold</strong>, consider how many additional symbols your current sym file can reasonably accommodate. The <strong>relative threshold</strong> can help anticipate future growth patterns in the data.</p>
+<p>This method provides a simple heuristic for datatype selection. In practice, the final decision may also depend on query patterns, expected data growth, and domain-specific considerations. Nevertheless, applying these checks provides a useful baseline when designing a database schema.</p>
+<h2 id="converting-between-string-and-symbol-types"><a class="header" href="#converting-between-string-and-symbol-types">Converting Between String and Symbol Types</a></h2>
+<p>In the previous section we discussed how to decide whether a column should use the string or symbol type. However, in many cases the schema of an existing database has already been established and such decisions have already been made. Over time, requirements may change and you may decide that a column would be better represented using the other type.</p>
+<p>In this section we look at how to convert a column from <strong>symbol to string</strong> and from <strong>string to symbol</strong>.</p>
+<h3 id="from-symbol-to-string"><a class="header" href="#from-symbol-to-string">From Symbol to String</a></h3>
+<p>A column can usually be cast from one type to another using <code>castCol</code> provided by <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code></a>. However, converting a column from <strong>symbol to string</strong> requires a slightly different approach.</p>
+<p>Instead of casting directly, we use <code>fnCol</code> to apply the <code>string</code> function to the column values.</p>
+<p>When operating directly on the column file on disk, a symbol column does not contain the symbol values themselves. Instead, it contains the enumeration indexes into the symbol domain. Therefore, before converting to strings we must first map those indexes back to their corresponding symbol values.</p>
+<p>The lambda passed to <code>fnCol</code> therefore looks like this:</p>
+<pre><code class="language-q">{[db;vals] $[20h=type vals; string (get db,key vals) vals; vals]}[db;]
+</code></pre>
+<p>Here <code>vals</code> is the list of column values.</p>
+<p>If <code>vals</code> is an enumeration type (since KDB+ 3.6, enumerations always have type <code>20h</code>):</p>
+<ol>
+<li>The domain file is loaded using <code>get db,key vals</code></li>
+<li>The enumeration indexes are mapped to their symbol values</li>
+<li>The resulting symbols are converted to strings using <code>string</code></li>
+</ol>
+<p>If the values are not enumerated symbols, they are returned unchanged.</p>
+<hr>
+<p><strong>Avoiding Repeated Domain Loads</strong></p>
+<p><code>fnCol</code> may apply the operation to many column files in a partitioned database. If we load the domain file inside the lambda, it would be reloaded for every partition, which can be inefficient if the domain file is large.</p>
+<p>To avoid this, we determine the domain <strong>once</strong> and reuse it.</p>
+<p>However, identifying the domain file is not completely straightforward because a table may exist in many partitions, each containing a copy of the column file. To determine the domain name we inspect one of these column files.</p>
+<p>A common approach is to use the most recent partition, which can generally be assumed to be in a consistent state.</p>
+<p>We first create a helper function to obtain the table directory from the most recent partition.</p>
+<pre><code class="language-q">// Get the table directory from the most recent partition
+mostRecentTdir:{[db;tname] last asc allTablePaths[db;tname]}
+</code></pre>
+<p><code>allTablePaths</code> (provided in <code>dbm.q</code>) returns every path to the table across all partitions.
+Sorting these paths and taking the last value gives the most recent partition.</p>
+<p>This also works for splayed tables, since <code>allTablePaths</code> will return a single path.</p>
+<p><strong>Determining the Domain Name</strong></p>
+<p>Once we have the table path we can inspect the column file to determine the domain used by the enumeration.</p>
+<pre><code class="language-q">// Get the name of the domain used by the given column
+colDomainName:{[db;tname;cname]
+    $[20h=type vals:get mostRecentTdir[db;tname],cname; key vals; `]
+ }
+</code></pre>
+<p>If the column is an enumeration type, the domain name is obtained using <code>key</code>. Otherwise, the function returns a null symbol.</p>
+<hr>
+<p><strong>Symbol to String Conversion</strong></p>
+<p>We can now implement the function that converts a symbol column to a string column.</p>
+<pre><code class="language-q">// Convert a column of symbol type to string type
+symToStrCol:{[db;tname;cname]
+    if[not null domainName:colDomainName[db;tname;cname];
+        fnCol[db;tname;cname;string get[db,domainName]@]
+    ];
+ }
+</code></pre>
+<p>Since the column type is already verified in <code>colDomainName</code>, the lambda passed to <code>fnCol</code> does not need to check the type again.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>After this conversion, many values in the sym file may no longer be referenced by any column. These redundant symbols remain in the domain and can contribute to unnecessary sym file growth. We will discuss how to remove these unused values in a <a href="#cleaning-a-sym-file">later section</a>.</p>
+</blockquote>
+<h3 id="from-string-to-symbol"><a class="header" href="#from-string-to-symbol">From String to Symbol</a></h3>
+<p>Converting from <strong>string to symbol</strong> is more involved.</p>
+<p>The process requires:</p>
+<ol>
+<li>Casting the column values to symbols</li>
+<li>Adding any new symbols to the domain</li>
+<li>Converting the symbols to their corresponding domain indexes</li>
+<li>Writing the enumerated values back to disk</li>
+</ol>
+<p>Because we must enumerate the symbols against a specific domain, the function requires an additional argument <code>dname</code>, which is the name of the domain.</p>
+<hr>
+<p><strong>Loading the Domain</strong></p>
+<p>We begin by loading the domain file into memory.</p>
+<pre><code class="language-q">dfile:.Q.dd[db;dname]
+domain:get dfile
+</code></pre>
+<hr>
+<p><strong>Iterating Over Column Files</strong></p>
+<p>In a partitioned database, the column will exist in many partition directories. Each column file may contain different symbols, so the domain may need to be updated as we process each partition.</p>
+<p>For this reason the operation <strong>cannot safely be parallelised</strong>, since concurrent updates to the domain could lead to inconsistent enumeration values.</p>
+<p>Instead, we iterate over each column path and update the domain incrementally.</p>
+<hr>
+<p><strong>Loading and Casting Column Values</strong></p>
+<p>For each column path we first verify that the column exists.</p>
+<pre><code class="language-q">has1Col[tdir;cname]
+</code></pre>
+<p>If the column file exists we load the values and cast them to symbols.</p>
+<pre><code class="language-q">vals:`$get cfile:.Q.dd[tdir;cname]
+</code></pre>
+<p>This cast works for string columns, but there is an important edge case when the column is of type <strong>char</strong>.</p>
+<p>If a char list such as</p>
+<pre><code class="language-q">"abc"
+</code></pre>
+<p>is cast directly using <code> `$</code>, the result will be a single symbol</p>
+<pre><code class="language-q">`abc
+</code></pre>
+<p>instead of three individual symbols.</p>
+<p>To ensure that each element is converted separately we use an explicit <strong>each-right</strong>:</p>
+<pre><code class="language-q">vals:`$/:get cfile:.Q.dd[tdir;cname]
+</code></pre>
+<p>This works correctly for both char and string inputs.</p>
+<hr>
+<p><strong>Updating the Domain</strong></p>
+<p>Any new symbols encountered in the column must be added to the domain.</p>
+<pre><code class="language-q">domain:domain union vals
+</code></pre>
+<hr>
+<p><strong>Converting Symbols to Domain Indexes</strong></p>
+<p>We convert the symbol values into indexes of the domain using the find operator <code>?</code>.</p>
+<pre><code class="language-q">domain?vals
+</code></pre>
+<p>Since the column may contain many repeated values, we optimise this operation using <code>.Q.fu</code>, which applies a function only to the unique values and then expands the result back to the original shape.</p>
+<pre><code class="language-q">.Q.fu[domain?;syms]
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">// Without optimisation
+q)3*1 2 1 2 1 1
+3 6 3 6 3 3
+
+// Only two multiplications are performed (3*1 and 3*2), and the results are reused
+q).Q.fu[3*;1 2 1 2 1 1]
+3 6 3 6 3 3
+</code></pre>
+<hr>
+<p><strong>Writing the Enumerated Values</strong></p>
+<p>The resulting indexes are assigned the domain using <code>!</code>:</p>
+<pre><code class="language-q">dname!.Q.fu[domain?;vals]
+</code></pre>
+<p>The updated column values are then written back to disk.</p>
+<pre><code class="language-q">.[cfile;();:;dname!.Q.fu[domain?;vals]]
+</code></pre>
+<hr>
+<p><strong>Helper Function</strong></p>
+<p>This logic can be encapsulated in a helper function that converts a single column file.</p>
+<pre><code class="language-q">// Convert a column from string type to symbol type
+strToSym1Col:{[domain;tdir;cname;dname]
+    if[has1Col[tdir;cname];
+        domain:domain union vals:`$/:get cfile:.Q.dd[tdir;cname];
+        .[cfile;();:;dname!.Q.fu[domain?;vals]]
+    ];
+    domain
+ }
+</code></pre>
+<p>The function returns the (possibly updated) domain so it can be reused when processing additional column files.</p>
+<hr>
+<p><strong>Complete Conversion Function</strong></p>
+<p>We can now construct the full function that processes every column path in the table.</p>
+<pre><code class="language-q">// Convert a column from string type to symbol type
+strToSymCol:{[db;tname;cname;dname]
+    dfile:.Q.dd[db;dname];
+    domain:strToSym1Col[;;cname;dname]/[get dfile;allTablePaths[db;tname]];
+    dfile set domain;
+ }
+</code></pre>
+<p>After all column files have been processed, the final domain is written back to disk.</p>
+<h2 id="cleaning-a-sym-file"><a class="header" href="#cleaning-a-sym-file">Cleaning a Sym File</a></h2>
+<p>Databases evolve over time. Tables and columns are added, schemas change, and older structures are eventually removed. When symbol columns are dropped, the symbols that were referenced exclusively by those columns may no longer be used anywhere in the database. However, their entries remain in the sym file.</p>
+<p>This results in a sym file containing many unused values. While functionally harmless, these unused entries waste space and can significantly increase database load times.</p>
+<p>The solution is to clean (or compact) the sym file by identifying and removing unused symbols. The first step is to determine which symbols are still referenced.</p>
+<h3 id="identifying-used--unused-symbols"><a class="header" href="#identifying-used--unused-symbols">Identifying Used &amp; Unused Symbols</a></h3>
+<p>To identify unused symbols within a database, we must first determine which symbols are actually in use. We can then filter the domain to exclude those unused entries.</p>
+<p><strong>Used Symbols in a Single Splayed Table</strong></p>
+<p>Assume we have the path to a splayed table stored in the variable <code>tdir</code>. First, we retrieve the list of column names:</p>
+<pre><code class="language-q">getColNames tdir
+</code></pre>
+<p><code>getColNames</code> is a helper function defined in <code>dbm.q</code> that takes a splayed table directory path and returns the list of column names. For example:</p>
+<pre><code class="language-q">q)getColNames `:splayDB/trade
+`time`sym`ex`size`price
+</code></pre>
+<p>We are only interested in columns of enumeration type (<code>20h</code>).</p>
+<p>To check a column’s type, we must load it:</p>
+<pre><code class="language-q">get tdir,col
+</code></pre>
+<p>We can then test whether the column is an enumeration:</p>
+<pre><code class="language-q">20h=type get tdir,col
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)20h=type get `:splayDB/trade,`price
+0b
+
+q)20h=type get `:splayDB/trade,`ex
+1b
+</code></pre>
+<p>If a column is enumerated, we can determine its domain name using <code>key</code>:</p>
+<pre><code class="language-q">// ex column is enumerated against the domain called sym
+q)key get `:splayDB/trade,`ex
+`sym
+</code></pre>
+<hr>
+<p><strong>Multiple Domains Caveat</strong></p>
+<p>Although uncommon, it is possible for different columns in the same table to be enumerated against different domains.</p>
+<p>For example, in the database <code>splayDBMulti</code>, the <code>trade</code> table has two enumeration columns — <code>sym</code> and <code>ex</code> — each using a different domain:</p>
+<pre><code class="language-q">q)tdir:`:splayDBMulti/trade
+
+q)key get tdir,`sym
+`sym1
+
+q)key get tdir,`ex
+`sym2
+</code></pre>
+<p>The corresponding domain files are stored at the database root:</p>
+<pre><code class="language-q">q)key `:splayDBMulti
+`s#`sym1`sym2`trade
+</code></pre>
+<p>To account for this possibility, we return a <strong>dictionary mapping domain name to used indexes</strong>, rather than a flat list of symbols.</p>
+<p>Using <code>splayDBMulti</code> as an example:</p>
+<pre><code class="language-q">q)tdir:`:splayDBMulti/trade
+q)map:([])
+</code></pre>
+<p>Extracting usage from the <code>sym</code> column:</p>
+<pre><code class="language-q">q)show enum:get tdir,`sym
+`sym1!0 1 2 3 4
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+</code></pre>
+<p>Now for the <code>ex</code> column:</p>
+<pre><code class="language-q">q)show enum:get tdir,`ex
+`sym2!0 1 0 2 1
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 0 2 1
+</code></pre>
+<hr>
+<p><strong>Avoiding Overwrites</strong></p>
+<p>If another column is also enumerated against <code>sym2</code>, naïvely assigning would overwrite existing entries:</p>
+<pre><code class="language-q">q)enum:`sym2!2 3 0 2 1
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 2 3 0 2 1
+</code></pre>
+<p>Instead, we must append:</p>
+<pre><code class="language-q">q)map[key enum],:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 0 2 1 2 3 0 2 1
+</code></pre>
+<p>Since we only care about distinct indexes, we refine this using <code>distinct</code>:</p>
+<pre><code class="language-q">q)map[key enum]:distinct map[key enum],value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 2 3
+</code></pre>
+<p>Even better, we can use <code>union</code>, which is equivalent to <code>distinct</code> + append (<code>,</code>):</p>
+<pre><code class="language-q">q)map[key enum]:map[key enum] union value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 2 3
+</code></pre>
+<hr>
+<p><strong>Completing the Function</strong></p>
+<p>We now iterate over all columns using over (<code>/</code>), building the domain map incrementally:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given splayed table
+domainUsed1:{[tdir]
+    {[tdir;map;col]
+        if[20h=type enum:get tdir,col;
+            map[key enum]:map[key enum] union value enum
+        ];
+        map
+    }[tdir]/[([]);getColNames tdir]
+ }
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-q">q)domainUsed1 `:splayDB/trade
+sym| 0 1 2 3 4 5 6 7
+
+q)domainUsed1 `:splayDBMulti/trade
+sym1| 0 1 2 3 4
+sym2| 0 1 2
+</code></pre>
+<hr>
+<p><strong>Applying to Multiple Partitions</strong></p>
+<p>As described in a <a href="./maintenance.html">previous blog</a>, we can wrap this to operate across partitions:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given database table
+domainUsed:{[db;tname] (union'/) domainUsed1 peach allTablePaths[db;tname]}
+</code></pre>
+<p><code>domainUsed1</code> is applied in parallel (<code>peach</code>) across all table directories. The result is a list of dictionaries, which we combine using <code>union'</code> and <code>/</code>.</p>
+<p>Example of <code>union'</code>:</p>
+<pre><code class="language-q">// union is applied on a key by key basis using '
+q)(`sym1`sym2!(0 1 2;3 4 5)) union' `sym1`sym3!(2 6 1;7 8 9)
+sym1| 0 1 2 6
+sym2| 3 4 5
+sym3| 7 8 9
+</code></pre>
+<hr>
+<p><strong>Unused Symbols</strong></p>
+<p>Once we know which indexes are used, finding unused indexes is straightforward.</p>
+<p>We generate all possible indexes using <code>til</code>:</p>
+<pre><code class="language-q">til count get db,domainName
+</code></pre>
+<p>Then remove the used indexes:</p>
+<pre><code class="language-q">(til count get db,domainName) except domainUsed[db;tname] domainName
+</code></pre>
+<p>To apply this to all domains:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of un-used symbols in the given database table
+domainUnused:{[db;tname] except'[;used] (til count get db,) each key used:domainUsed[db;tname]}
+</code></pre>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>domainUnused</code> only includes domains that have at least one used symbol. If a domain does not appear in the result, it is completely unused by the table.</p>
+</blockquote>
+<p>Identifying unused symbols is not strictly required to rebuild domains, but it is useful for assessing whether compaction is necessary.</p>
+<hr>
+<p><strong>Complete Domain Usage</strong></p>
+<p>To compute usage across the entire database, we apply <code>domainUsed</code> to every table in our database (using <code>listTabs</code> provided by <code>dbm.q</code>) and combine using <code>(union'/)</code>:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given database
+domainUsage:{[db] (union'/) domainUsed[db;] peach listTabs db}
+</code></pre>
+<h3 id="persisting-the-new-domains"><a class="header" href="#persisting-the-new-domains">Persisting the New Domain(s)</a></h3>
+<p>After identifying the used indexes, we rebuild the domains in two stages.</p>
+<p><strong>1) Resolving Domain Indexes</strong></p>
+<p>We convert index mappings into actual symbol values:</p>
+<pre><code class="language-q">// Convert a domain mapping from index values to symbol values
+resolveDomainMap:{[db;dm] ((get db,) each key dm)@'dm}
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)resolveDomainMap[db;] domainUsed[db;tname]
+sym| IBM AMZN GOOGL META SPOT L O SI
+</code></pre>
+<p><strong>2) Persisting to Disk</strong></p>
+<p>Domains can be written using <code>set</code>:</p>
+<pre><code class="language-q">q).Q.dd[`:temp;`sym] set `IBM`AMZN`GOOGL`META`SPOT`L`O`SI
+</code></pre>
+<p>We generalise this:</p>
+<pre><code class="language-q">// Save each domain as a file containing the symbol values
+persistDomainMap:{[dir;dm] (.Q.dd[dir;] each key dm) set' dm}
+</code></pre>
+<blockquote class="blockquote-tag blockquote-tag-important">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>The <code>dir</code> parameter should not initially be the database root. Always write rebuilt sym files to a temporary location first. Only after successful re-enumeration should they replace the originals.</p>
+</blockquote>
+<h3 id="rebuilding-domains"><a class="header" href="#rebuilding-domains">Rebuilding Domains</a></h3>
+<p>We combine all steps into a single convenient function:</p>
+<pre><code class="language-q">// Recreate all domains of the given database with only the used symbols
+rebuildDomains:{[db;dir] persistDomainMap[dir;] resolveDomainMap[db;] domainUsage db}
+</code></pre>
+<p>Calling <code>rebuildDomains</code> writes cleaned domain files to <code>dir</code> but does not modify the database. This makes it a safe first step when performing a sym file clean-up.</p>
+<h3 id="re-enumeration"><a class="header" href="#re-enumeration">Re-enumeration</a></h3>
+<p>Re-enumerating a database against a new domain requires performing the following steps for each symbol column:</p>
+<ol>
+<li>Load the column values.</li>
+<li>Resolve the existing indexes against the current domain.</li>
+<li>Convert the resulting symbols into indexes of the new domain.</li>
+<li>Write the updated column values back to disk.</li>
+</ol>
+<p>Because the new domain has already been created, the re-enumeration step only modifies individual column files. This means the operation can be performed in parallel, since no shared state is modified.</p>
+<blockquote class="blockquote-tag blockquote-tag-warning">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>The steps in this section perform in-place updates to the database. If interrupted or executed incorrectly, data corruption or loss may occur. This process must be performed during a maintenance window with the database offline. Until re-enumeration and domain replacement are fully complete, the database should be considered inconsistent and must not be accessed.</p>
+</blockquote>
+<h4 id="re-enumerating-a-single-column"><a class="header" href="#re-enumerating-a-single-column">Re-enumerating a Single Column</a></h4>
+<p>A column only needs to be re-enumerated if it is an enumeration type and therefore has an associated domain. We can obtain the current domain name using <code>colDomainName</code>, which we defined earlier:</p>
+<pre><code class="language-q">currDomainName:colDomainName[db;tname;cname]
+</code></pre>
+<p>If <code>currDomainName</code> is null, the column is not an enumeration type and we can exit early. Otherwise, we load the current domain:</p>
+<pre><code class="language-q">currDomain:get db,currDomainName
+</code></pre>
+<p>We must also provide the path to the new domain file (<code>newDomainFile</code>), which may not yet reside within the database directory. We load this file and extract its basename to determine the new domain name:</p>
+<pre><code class="language-q">newDomain:get newDomainFile
+newDomainName:last ` vs newDomainFile
+</code></pre>
+<p>At this point we have everything required to re-enumerate the column against the new domain.</p>
+<pre><code class="language-q">{[currDomain;newDomain;newDomainName;vals]
+    newDomainName!.Q.fu[newDomain?;currDomain vals]
+ }[currDomain;newDomain;newDomainName;]
+</code></pre>
+<p>This lambda (projection) re-enumerates the column values (<code>vals</code>) in the same way we performed enumeration in the <a href="#from-string-to-symbol">previous section</a>. The steps are:</p>
+<ol>
+<li>Resolve the existing indexes using <code>currDomain</code></li>
+<li>Locate the new indexes in <code>newDomain</code></li>
+<li>Apply <code>.Q.fu</code> to avoid repeated lookups</li>
+<li>Assign the new domain name using <code>!</code></li>
+</ol>
+<p>We can apply this operation to every column file using <code>fnCol</code>:</p>
+<pre><code class="language-q">fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+    newDomainName!.Q.fu[newDomain?;currDomain vals]
+ }[currDomain;newDomain;newDomainName;]
+</code></pre>
+<p>Putting everything together gives the complete function:</p>
+<pre><code class="language-q">// Re-enumerate a column against a new domain across all partitions
+reenumerateCol:{[db;tname;cname;newDomainFile]
+    if[not null currDomainName:colDomainName[db;tname;cname];
+        currDomain:get db,currDomainName;
+        newDomain:get newDomainFile;
+        newDomainName:last ` vs newDomainFile;
+        fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+            newDomainName!.Q.fu[newDomain?;currDomain vals]
+        }[currDomain;newDomain;newDomainName;]
+    ];
+ }
+</code></pre>
+<p>This function allows us to re-enumerate a single column. While uncommon, it can be useful when columns within the same table are enumerated against different domains or when re-enumeration needs to be performed incrementally.</p>
+<h4 id="re-enumerating-a-table"><a class="header" href="#re-enumerating-a-table">Re-enumerating a Table</a></h4>
+<p>In most databases, the same domain is used for all symbol columns within a table.</p>
+<p>We can therefore define <code>reenumerateTab</code> to re-enumerate all enumeration-type columns (returned by <code>listEnumCols</code> from <code>dbm.q</code>) across all partitions of a table:</p>
+<pre><code class="language-q">// Re-enumerate all enumeration columns in a table
+reenumerateTab:{[db;tname;newDomainFile]
+    reenumerateCol[db;tname;;newDomainFile] peach listEnumCols[db;tname];
+ }
+</code></pre>
+<p>For databases that use a single global domain (the most common case), we can extend this to all tables:</p>
+<pre><code class="language-q">// Re-enumerate every table in the database
+reenumerateAll:{[db;newDomainFile] 
+    reenumerateTab[db;;newDomainFile] peach listTabs db;
+ };
+</code></pre>
+<h3 id="replacing-the-old-sym-files"><a class="header" href="#replacing-the-old-sym-files">Replacing the Old Sym Files</a></h3>
+<p>After re-enumeration, the updated column files reference the new domain file(s). However, these files are not yet located in the database root directory.</p>
+<p>The final step is therefore to:</p>
+<ol>
+<li>Remove or archive the existing sym file(s).</li>
+<li>Move the rebuilt sym file(s) into the database root.</li>
+</ol>
+<p>This can be done at the system level. For example, on Linux:</p>
+<pre><code class="language-bash">mv /path/to/database/oldSymFile /path/to/archive/oldSymFile
+mv /path/to/newSymFile /path/to/database/newSymFile
+</code></pre>
+<p>Once the new sym file is in place, the database can be restarted and will load the rebuilt domain.</p>
+<h2 id="renaming-a-domain"><a class="header" href="#renaming-a-domain">Renaming a Domain</a></h2>
+<p>Renaming a domain is not a common operation, but it can be useful in situations such as changes to naming conventions or schema refactoring.</p>
+<p>Renaming a domain requires two main steps:</p>
+<ol>
+<li>Create a copy of the existing domain file using the new name.</li>
+<li>Re-enumerate any columns currently enumerated against the old domain so that they reference the new domain.</li>
+</ol>
+<p>The first step is simply a filesystem copy. The <code>dbm.q</code> library already provides an internal helper function <code>copy</code> for this purpose.</p>
+<pre><code class="language-q">copy[`:db/currSym;`:db/newSym]
+</code></pre>
+<p>The second step is slightly more involved.</p>
+<p>Re-enumerating the entire database cannot be done using <code>reenumerateAll</code>, because a database may contain multiple domains. Calling <code>reenumerateAll</code> would re-enumerate every enumeration column against the new domain, regardless of which domain it currently uses.</p>
+<p>Instead, we need stricter versions of the re-enumeration functions that only operate on columns enumerated against a specific domain.</p>
+<p>We will therefore introduce <code>reenumerateColFrom</code>, <code>reenumerateTabFrom</code>, and <code>reenumerateAllFrom</code>. These functions behave similarly to the previously defined re-enumeration functions, but they only operate on columns whose current domain matches the specified domain.</p>
+<p><strong><code>reenumerateColFrom</code></strong></p>
+<p>Compared with <code>reenumerateCol</code>, this function has two differences:</p>
+<ol>
+<li>It takes an additional parameter <code>currDomainName</code>.</li>
+<li>It checks that the column is currently enumerated against this domain before performing the re-enumeration.</li>
+</ol>
+<pre><code class="language-q">// Re-enumerate a column from a specific domain to a new domain
+reenumerateColFrom:{[db;tname;cname;currDomainName;newDomainFile]
+    if[currDomainName=colDomainName[db;tname;cname];
+        // same as reenumerateCol ..
+    ];
+ }
+</code></pre>
+<p>Since <code>reenumerateCol</code> and <code>reenumerateColFrom</code> share most of their logic, we can refactor the common functionality into a helper function.</p>
+<hr>
+<p><strong>Shared Re-enumeration Helper</strong></p>
+<pre><code class="language-q">reenumerateCol0:{[db;tname;cname;currDomainName;newDomainFile]
+    currDomain:get db,currDomainName;
+    newDomain:get newDomainFile;
+    newDomainName:fs.basename newDomainFile;
+
+    fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+        newDomainName!.Q.fu[newDomain?;currDomain vals]
+    }[currDomain;newDomain;newDomainName;];
+ }
+</code></pre>
+<p>This helper performs the actual re-enumeration and is used by both variants of the function.</p>
+<p>The original <code>reenumerateCol</code> can now be simplified:</p>
+<pre><code class="language-q">reenumerateCol:{[db;tname;cname;newDomainFile]
+    if[not null currDomainName:colDomainName[db;tname;cname];
+        reenumerateCol0[db;tname;cname;currDomainName;newDomainFile]
+    ];
+ }
+</code></pre>
+<p>And the stricter version becomes:</p>
+<pre><code class="language-q">reenumerateCol:{[db;tname;cname;currDomainName;newDomainFile]
+    if[currDomainName=colDomainName[db;tname;cname];
+        reenumerateCol0[db;tname;cname;currDomainName;newDomainFile]
+    ];
+ }
+</code></pre>
+<hr>
+<p><strong>Re-enumerating Tables and Databases</strong></p>
+<p>Because <code>reenumerateTab</code> and <code>reenumerateAll</code> are implemented in terms of <code>reenumerateCol</code>, we can define <code>reenumerateTabFrom</code> and <code>reenumerateAllFrom</code> in the same way using <code>reenumerateColFrom</code>.</p>
+<pre><code class="language-q">// Re-enumerate all enumeration columns in a table from a given domain
+reenumerateTabFrom:{[db;tname;currDomainName;newDomainFile]
+    reenumerateColFrom[db;tname;;currDomainName;newDomainFile] peach listEnumCols[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">// Re-enumerate every table in the database from a given domain
+reenumerateAllFrom:{[db;currDomainName;newDomainFile] 
+    reenumerateTabFrom[db;;currDomainName;newDomainFile] peach listTabs db;
+ };
+</code></pre>
+<p>We can now re-enumerate only the appropriate columns across the entire database:</p>
+<pre><code class="language-q">reenumerateAllFrom[db;currName;newFile]
+</code></pre>
+<hr>
+<p><strong>Final Renaming Function</strong></p>
+<p>Combining these steps, we arrive at the final renaming function:</p>
+<pre><code class="language-q">// Rename a (symbol) domain
+renameDomain:{[db;currName;newName]
+    currFile:.Q.dd[db;currName];
+    newFile:.Q.dd[db;newName];
+
+    copy[currFile;newFile];
+    reenumerateAllFrom[db;currName;newFile];
+ }
+</code></pre>
+<p>This function deliberately does not delete the original domain file. Keeping the old file temporarily allows for recovery if anything goes wrong during the process.</p>
+<p>Once the database has been validated, the old domain file can be safely archived or removed.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The sym file is a fundamental component of a KDB+ database. By enabling efficient symbol enumeration, it provides significant improvements in both storage efficiency and query performance. However, these benefits come with operational considerations. Without proper management, sym files can grow unnecessarily large, increasing startup times and memory usage while potentially introducing avoidable complexity into the system.</p>
+<p>In this post we explored several techniques for managing sym files more effectively. These included identifying when symbol enumeration is appropriate, converting columns away from enumeration when it no longer provides benefit, renaming domains safely, and cleaning unused values from a sym file. Together, these techniques provide a practical toolkit for maintaining healthy and efficient symbol domains over the lifetime of a database.</p>
+<p>As with many aspects of KDB+ database maintenance, prevention is often easier than correction. Thoughtful schema design, careful consideration of symbol cardinality, and periodic maintenance can prevent excessive sym file growth before it becomes a problem. When issues do arise, the techniques described here can help restore order while minimising risk to the underlying data.</p>
+<p>Ultimately, a well-maintained sym file contributes directly to faster startup times, lower memory usage, and more predictable system behaviour — all of which are essential for reliable production KDB+ systems.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="recursion_vs_iteration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="recursion_vs_iteration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-2c2089fd.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/navigation-8d154390.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

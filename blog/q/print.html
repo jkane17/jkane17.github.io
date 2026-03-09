@@ -41,10 +41,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-afddf6d9.js";
+            window.path_to_searchindex_js = "searchindex-5d889c37.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2bf62657.js"></script>
+        <script src="toc-6ef6afd0.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <tr><th>Title</th><th>Published</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><strong><a href="#sym-file-maintenance-in-kdb">Sym File Maintenance in KDB+</a></strong></td><td>Mar 10, 2026</td><td>If your sym file is in need of maintenance, look no further.</td></tr>
 <tr><td><strong><a href="#recursion-vs-iteration-in-qkdb">Recursion vs Iteration in Q/KDB+</a></strong></td><td>Feb 12, 2026</td><td>Examine the intricate details of recursion and iteration in Q/KDB+.</td></tr>
 <tr><td><strong><a href="#database-maintenance-in-kdb">Database Maintenance in KDB+</a></strong></td><td>Feb 04, 2026</td><td>An in-depth look into how to maintain you datase.</td></tr>
 <tr><td><strong><a href="#kdb-x-modules">KDB-X Modules</a></strong></td><td>Nov 25, 2025</td><td>Learn the basics of the KDB-X module system.</td></tr>
@@ -208,6 +209,647 @@
 <h2 id="feedback--questions"><a class="header" href="#feedback--questions">Feedback &amp; Questions</a></h2>
 <p>If you spot an issue, have a suggestion for improvement, or want to ask a question about my blogs, feel free to get in touch. I’m always happy to hear feedback — especially when it helps make things clearer, more accurate, or more useful for others.</p>
 <p>You can reach me via email at <a href="mailto:jkane17x@gmail.com?subject=KDB%2B%20Blog%20Feedback">jkane17x@gmail.com</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="sym-file-maintenance-in-kdb"><a class="header" href="#sym-file-maintenance-in-kdb">Sym File Maintenance in KDB+</a></h1>
+<p><img src="images/sym_file_maintenance.png" title="Cover Image" alt="Cover Image"></p>
+<p>The sym file is one of the most critical components of a KDB+ database. It provides significant improvements in both memory efficiency and query performance. However, to preserve these benefits, the sym file must be properly maintained. Excessively large sym files can negatively impact database load times and overall system performance, making it important to keep them as compact as reasonably possible.</p>
+<p>This blog examines the considerations involved in database design to minimise sym file growth. It also explores practical techniques for reducing the size of an existing sym file when it becomes excessively large.</p>
+<p>This post builds on the concepts introduced in my <a href="#database-maintenance-in-kdb">previous blog</a> on general KDB+ database maintenance. If you are unfamiliar with those fundamentals, I recommend reading that post first, as many of the practices discussed there form the foundation for effective sym file maintenance. Additionally, the code described throughout this blog is available within the <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code> module</a>.</p>
+<blockquote class="blockquote-tag blockquote-tag-warning">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>Operations on sym files can fail for many reasons. To avoid data loss, always back up your database before performing any of the operations described in this blog.</p>
+</blockquote>
+<h2 id="symbols-and-enumeration"><a class="header" href="#symbols-and-enumeration">Symbols and Enumeration</a></h2>
+<p>In KDB+, the <em>symbol</em> type is an <a href="https://en.wikipedia.org/wiki/String_interning">interned string</a>. This means only one copy of each distinct string value is stored in memory, and all references point to that single instance.</p>
+<p>On disk, this concept is implemented through <strong>enumeration</strong>. Enumerating a list of symbols converts each symbol into an integer index referencing a unique list of symbols known as the <strong>domain</strong>. This domain is stored in the sym file.</p>
+<p>Symbol columns in splayed or partitioned tables must be enumerated. Instead of storing the symbol values directly, these columns store integer indexes into the domain. When the database is mapped into memory, these indexes are resolved back to their corresponding symbol values transparently.</p>
+<p>Enumeration provides several important benefits:</p>
+<ul>
+<li><strong>Reduced memory and disk usage</strong> — only one copy of each unique symbol is stored, while references use fixed-width integer indexes.</li>
+<li><strong>Improved query performance</strong> — integer comparisons are significantly faster than string comparisons.</li>
+<li><strong>Efficient memory mapping</strong> — fixed-width representations improve cache efficiency and access speed.</li>
+</ul>
+<p>However, enumeration also introduces operational complexity:</p>
+<ul>
+<li>Tables must be properly enumerated before being written to disk.</li>
+<li>The sym file becomes a critical dependency; corruption or inconsistency can lead to severe data integrity issues.</li>
+<li>The sym file grows over time as new unique symbols are added. This growth, often referred to as <strong>sym file bloat</strong>, can significantly increase database load times.</li>
+</ul>
+<h2 id="why-sym-file-maintenance-matters"><a class="header" href="#why-sym-file-maintenance-matters">Why Sym File Maintenance Matters</a></h2>
+<p>The sym file (or files) is loaded into memory when a database is opened. Its size therefore directly impacts startup time and memory usage. In systems with high symbol cardinality, such as trade identifiers or user-generated strings, the sym file can grow rapidly.</p>
+<p>Uncontrolled growth can lead to:</p>
+<ul>
+<li>Slow database startup times</li>
+<li>Increased memory consumption</li>
+<li>Reduced overall system efficiency</li>
+<li>Longer recovery times during failover or restart</li>
+</ul>
+<p>Proper design and ongoing maintenance are essential to prevent these issues.</p>
+<h2 id="design-considerations"><a class="header" href="#design-considerations">Design Considerations</a></h2>
+<p>When designing a database, the choice of datatype for columns is an important consideration. A common decision is whether to use the symbol or string type for values containing alphanumeric characters. In many cases, it may not be immediately obvious which type is most appropriate.</p>
+<p>In practice, the following guidelines can help inform that choice:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Symbol</th><th>String</th></tr>
+</thead>
+<tbody>
+<tr><td>Values contain only alphanumeric, underscore, or dot characters (<code>0-9A-Za-z_.</code>)</td><td>Values contain spaces or special characters (which can make certain operations more cumbersome)</td></tr>
+<tr><td>High repetition of values</td><td>Low repetition of values</td></tr>
+<tr><td>Column frequently used in comparison operations</td><td>Column rarely used in comparison operations</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>Forward slashes can be used in file symbols without any cumbersome handling. However, in such cases the use of a symbol is usually deliberate, as the value is intended to represent a file path.</p>
+</blockquote>
+<p>You may also encounter identifier columns that are highly unique but frequently used in comparison operations. In such cases, consider using the GUID type, which provides efficient comparisons without introducing large numbers of entries into a symbol domain.</p>
+<h3 id="creating-a-decision-function"><a class="header" href="#creating-a-decision-function">Creating a Decision Function</a></h3>
+<p>We can create a helper function that analyses a list of values (provided as strings) and suggests whether they should be stored as strings or symbols.</p>
+<p>First, given a string <code>x</code>, we check whether it contains any characters that are unsuitable for symbols:</p>
+<pre><code class="language-q">hasBadSymChar:{0&lt;count x except .Q.nA,.Q.a,"_."}
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)hasBadSymChar each ("abc";"def";"g.h";"i_j";"k@l")
+00001b
+</code></pre>
+<p>If any value in the list contains such characters, the column should remain a string:</p>
+<pre><code class="language-q">any hasBadSymChar each vals
+</code></pre>
+<hr>
+<p><strong>Measuring Uniqueness</strong></p>
+<p>Next, we compute the <strong>uniqueness ratio</strong> (also called relative cardinality):</p>
+<p>\[
+\text{Uniqueness Ratio} = \frac{\text{Number of Unique Elements}}{\text{Total Number of Elements}}
+\]</p>
+<p>In q:</p>
+<pre><code class="language-q">(count distinct vals)%count vals
+</code></pre>
+<p>A ratio of 1 indicates that all values are unique, while a ratio approaching 0 indicates a high level of repetition.</p>
+<p>The interpretation of this ratio depends on the dataset, but one possible guideline might be:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Ratio</th><th>Cardinality</th></tr>
+</thead>
+<tbody>
+<tr><td>&gt; 0.9</td><td>Very high</td></tr>
+<tr><td>0.5 - 0.9</td><td>High</td></tr>
+<tr><td>0.1 - 0.5</td><td>Medium</td></tr>
+<tr><td>0.01 - 0.1</td><td>Low</td></tr>
+<tr><td>&lt; 0.01</td><td>Very low</td></tr>
+</tbody>
+</table>
+</div>
+<p>However, the ratio alone does not tell the full story. Consider the following examples:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Total Values</th><th>Distinct Values</th><th>Uniqueness Ratio</th></tr>
+</thead>
+<tbody>
+<tr><td>10</td><td>5</td><td>0.5</td></tr>
+<tr><td>1,000,000</td><td>500,000</td><td>0.5</td></tr>
+</tbody>
+</table>
+</div>
+<p>Both datasets have the same ratio, yet the second introduces 500,000 unique symbols into the domain. Depending on the application, this may still be considered very high cardinality.</p>
+<p>For this reason, we should also consider <strong>absolute cardinality</strong> (the number of distinct values).</p>
+<hr>
+<p><strong>Combining Relative and Absolute Cardinality</strong></p>
+<p>We can define both <strong>relative</strong> and <strong>absolute</strong> thresholds. If both thresholds are exceeded, the values should remain strings; otherwise, they can be stored as symbols.</p>
+<pre><code class="language-q">(relThreshold&lt;uniqueCount%count vals) and
+    absThreshold&lt;uniqueCount:count distinct vals
+</code></pre>
+<p>The final helper function returns the values either as strings or symbols depending on these checks:</p>
+<pre><code class="language-q">decideType:{[absThreshold;relThreshold;vals]
+    $[
+        any hasBadSymChar each vals; vals;
+        (relThreshold&lt;uniqueCount%count vals) and
+            absThreshold&lt;uniqueCount:count distinct vals; vals;
+        `$vals
+    ]
+ };
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">decideType[10000;0.5;] ("abc";"def";"ghi";..)
+</code></pre>
+<p>Here, the <strong>absolute cardinality threshold</strong> is set to <code>10,000</code> and the <strong>relative cardinality threshold</strong> to <code>0.5</code>. This means that values will be stored as <strong>symbols</strong> only if:</p>
+<ul>
+<li>the uniqueness ratio is below <code>0.5</code>, and</li>
+<li>the number of distinct values is below <code>10,000</code>.</li>
+</ul>
+<p>Otherwise, the values remain <strong>strings</strong>.</p>
+<p>When choosing the <strong>absolute threshold</strong>, consider how many additional symbols your current sym file can reasonably accommodate. The <strong>relative threshold</strong> can help anticipate future growth patterns in the data.</p>
+<p>This method provides a simple heuristic for datatype selection. In practice, the final decision may also depend on query patterns, expected data growth, and domain-specific considerations. Nevertheless, applying these checks provides a useful baseline when designing a database schema.</p>
+<h2 id="converting-between-string-and-symbol-types"><a class="header" href="#converting-between-string-and-symbol-types">Converting Between String and Symbol Types</a></h2>
+<p>In the previous section we discussed how to decide whether a column should use the string or symbol type. However, in many cases the schema of an existing database has already been established and such decisions have already been made. Over time, requirements may change and you may decide that a column would be better represented using the other type.</p>
+<p>In this section we look at how to convert a column from <strong>symbol to string</strong> and from <strong>string to symbol</strong>.</p>
+<h3 id="from-symbol-to-string"><a class="header" href="#from-symbol-to-string">From Symbol to String</a></h3>
+<p>A column can usually be cast from one type to another using <code>castCol</code> provided by <a href="https://github.com/jkane17/qlib/blob/main/src/dbm.q"><code>dbm.q</code></a>. However, converting a column from <strong>symbol to string</strong> requires a slightly different approach.</p>
+<p>Instead of casting directly, we use <code>fnCol</code> to apply the <code>string</code> function to the column values.</p>
+<p>When operating directly on the column file on disk, a symbol column does not contain the symbol values themselves. Instead, it contains the enumeration indexes into the symbol domain. Therefore, before converting to strings we must first map those indexes back to their corresponding symbol values.</p>
+<p>The lambda passed to <code>fnCol</code> therefore looks like this:</p>
+<pre><code class="language-q">{[db;vals] $[20h=type vals; string (get db,key vals) vals; vals]}[db;]
+</code></pre>
+<p>Here <code>vals</code> is the list of column values.</p>
+<p>If <code>vals</code> is an enumeration type (since KDB+ 3.6, enumerations always have type <code>20h</code>):</p>
+<ol>
+<li>The domain file is loaded using <code>get db,key vals</code></li>
+<li>The enumeration indexes are mapped to their symbol values</li>
+<li>The resulting symbols are converted to strings using <code>string</code></li>
+</ol>
+<p>If the values are not enumerated symbols, they are returned unchanged.</p>
+<hr>
+<p><strong>Avoiding Repeated Domain Loads</strong></p>
+<p><code>fnCol</code> may apply the operation to many column files in a partitioned database. If we load the domain file inside the lambda, it would be reloaded for every partition, which can be inefficient if the domain file is large.</p>
+<p>To avoid this, we determine the domain <strong>once</strong> and reuse it.</p>
+<p>However, identifying the domain file is not completely straightforward because a table may exist in many partitions, each containing a copy of the column file. To determine the domain name we inspect one of these column files.</p>
+<p>A common approach is to use the most recent partition, which can generally be assumed to be in a consistent state.</p>
+<p>We first create a helper function to obtain the table directory from the most recent partition.</p>
+<pre><code class="language-q">// Get the table directory from the most recent partition
+mostRecentTdir:{[db;tname] last asc allTablePaths[db;tname]}
+</code></pre>
+<p><code>allTablePaths</code> (provided in <code>dbm.q</code>) returns every path to the table across all partitions.
+Sorting these paths and taking the last value gives the most recent partition.</p>
+<p>This also works for splayed tables, since <code>allTablePaths</code> will return a single path.</p>
+<p><strong>Determining the Domain Name</strong></p>
+<p>Once we have the table path we can inspect the column file to determine the domain used by the enumeration.</p>
+<pre><code class="language-q">// Get the name of the domain used by the given column
+colDomainName:{[db;tname;cname]
+    $[20h=type vals:get mostRecentTdir[db;tname],cname; key vals; `]
+ }
+</code></pre>
+<p>If the column is an enumeration type, the domain name is obtained using <code>key</code>. Otherwise, the function returns a null symbol.</p>
+<hr>
+<p><strong>Symbol to String Conversion</strong></p>
+<p>We can now implement the function that converts a symbol column to a string column.</p>
+<pre><code class="language-q">// Convert a column of symbol type to string type
+symToStrCol:{[db;tname;cname]
+    if[not null domainName:colDomainName[db;tname;cname];
+        fnCol[db;tname;cname;string get[db,domainName]@]
+    ];
+ }
+</code></pre>
+<p>Since the column type is already verified in <code>colDomainName</code>, the lambda passed to <code>fnCol</code> does not need to check the type again.</p>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>After this conversion, many values in the sym file may no longer be referenced by any column. These redundant symbols remain in the domain and can contribute to unnecessary sym file growth. We will discuss how to remove these unused values in a <a href="#cleaning-a-sym-file">later section</a>.</p>
+</blockquote>
+<h3 id="from-string-to-symbol"><a class="header" href="#from-string-to-symbol">From String to Symbol</a></h3>
+<p>Converting from <strong>string to symbol</strong> is more involved.</p>
+<p>The process requires:</p>
+<ol>
+<li>Casting the column values to symbols</li>
+<li>Adding any new symbols to the domain</li>
+<li>Converting the symbols to their corresponding domain indexes</li>
+<li>Writing the enumerated values back to disk</li>
+</ol>
+<p>Because we must enumerate the symbols against a specific domain, the function requires an additional argument <code>dname</code>, which is the name of the domain.</p>
+<hr>
+<p><strong>Loading the Domain</strong></p>
+<p>We begin by loading the domain file into memory.</p>
+<pre><code class="language-q">dfile:.Q.dd[db;dname]
+domain:get dfile
+</code></pre>
+<hr>
+<p><strong>Iterating Over Column Files</strong></p>
+<p>In a partitioned database, the column will exist in many partition directories. Each column file may contain different symbols, so the domain may need to be updated as we process each partition.</p>
+<p>For this reason the operation <strong>cannot safely be parallelised</strong>, since concurrent updates to the domain could lead to inconsistent enumeration values.</p>
+<p>Instead, we iterate over each column path and update the domain incrementally.</p>
+<hr>
+<p><strong>Loading and Casting Column Values</strong></p>
+<p>For each column path we first verify that the column exists.</p>
+<pre><code class="language-q">has1Col[tdir;cname]
+</code></pre>
+<p>If the column file exists we load the values and cast them to symbols.</p>
+<pre><code class="language-q">vals:`$get cfile:.Q.dd[tdir;cname]
+</code></pre>
+<p>This cast works for string columns, but there is an important edge case when the column is of type <strong>char</strong>.</p>
+<p>If a char list such as</p>
+<pre><code class="language-q">"abc"
+</code></pre>
+<p>is cast directly using <code> `$</code>, the result will be a single symbol</p>
+<pre><code class="language-q">`abc
+</code></pre>
+<p>instead of three individual symbols.</p>
+<p>To ensure that each element is converted separately we use an explicit <strong>each-right</strong>:</p>
+<pre><code class="language-q">vals:`$/:get cfile:.Q.dd[tdir;cname]
+</code></pre>
+<p>This works correctly for both char and string inputs.</p>
+<hr>
+<p><strong>Updating the Domain</strong></p>
+<p>Any new symbols encountered in the column must be added to the domain.</p>
+<pre><code class="language-q">domain:domain union vals
+</code></pre>
+<hr>
+<p><strong>Converting Symbols to Domain Indexes</strong></p>
+<p>We convert the symbol values into indexes of the domain using the find operator <code>?</code>.</p>
+<pre><code class="language-q">domain?vals
+</code></pre>
+<p>Since the column may contain many repeated values, we optimise this operation using <code>.Q.fu</code>, which applies a function only to the unique values and then expands the result back to the original shape.</p>
+<pre><code class="language-q">.Q.fu[domain?;syms]
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">// Without optimisation
+q)3*1 2 1 2 1 1
+3 6 3 6 3 3
+
+// Only two multiplications are performed (3*1 and 3*2), and the results are reused
+q).Q.fu[3*;1 2 1 2 1 1]
+3 6 3 6 3 3
+</code></pre>
+<hr>
+<p><strong>Writing the Enumerated Values</strong></p>
+<p>The resulting indexes are assigned the domain using <code>!</code>:</p>
+<pre><code class="language-q">dname!.Q.fu[domain?;vals]
+</code></pre>
+<p>The updated column values are then written back to disk.</p>
+<pre><code class="language-q">.[cfile;();:;dname!.Q.fu[domain?;vals]]
+</code></pre>
+<hr>
+<p><strong>Helper Function</strong></p>
+<p>This logic can be encapsulated in a helper function that converts a single column file.</p>
+<pre><code class="language-q">// Convert a column from string type to symbol type
+strToSym1Col:{[domain;tdir;cname;dname]
+    if[has1Col[tdir;cname];
+        domain:domain union vals:`$/:get cfile:.Q.dd[tdir;cname];
+        .[cfile;();:;dname!.Q.fu[domain?;vals]]
+    ];
+    domain
+ }
+</code></pre>
+<p>The function returns the (possibly updated) domain so it can be reused when processing additional column files.</p>
+<hr>
+<p><strong>Complete Conversion Function</strong></p>
+<p>We can now construct the full function that processes every column path in the table.</p>
+<pre><code class="language-q">// Convert a column from string type to symbol type
+strToSymCol:{[db;tname;cname;dname]
+    dfile:.Q.dd[db;dname];
+    domain:strToSym1Col[;;cname;dname]/[get dfile;allTablePaths[db;tname]];
+    dfile set domain;
+ }
+</code></pre>
+<p>After all column files have been processed, the final domain is written back to disk.</p>
+<h2 id="cleaning-a-sym-file"><a class="header" href="#cleaning-a-sym-file">Cleaning a Sym File</a></h2>
+<p>Databases evolve over time. Tables and columns are added, schemas change, and older structures are eventually removed. When symbol columns are dropped, the symbols that were referenced exclusively by those columns may no longer be used anywhere in the database. However, their entries remain in the sym file.</p>
+<p>This results in a sym file containing many unused values. While functionally harmless, these unused entries waste space and can significantly increase database load times.</p>
+<p>The solution is to clean (or compact) the sym file by identifying and removing unused symbols. The first step is to determine which symbols are still referenced.</p>
+<h3 id="identifying-used--unused-symbols"><a class="header" href="#identifying-used--unused-symbols">Identifying Used &amp; Unused Symbols</a></h3>
+<p>To identify unused symbols within a database, we must first determine which symbols are actually in use. We can then filter the domain to exclude those unused entries.</p>
+<p><strong>Used Symbols in a Single Splayed Table</strong></p>
+<p>Assume we have the path to a splayed table stored in the variable <code>tdir</code>. First, we retrieve the list of column names:</p>
+<pre><code class="language-q">getColNames tdir
+</code></pre>
+<p><code>getColNames</code> is a helper function defined in <code>dbm.q</code> that takes a splayed table directory path and returns the list of column names. For example:</p>
+<pre><code class="language-q">q)getColNames `:splayDB/trade
+`time`sym`ex`size`price
+</code></pre>
+<p>We are only interested in columns of enumeration type (<code>20h</code>).</p>
+<p>To check a column’s type, we must load it:</p>
+<pre><code class="language-q">get tdir,col
+</code></pre>
+<p>We can then test whether the column is an enumeration:</p>
+<pre><code class="language-q">20h=type get tdir,col
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)20h=type get `:splayDB/trade,`price
+0b
+
+q)20h=type get `:splayDB/trade,`ex
+1b
+</code></pre>
+<p>If a column is enumerated, we can determine its domain name using <code>key</code>:</p>
+<pre><code class="language-q">// ex column is enumerated against the domain called sym
+q)key get `:splayDB/trade,`ex
+`sym
+</code></pre>
+<hr>
+<p><strong>Multiple Domains Caveat</strong></p>
+<p>Although uncommon, it is possible for different columns in the same table to be enumerated against different domains.</p>
+<p>For example, in the database <code>splayDBMulti</code>, the <code>trade</code> table has two enumeration columns — <code>sym</code> and <code>ex</code> — each using a different domain:</p>
+<pre><code class="language-q">q)tdir:`:splayDBMulti/trade
+
+q)key get tdir,`sym
+`sym1
+
+q)key get tdir,`ex
+`sym2
+</code></pre>
+<p>The corresponding domain files are stored at the database root:</p>
+<pre><code class="language-q">q)key `:splayDBMulti
+`s#`sym1`sym2`trade
+</code></pre>
+<p>To account for this possibility, we return a <strong>dictionary mapping domain name to used indexes</strong>, rather than a flat list of symbols.</p>
+<p>Using <code>splayDBMulti</code> as an example:</p>
+<pre><code class="language-q">q)tdir:`:splayDBMulti/trade
+q)map:([])
+</code></pre>
+<p>Extracting usage from the <code>sym</code> column:</p>
+<pre><code class="language-q">q)show enum:get tdir,`sym
+`sym1!0 1 2 3 4
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+</code></pre>
+<p>Now for the <code>ex</code> column:</p>
+<pre><code class="language-q">q)show enum:get tdir,`ex
+`sym2!0 1 0 2 1
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 0 2 1
+</code></pre>
+<hr>
+<p><strong>Avoiding Overwrites</strong></p>
+<p>If another column is also enumerated against <code>sym2</code>, naïvely assigning would overwrite existing entries:</p>
+<pre><code class="language-q">q)enum:`sym2!2 3 0 2 1
+
+q)map[key enum]:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 2 3 0 2 1
+</code></pre>
+<p>Instead, we must append:</p>
+<pre><code class="language-q">q)map[key enum],:value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 0 2 1 2 3 0 2 1
+</code></pre>
+<p>Since we only care about distinct indexes, we refine this using <code>distinct</code>:</p>
+<pre><code class="language-q">q)map[key enum]:distinct map[key enum],value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 2 3
+</code></pre>
+<p>Even better, we can use <code>union</code>, which is equivalent to <code>distinct</code> + append (<code>,</code>):</p>
+<pre><code class="language-q">q)map[key enum]:map[key enum] union value enum
+q)map
+sym1| 0 1 2 3 4
+sym2| 0 1 2 3
+</code></pre>
+<hr>
+<p><strong>Completing the Function</strong></p>
+<p>We now iterate over all columns using over (<code>/</code>), building the domain map incrementally:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given splayed table
+domainUsed1:{[tdir]
+    {[tdir;map;col]
+        if[20h=type enum:get tdir,col;
+            map[key enum]:map[key enum] union value enum
+        ];
+        map
+    }[tdir]/[([]);getColNames tdir]
+ }
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-q">q)domainUsed1 `:splayDB/trade
+sym| 0 1 2 3 4 5 6 7
+
+q)domainUsed1 `:splayDBMulti/trade
+sym1| 0 1 2 3 4
+sym2| 0 1 2
+</code></pre>
+<hr>
+<p><strong>Applying to Multiple Partitions</strong></p>
+<p>As described in a <a href="#database-maintenance-in-kdb">previous blog</a>, we can wrap this to operate across partitions:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given database table
+domainUsed:{[db;tname] (union'/) domainUsed1 peach allTablePaths[db;tname]}
+</code></pre>
+<p><code>domainUsed1</code> is applied in parallel (<code>peach</code>) across all table directories. The result is a list of dictionaries, which we combine using <code>union'</code> and <code>/</code>.</p>
+<p>Example of <code>union'</code>:</p>
+<pre><code class="language-q">// union is applied on a key by key basis using '
+q)(`sym1`sym2!(0 1 2;3 4 5)) union' `sym1`sym3!(2 6 1;7 8 9)
+sym1| 0 1 2 6
+sym2| 3 4 5
+sym3| 7 8 9
+</code></pre>
+<hr>
+<p><strong>Unused Symbols</strong></p>
+<p>Once we know which indexes are used, finding unused indexes is straightforward.</p>
+<p>We generate all possible indexes using <code>til</code>:</p>
+<pre><code class="language-q">til count get db,domainName
+</code></pre>
+<p>Then remove the used indexes:</p>
+<pre><code class="language-q">(til count get db,domainName) except domainUsed[db;tname] domainName
+</code></pre>
+<p>To apply this to all domains:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of un-used symbols in the given database table
+domainUnused:{[db;tname] except'[;used] (til count get db,) each key used:domainUsed[db;tname]}
+</code></pre>
+<blockquote class="blockquote-tag blockquote-tag-note">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>domainUnused</code> only includes domains that have at least one used symbol. If a domain does not appear in the result, it is completely unused by the table.</p>
+</blockquote>
+<p>Identifying unused symbols is not strictly required to rebuild domains, but it is useful for assessing whether compaction is necessary.</p>
+<hr>
+<p><strong>Complete Domain Usage</strong></p>
+<p>To compute usage across the entire database, we apply <code>domainUsed</code> to every table in our database (using <code>listTabs</code> provided by <code>dbm.q</code>) and combine using <code>(union'/)</code>:</p>
+<pre><code class="language-q">// Build a mapping of domain name to indexes of used symbols in the given database
+domainUsage:{[db] (union'/) domainUsed[db;] peach listTabs db}
+</code></pre>
+<h3 id="persisting-the-new-domains"><a class="header" href="#persisting-the-new-domains">Persisting the New Domain(s)</a></h3>
+<p>After identifying the used indexes, we rebuild the domains in two stages.</p>
+<p><strong>1) Resolving Domain Indexes</strong></p>
+<p>We convert index mappings into actual symbol values:</p>
+<pre><code class="language-q">// Convert a domain mapping from index values to symbol values
+resolveDomainMap:{[db;dm] ((get db,) each key dm)@'dm}
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-q">q)resolveDomainMap[db;] domainUsed[db;tname]
+sym| IBM AMZN GOOGL META SPOT L O SI
+</code></pre>
+<p><strong>2) Persisting to Disk</strong></p>
+<p>Domains can be written using <code>set</code>:</p>
+<pre><code class="language-q">q).Q.dd[`:temp;`sym] set `IBM`AMZN`GOOGL`META`SPOT`L`O`SI
+</code></pre>
+<p>We generalise this:</p>
+<pre><code class="language-q">// Save each domain as a file containing the symbol values
+persistDomainMap:{[dir;dm] (.Q.dd[dir;] each key dm) set' dm}
+</code></pre>
+<blockquote class="blockquote-tag blockquote-tag-important">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>The <code>dir</code> parameter should not initially be the database root. Always write rebuilt sym files to a temporary location first. Only after successful re-enumeration should they replace the originals.</p>
+</blockquote>
+<h3 id="rebuilding-domains"><a class="header" href="#rebuilding-domains">Rebuilding Domains</a></h3>
+<p>We combine all steps into a single convenient function:</p>
+<pre><code class="language-q">// Recreate all domains of the given database with only the used symbols
+rebuildDomains:{[db;dir] persistDomainMap[dir;] resolveDomainMap[db;] domainUsage db}
+</code></pre>
+<p>Calling <code>rebuildDomains</code> writes cleaned domain files to <code>dir</code> but does not modify the database. This makes it a safe first step when performing a sym file clean-up.</p>
+<h3 id="re-enumeration"><a class="header" href="#re-enumeration">Re-enumeration</a></h3>
+<p>Re-enumerating a database against a new domain requires performing the following steps for each symbol column:</p>
+<ol>
+<li>Load the column values.</li>
+<li>Resolve the existing indexes against the current domain.</li>
+<li>Convert the resulting symbols into indexes of the new domain.</li>
+<li>Write the updated column values back to disk.</li>
+</ol>
+<p>Because the new domain has already been created, the re-enumeration step only modifies individual column files. This means the operation can be performed in parallel, since no shared state is modified.</p>
+<blockquote class="blockquote-tag blockquote-tag-warning">
+<p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>The steps in this section perform in-place updates to the database. If interrupted or executed incorrectly, data corruption or loss may occur. This process must be performed during a maintenance window with the database offline. Until re-enumeration and domain replacement are fully complete, the database should be considered inconsistent and must not be accessed.</p>
+</blockquote>
+<h4 id="re-enumerating-a-single-column"><a class="header" href="#re-enumerating-a-single-column">Re-enumerating a Single Column</a></h4>
+<p>A column only needs to be re-enumerated if it is an enumeration type and therefore has an associated domain. We can obtain the current domain name using <code>colDomainName</code>, which we defined earlier:</p>
+<pre><code class="language-q">currDomainName:colDomainName[db;tname;cname]
+</code></pre>
+<p>If <code>currDomainName</code> is null, the column is not an enumeration type and we can exit early. Otherwise, we load the current domain:</p>
+<pre><code class="language-q">currDomain:get db,currDomainName
+</code></pre>
+<p>We must also provide the path to the new domain file (<code>newDomainFile</code>), which may not yet reside within the database directory. We load this file and extract its basename to determine the new domain name:</p>
+<pre><code class="language-q">newDomain:get newDomainFile
+newDomainName:last ` vs newDomainFile
+</code></pre>
+<p>At this point we have everything required to re-enumerate the column against the new domain.</p>
+<pre><code class="language-q">{[currDomain;newDomain;newDomainName;vals]
+    newDomainName!.Q.fu[newDomain?;currDomain vals]
+ }[currDomain;newDomain;newDomainName;]
+</code></pre>
+<p>This lambda (projection) re-enumerates the column values (<code>vals</code>) in the same way we performed enumeration in the <a href="#from-string-to-symbol">previous section</a>. The steps are:</p>
+<ol>
+<li>Resolve the existing indexes using <code>currDomain</code></li>
+<li>Locate the new indexes in <code>newDomain</code></li>
+<li>Apply <code>.Q.fu</code> to avoid repeated lookups</li>
+<li>Assign the new domain name using <code>!</code></li>
+</ol>
+<p>We can apply this operation to every column file using <code>fnCol</code>:</p>
+<pre><code class="language-q">fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+    newDomainName!.Q.fu[newDomain?;currDomain vals]
+ }[currDomain;newDomain;newDomainName;]
+</code></pre>
+<p>Putting everything together gives the complete function:</p>
+<pre><code class="language-q">// Re-enumerate a column against a new domain across all partitions
+reenumerateCol:{[db;tname;cname;newDomainFile]
+    if[not null currDomainName:colDomainName[db;tname;cname];
+        currDomain:get db,currDomainName;
+        newDomain:get newDomainFile;
+        newDomainName:last ` vs newDomainFile;
+        fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+            newDomainName!.Q.fu[newDomain?;currDomain vals]
+        }[currDomain;newDomain;newDomainName;]
+    ];
+ }
+</code></pre>
+<p>This function allows us to re-enumerate a single column. While uncommon, it can be useful when columns within the same table are enumerated against different domains or when re-enumeration needs to be performed incrementally.</p>
+<h4 id="re-enumerating-a-table"><a class="header" href="#re-enumerating-a-table">Re-enumerating a Table</a></h4>
+<p>In most databases, the same domain is used for all symbol columns within a table.</p>
+<p>We can therefore define <code>reenumerateTab</code> to re-enumerate all enumeration-type columns (returned by <code>listEnumCols</code> from <code>dbm.q</code>) across all partitions of a table:</p>
+<pre><code class="language-q">// Re-enumerate all enumeration columns in a table
+reenumerateTab:{[db;tname;newDomainFile]
+    reenumerateCol[db;tname;;newDomainFile] peach listEnumCols[db;tname];
+ }
+</code></pre>
+<p>For databases that use a single global domain (the most common case), we can extend this to all tables:</p>
+<pre><code class="language-q">// Re-enumerate every table in the database
+reenumerateAll:{[db;newDomainFile] 
+    reenumerateTab[db;;newDomainFile] peach listTabs db;
+ };
+</code></pre>
+<h3 id="replacing-the-old-sym-files"><a class="header" href="#replacing-the-old-sym-files">Replacing the Old Sym Files</a></h3>
+<p>After re-enumeration, the updated column files reference the new domain file(s). However, these files are not yet located in the database root directory.</p>
+<p>The final step is therefore to:</p>
+<ol>
+<li>Remove or archive the existing sym file(s).</li>
+<li>Move the rebuilt sym file(s) into the database root.</li>
+</ol>
+<p>This can be done at the system level. For example, on Linux:</p>
+<pre><code class="language-bash">mv /path/to/database/oldSymFile /path/to/archive/oldSymFile
+mv /path/to/newSymFile /path/to/database/newSymFile
+</code></pre>
+<p>Once the new sym file is in place, the database can be restarted and will load the rebuilt domain.</p>
+<h2 id="renaming-a-domain"><a class="header" href="#renaming-a-domain">Renaming a Domain</a></h2>
+<p>Renaming a domain is not a common operation, but it can be useful in situations such as changes to naming conventions or schema refactoring.</p>
+<p>Renaming a domain requires two main steps:</p>
+<ol>
+<li>Create a copy of the existing domain file using the new name.</li>
+<li>Re-enumerate any columns currently enumerated against the old domain so that they reference the new domain.</li>
+</ol>
+<p>The first step is simply a filesystem copy. The <code>dbm.q</code> library already provides an internal helper function <code>copy</code> for this purpose.</p>
+<pre><code class="language-q">copy[`:db/currSym;`:db/newSym]
+</code></pre>
+<p>The second step is slightly more involved.</p>
+<p>Re-enumerating the entire database cannot be done using <code>reenumerateAll</code>, because a database may contain multiple domains. Calling <code>reenumerateAll</code> would re-enumerate every enumeration column against the new domain, regardless of which domain it currently uses.</p>
+<p>Instead, we need stricter versions of the re-enumeration functions that only operate on columns enumerated against a specific domain.</p>
+<p>We will therefore introduce <code>reenumerateColFrom</code>, <code>reenumerateTabFrom</code>, and <code>reenumerateAllFrom</code>. These functions behave similarly to the previously defined re-enumeration functions, but they only operate on columns whose current domain matches the specified domain.</p>
+<p><strong><code>reenumerateColFrom</code></strong></p>
+<p>Compared with <code>reenumerateCol</code>, this function has two differences:</p>
+<ol>
+<li>It takes an additional parameter <code>currDomainName</code>.</li>
+<li>It checks that the column is currently enumerated against this domain before performing the re-enumeration.</li>
+</ol>
+<pre><code class="language-q">// Re-enumerate a column from a specific domain to a new domain
+reenumerateColFrom:{[db;tname;cname;currDomainName;newDomainFile]
+    if[currDomainName=colDomainName[db;tname;cname];
+        // same as reenumerateCol ..
+    ];
+ }
+</code></pre>
+<p>Since <code>reenumerateCol</code> and <code>reenumerateColFrom</code> share most of their logic, we can refactor the common functionality into a helper function.</p>
+<hr>
+<p><strong>Shared Re-enumeration Helper</strong></p>
+<pre><code class="language-q">reenumerateCol0:{[db;tname;cname;currDomainName;newDomainFile]
+    currDomain:get db,currDomainName;
+    newDomain:get newDomainFile;
+    newDomainName:fs.basename newDomainFile;
+
+    fnCol[db;tname;cname;] {[currDomain;newDomain;newDomainName;vals]
+        newDomainName!.Q.fu[newDomain?;currDomain vals]
+    }[currDomain;newDomain;newDomainName;];
+ }
+</code></pre>
+<p>This helper performs the actual re-enumeration and is used by both variants of the function.</p>
+<p>The original <code>reenumerateCol</code> can now be simplified:</p>
+<pre><code class="language-q">reenumerateCol:{[db;tname;cname;newDomainFile]
+    if[not null currDomainName:colDomainName[db;tname;cname];
+        reenumerateCol0[db;tname;cname;currDomainName;newDomainFile]
+    ];
+ }
+</code></pre>
+<p>And the stricter version becomes:</p>
+<pre><code class="language-q">reenumerateCol:{[db;tname;cname;currDomainName;newDomainFile]
+    if[currDomainName=colDomainName[db;tname;cname];
+        reenumerateCol0[db;tname;cname;currDomainName;newDomainFile]
+    ];
+ }
+</code></pre>
+<hr>
+<p><strong>Re-enumerating Tables and Databases</strong></p>
+<p>Because <code>reenumerateTab</code> and <code>reenumerateAll</code> are implemented in terms of <code>reenumerateCol</code>, we can define <code>reenumerateTabFrom</code> and <code>reenumerateAllFrom</code> in the same way using <code>reenumerateColFrom</code>.</p>
+<pre><code class="language-q">// Re-enumerate all enumeration columns in a table from a given domain
+reenumerateTabFrom:{[db;tname;currDomainName;newDomainFile]
+    reenumerateColFrom[db;tname;;currDomainName;newDomainFile] peach listEnumCols[db;tname];
+ };
+</code></pre>
+<pre><code class="language-q">// Re-enumerate every table in the database from a given domain
+reenumerateAllFrom:{[db;currDomainName;newDomainFile] 
+    reenumerateTabFrom[db;;currDomainName;newDomainFile] peach listTabs db;
+ };
+</code></pre>
+<p>We can now re-enumerate only the appropriate columns across the entire database:</p>
+<pre><code class="language-q">reenumerateAllFrom[db;currName;newFile]
+</code></pre>
+<hr>
+<p><strong>Final Renaming Function</strong></p>
+<p>Combining these steps, we arrive at the final renaming function:</p>
+<pre><code class="language-q">// Rename a (symbol) domain
+renameDomain:{[db;currName;newName]
+    currFile:.Q.dd[db;currName];
+    newFile:.Q.dd[db;newName];
+
+    copy[currFile;newFile];
+    reenumerateAllFrom[db;currName;newFile];
+ }
+</code></pre>
+<p>This function deliberately does not delete the original domain file. Keeping the old file temporarily allows for recovery if anything goes wrong during the process.</p>
+<p>Once the database has been validated, the old domain file can be safely archived or removed.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The sym file is a fundamental component of a KDB+ database. By enabling efficient symbol enumeration, it provides significant improvements in both storage efficiency and query performance. However, these benefits come with operational considerations. Without proper management, sym files can grow unnecessarily large, increasing startup times and memory usage while potentially introducing avoidable complexity into the system.</p>
+<p>In this post we explored several techniques for managing sym files more effectively. These included identifying when symbol enumeration is appropriate, converting columns away from enumeration when it no longer provides benefit, renaming domains safely, and cleaning unused values from a sym file. Together, these techniques provide a practical toolkit for maintaining healthy and efficient symbol domains over the lifetime of a database.</p>
+<p>As with many aspects of KDB+ database maintenance, prevention is often easier than correction. Thoughtful schema design, careful consideration of symbol cardinality, and periodic maintenance can prevent excessive sym file growth before it becomes a problem. When issues do arise, the techniques described here can help restore order while minimising risk to the underlying data.</p>
+<p>Ultimately, a well-maintained sym file contributes directly to faster startup times, lower memory usage, and more predictable system behaviour — all of which are essential for reliable production KDB+ systems.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="recursion-vs-iteration-in-qkdb"><a class="header" href="#recursion-vs-iteration-in-qkdb">Recursion vs Iteration in Q/KDB+</a></h1>
 <p><img src="images/recursion_vs_iteration.png" title="Cover Image" alt="Cover Image"></p>
@@ -679,7 +1321,7 @@ q)\ts:100000 expIterativeBetter[2;10]
 26 960
 </code></pre>
 <p>It uses slightly more memory due to <code>n#b</code>, but benefits from highly optimised vector operations.</p>
-<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
 <p>Recursion and iteration are mathematically equivalent, but in Q/KDB+ they are not equivalent in execution.</p>
 <p>From the examples we saw:</p>
 <ul>
@@ -826,7 +1468,7 @@ files@:where files like "[0-9]*";
 </code></pre>
 <h3 id="handling-segmented-databases"><a class="header" href="#handling-segmented-databases">Handling Segmented Databases</a></h3>
 <p>Segmented databases introduce one additional wrinkle: the root contains a file <code>par.txt</code> listing the paths of all underlying partitioned databases. We can handle this by reading the file and recursively calling our function for each listed path:</p>
-<pre><code class="language-q">if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+<pre><code class="language-q">if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
 </code></pre>
 <h3 id="final-cleanup"><a class="header" href="#final-cleanup">Final Cleanup</a></h3>
 <p>Up to this point, we’ve blindly appended the table name to each partition path. To avoid returning non-existent directories, we filter to keep only paths that actually exist:</p>
@@ -835,7 +1477,7 @@ files@:where files like "[0-9]*";
 <pre><code class="language-q">// Get all paths to a table within a database
 allTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     paths:$[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]];
     paths where 0&lt;(count key@) each paths
@@ -1220,59 +1862,40 @@ rmAttr:{[db;tname;cname] setAttr[db;tname;cname;`];};
 <p><strong>1. Identifying Missing Columns</strong></p>
 <p>Given:</p>
 <ul>
-<li><code>goodTdir</code>: the directory of the template table (with the complete schema)</li>
+<li><code>good</code>: template table (with the complete schema)</li>
 <li><code>tdir</code>: the directory of a table we want to fix</li>
 </ul>
-<p>We determine which columns are missing by comparing their <code>.d</code> files:</p>
-<pre><code class="language-q">goodCols:getColNames goodTdir
+<p>We determine which columns are missing by comparing their columns:</p>
+<pre><code class="language-q">goodCols:cols good
 missing:goodCols except getColNames tdir
 </code></pre>
 <p>This produces the list of columns that exist in the good table but not in the target table.</p>
 <p><strong>2. Generating Default Values</strong></p>
 <p>Each missing column must be added with a correctly typed default value.</p>
-<p>We infer the column’s type from the template table’s metadata:</p>
-<pre><code class="language-q">t:"*"^meta[goodTdir][cname;`t]
+<p>We can generate an empty default of the correct type using <code>0#</code> on a good column:</p>
+<pre><code class="language-q">0#good col
 </code></pre>
-<p>Here:</p>
-<ul>
-<li><code>meta[goodTdir][cname;`t]</code> returns the column’s type character</li>
-<li><code>"*"</code> is used as a fallback when the type is null (<code>" "</code>), which represents a general list</li>
-</ul>
-<p>We then construct an empty value of the correct type:</p>
-<pre><code class="language-q">t$()
-</code></pre>
-<p><strong>3. Handling Nested Columns</strong></p>
-<p>Nested columns (lists of lists) require special handling. These are identified by:</p>
-<ul>
-<li>an uppercase type character (<code>"A"</code> – <code>"Z"</code>), or</li>
-<li><code>"*"</code> for general nested lists</li>
-</ul>
-<p>For these cases, the default value must itself be <strong>enlisted</strong>, producing a list of empty lists:</p>
-<pre><code class="language-q">$[(t="*") or t within "AZ";enlist;] t$()
-</code></pre>
-<p><strong>4. Reorder Columns</strong></p>
+<p><strong>3. Reorder Columns</strong></p>
 <p>To maintain consistency, the columns of the table that had the missing column(s) are reordered to match the ordering of the good table:</p>
 <pre><code class="language-q">reorder1Cols[tdir;goodCols]
 </code></pre>
-<p><strong>5. Adding Missing Columns to a Single Table</strong></p>
+<p><strong>4. Adding Missing Columns to a Single Table</strong></p>
 <p>We can now combine the above logic into a helper that adds all missing columns to a single table directory:</p>
 <pre><code class="language-q">// Add missing columns to a single database table
-add1MissingCols:{[tdir;goodTdir]
-    goodCols:getColNames goodTdir;
+add1MissingCols:{[tdir;good]
+    goodCols:cols good;
     if[count missing:goodCols except getColNames tdir;
-        {[d;g;c] 
-            add1Col[d;c;] $[(t="*") or t within "AZ";enlist;] (t:"*"^meta[g][c;`t])$()
-        }[tdir;goodTdir;] each missing;
+        {[d;g;c] add1Col[d;c;0#g c]}[tdir;good;] each missing;
         reorder1Cols[tdir;goodCols]
     ]
- };
+ }
 </code></pre>
-<p><strong>6. Applying Across All Partitions</strong></p>
+<p><strong>5. Applying Across All Partitions</strong></p>
 <p>Finally, we wrap this helper to apply it across all partitions of a table — excluding the template partition itself:</p>
 <pre><code class="language-q">// Add missing columns across all partitions of a table
-addMissingCols:{[db;tname;goodTdir]
-    add1MissingCols[;goodTdir] peach allTablePaths[db;tname] except goodTdir;
- };
+addMissingCols:{[db:`s;tname:`s;goodTdir:`s]
+    add1MissingCols[;0#get goodTdir] peach allTablePaths[db;tname] except goodTdir;
+ }
 </code></pre>
 <pre><code class="language-q">// Remove column from older partition
 q)hdel .Q.dd[`:partDB;2026.02.03,`trade`size]
@@ -1318,7 +1941,7 @@ add1Tab:{[db;domain;tdir;schema] @[tdir;`;:;.Q.ens[db;0#schema;domain]];};
 </ul>
 <pre><code class="language-q">buildTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     $[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]]
  };
@@ -1395,7 +2018,7 @@ q)key `:splayDB
 q)key `:splayDB
 `s#`sym`tradeRenamed
 </code></pre>
-<h2 id="conclusion-1"><a class="header" href="#conclusion-1">Conclusion</a></h2>
+<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
 <p>Maintaining on-disk KDB+ databases is fundamentally a filesystem problem, and the utilities explored in this post embrace that reality directly. By operating at the directory and file level, we can perform structural changes—adding, removing, renaming, and reshaping tables and columns—without mapping data into memory or relying on fragile, ad hoc scripts. The resulting approach is explicit, predictable, and scalable across splayed, partitioned, and segmented layouts.</p>
 <p>The reworked <code>dbm.q</code> module aims to modernise the original <code>dbmaint.q</code> ideas by improving readability, performance via parallel execution, and extending support to nested columns. More importantly, it provides a composable toolkit for database evolution: one that can be safely automated, reasoned about, and adapted as schemas inevitably change over time. As databases grow and operational requirements become stricter, having well-defined, filesystem-aware maintenance primitives becomes not just convenient, but essential.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1607,7 +2230,7 @@ q)clap.get`nonExistingArg    // Returns ()
 <p>Note that while the only requirement for sharing a module is providing the q source file(s), it’s highly recommended to include documentation describing what the module does, how to use it, and any assumptions or dependencies it has. Clear documentation makes your module far easier for others to adopt, understand, and build upon.</p>
 <h2 id="using-modules-from-others"><a class="header" href="#using-modules-from-others">Using Modules From Others</a></h2>
 <p>KX ships a collection of official modules with every KDB-X installation, documented <a href="https://code.kx.com/kdb-x/modules/module-index.html#official-kx-modules">here</a>. The same page also catalogues a range of open-source modules, which are useful both as ready-made components and as examples of good module design. To use any external module, simply download its source files and place them somewhere on your module search path — commonly within your <code>mod/</code> directory — after which it can be imported with <code>use</code> like any other module.</p>
-<h2 id="conclusion-2"><a class="header" href="#conclusion-2">Conclusion</a></h2>
+<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
 <p>The introduction of a module system in KDB-X marks an important step forward for the q ecosystem. Modules provide structure, encapsulation, and clarity — allowing developers to build cleaner codebases, share functionality more easily, and avoid the common pitfalls of global namespaces. Although the ecosystem is still young and a centralised package registry has yet to emerge, the foundations are now in place for a more collaborative and reusable approach to q development.</p>
 <p>Whether you are incorporating modules written by others or creating your own, the new system offers a practical, modern way to organise and distribute functionality. As the community continues to grow, shared modules and best practices will evolve alongside it. I hope this tutorial has given you a clear understanding of how KDB-X modules work and inspired you to start building and sharing your own.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1965,7 +2588,7 @@ q)groupedOverhead[20000;] 1+til 10
 <p>The formulas derived for computing attribute overheads are based on the current internal implementation of KDB+. As such, they may change in future versions if the underlying architecture is modified.
 However, the methodology used to derive these formulas — through systematic measurement and pattern analysis — can still be applied to recalculate overheads if needed. The approach is general and remains valid even if the specific outcomes evolve over time.</p>
 </blockquote>
-<h2 id="conclusion-3"><a class="header" href="#conclusion-3">Conclusion</a></h2>
+<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
 <p>While KDB+ attributes offer powerful query optimisations, we have shown that these benefits come with measurable costs in time and memory.</p>
 <p>We’ve seen that attributes like <em>unique</em>, <em>parted</em>, and <em>grouped</em> maintain internal data structure — typically hash maps — that vary in size depending on both the total count of the list and the count of unique values. This leads to non-trivial memory overhead, which can scale into hundreds of megabytes or more for large datasets.</p>
 <p>We also observed that applying attributes can incur time overhead during operations like loading, writing, or updating data — particularly for attributes that require hashing or maintaining metadata during write time.</p>
@@ -2308,7 +2931,7 @@ select time, side from table where sym=randSym
 </table>
 </div>
 <p>When using the <em>parted</em> attribute, memory usage remains constant regardless of dataset size. This suggests that no additional memory is consumed during grouping — likely because the data is already partitioned, and aggregation can proceed without intermediate allocation.</p>
-<h2 id="conclusion-4"><a class="header" href="#conclusion-4">Conclusion</a></h2>
+<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
 <p>KDB+ attributes offer a powerful way to optimise query performance by influencing how data is accessed and retrieved. As we’ve seen, each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — serves a specific purpose and can dramatically reduce query times when applied appropriately. Whether it’s enabling binary search through a <em>sorted</em> list, ensuring fast membership checks via <em>unique</em>, or accelerating group-based operations with <em>parted</em> and <em>grouped</em>, attributes are key to writing high-performance Q code.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="kdb-attributes"><a class="header" href="#kdb-attributes">KDB+ Attributes</a></h1>
@@ -2925,7 +3548,7 @@ col2| s
 col3| c
 col4| f
 </code></pre>
-<h2 id="conclusion-5"><a class="header" href="#conclusion-5">Conclusion</a></h2>
+<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
 <p>Understanding where and how to apply attributes in KDB+ is essential for optimising query performance, especially when working with large datasets. Each attribute — <em>sorted</em>, <em>unique</em>, <em>parted</em>, and <em>grouped</em> — has specific use cases and constraints based on the structure of your data. While this blog focused on where attributes are most effectively applied and the special behaviour of the <em>sorted</em> attribute across different structures, it’s important to test and benchmark attribute usage in your specific environment for best results.</p>
 <p>For an in-depth look at the performance impact of these attributes, including benchmarks and practical query comparisons, please refer to my follow-up blog on <a href="#performance-benefits-of-kdb-attributes">Performance Benefits of KDB+ Attributes</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -3117,7 +3740,7 @@ q)a=b   // Tolerantly equal
 q)0=a-b // Strict comparison
 0b
 </code></pre>
-<h2 id="conclusion-6"><a class="header" href="#conclusion-6">Conclusion</a></h2>
+<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
 <p>Floating-point numbers are a fundamental part of numerical computing, enabling the representation of continuous and approximate values in Q/KDB+. By understanding the two main floating-point types — <code>real</code> and <code>float</code> — along with their behaviour in operations, we can make more informed decisions about precision and performance in our applications.</p>
 <p>While Q/KDB+ handles floating-point numbers with built-in comparison tolerance to mitigate small precision errors, it’s important to be mindful of the limitations, especially when working with large datasets or performing operations that require strict equality. Whether you’re using floating-point values in time series analysis, financial computations, or scientific modeling, a solid grasp of how these datatypes work will help ensure that your results are both accurate and efficient.</p>
 <p>As always, when dealing with floating-point numbers, it’s essential to choose the appropriate type based on the required precision, and to be aware of potential pitfalls like non-transitive comparisons and rounding errors. By keeping these considerations in mind, you can avoid subtle bugs and make the most of Q/KDB+’s powerful numerical capabilities.</p>
@@ -3535,7 +4158,7 @@ readTime   70.03013 31.14028  40.45668
 <li><strong>Slightly Improved Compression Factor</strong>: Larger datasets provide more opportunities for redundancy, resulting in a modest increase in the compression factor.</li>
 <li><strong>Significant Increase in Write and Read Times</strong>: As expected, processing times scale with dataset size. However, the faster write times relative to longs are maintained, suggesting symbols’ internal structure benefits compression algorithms even for larger datasets.</li>
 </ul>
-<h2 id="conclusion-7"><a class="header" href="#conclusion-7">Conclusion</a></h2>
+<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
 <p>In this blog, we explored the performance of compression algorithms in Q/KDB+ across various dimensions, including algorithm choice, compression levels, logical block sizes, data structure, size, and datatype. Through extensive testing and analysis, we uncovered several key insights:</p>
 <ol>
 <li>
@@ -4077,7 +4700,7 @@ Mode                 LastWriteTime         Length Name
 -a---l        04/10/2024     16:00          33407 sym
 </code></pre>
 <p>As expected, the <code>qty</code>, <code>sym</code>, and <code>px</code> files have grown, reflecting the addition of new data.</p>
-<h2 id="conclusion-8"><a class="header" href="#conclusion-8">Conclusion</a></h2>
+<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
 <p>In this blog, we explored the fundamentals of compression in Q/KDB+, focusing on how to write and read compressed files effectively. We discussed the significance of compression in optimising storage and enhancing data management, particularly regarding tables and columns. We also examined the implications of logical block size, emphasizing the trade-offs between compression efficiency and performance during data access.</p>
 <p>Understanding these concepts is vital for effectively managing data in Q/KDB+. By applying the right compression techniques, you can maximise storage efficiency while minimising the performance overhead during query operations.</p>
 <p>Check out <a href="#measuring-compression-performance-in-qkdb">part two</a> of this series on compression in Q/KDB+, where we will explore algorithm performance, analyse the efficiency of querying compressed data, benchmark various compression methods, and discuss practical strategies to optimise your compression choices.</p>
@@ -4520,7 +5143,7 @@ q)system "p ",string .Q.def[defaults;.Q.opt .z.X]`p // Set the listening port
 q)\p
 5000i
 </code></pre>
-<h2 id="conclusion-9"><a class="header" href="#conclusion-9">Conclusion</a></h2>
+<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
 <p>Parsing and handling command-line options in Q can significantly enhance the flexibility and configurability of your scripts. By using the built-in functions <code>.z.x</code>, <code>.z.X</code>, <code>.Q.opt</code>, and <code>.Q.def</code>, you can easily access, process, and apply default values to both custom and built-in options. These tools allow you to convert command-line arguments into structured data like dictionaries, cast values to appropriate types, and handle multiple arguments efficiently.</p>
 <p>Understanding these features not only improves the maintainability of your Q code but also allows you to build scripts that can adapt to various input configurations seamlessly. Whether you are working with custom options or using default values for built-in commands, Q provides the mechanisms needed to simplify these processes, making it easier to develop dynamic and reusable Q scripts.</p>
 <p>Incorporating these best practices into your development workflow will help ensure that your Q scripts remain robust, adaptable, and user-friendly.</p>
@@ -5034,7 +5657,7 @@ q)deals:convertEpoch[`releaseDate;deals]
 q)count deals
 3060
 </code></pre>
-<h2 id="conclusion-10"><a class="header" href="#conclusion-10">Conclusion</a></h2>
+<h2 id="conclusion-11"><a class="header" href="#conclusion-11">Conclusion</a></h2>
 <p>Integrating external APIs with Q/KDB+ can significantly enhance the data capabilities of your applications, particularly when dealing with large datasets or dynamic content. In this blog, we’ve explored how to interact with the <em>CheapShark</em> API, covering everything from basic API requests to more advanced topics like filtering queries, handling paginated data, and extracting valuable information from HTTP response headers.</p>
 <p>By understanding these techniques, you can efficiently pull in and manipulate external data within your Q/KDB+ environment, opening up new possibilities for data analysis, application development, and real-time decision-making. Whether you’re querying for specific information or managing large datasets across multiple pages, these tools provide the flexibility needed to handle a wide range of scenarios.</p>
 <p>With the knowledge from this guide, you should be well-equipped to integrate other APIs into your Q/KDB+ workflows, making your data processes even more powerful and versatile.</p>
@@ -5385,7 +6008,7 @@ q)1 10 sublist 10 20 30 40 50
 q)10 sublist "Hey"
 "Hey"
 </code></pre>
-<h2 id="conclusion-11"><a class="header" href="#conclusion-11">Conclusion</a></h2>
+<h2 id="conclusion-12"><a class="header" href="#conclusion-12">Conclusion</a></h2>
 <p>In the Q programming language, while some keywords are well-known and frequently used, there are others that, though lesser-known, offer powerful functionality that can simplify and optimise your code. From efficient data-saving methods with <code>dsave</code>, to navigating lists with <code>next</code>, <code>prev</code>, and <code>xprev</code>, and managing splayed tables with <code>rload</code> and <code>rsave</code>, these keywords may seem minor at first glance, but they can make a significant difference in your code’s clarity and maintainability.</p>
 <p>However, not all keywords are equally valuable in every context. For instance, the <code>csv</code> keyword, a shorthand for comma-delimited text, might be less useful in modern coding practices where other delimiters are also prevalent. Similarly, while <code>reciprocal</code> provides a way to calculate the reciprocal of a number, the more concise <code>1%</code> is usually preferred for its brevity and clarity.</p>
 <p>Understanding and utilising these underappreciated keywords not only enhances your proficiency in Q but also opens up new possibilities for writing more readable, efficient, and maintainable code. So, the next time you’re coding in Q, consider reaching for these keywords – they might just become your new favourites.</p>
@@ -5541,7 +6164,7 @@ used| 134579456
 heap| 201326592
 </code></pre>
 <p>The heap size reduces after garbage collection, freeing up system resources.</p>
-<h2 id="conclusion-12"><a class="header" href="#conclusion-12">Conclusion</a></h2>
+<h2 id="conclusion-13"><a class="header" href="#conclusion-13">Conclusion</a></h2>
 <p>Understanding memory allocation in Q, particularly through the buddy memory allocation system, provides insight into efficient memory management and helps in optimising performance. The examples illustrate how Q handles memory for lists, the impact of heap allocation, and the benefits of manual garbage collection. Moreover, it is essential to consider how operations like joining lists impact memory usage, potentially doubling the memory required during the operation and necessitating periodic garbage collection to free up resources.</p>
 
                     </main>
