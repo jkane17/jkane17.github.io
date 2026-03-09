@@ -6,6 +6,7 @@ Welcome to the Q/KDB+ Blog. Here you'll find articles exploring various aspects 
 
 | Title                                                                                      | Published    | Description                                                                                               |
 | ------------------------------------------------------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------- |
+| **[Sym File Maintenance in KDB+](./sym_file_maintenance.md)**                              | Mar 10, 2026 | If your sym file is in need of maintenance, look no further.                                              |
 | **[Recursion vs Iteration in Q/KDB+](./recursion_vs_iteration.md)**                        | Feb 12, 2026 | Examine the intricate details of recursion and iteration in Q/KDB+.                                       |
 | **[Database Maintenance in KDB+](./maintenance.md)**                                       | Feb 04, 2026 | An in-depth look into how to maintain you datase.                                                         |
 | **[KDB-X Modules](./kdbx_modules.md)**                                                     | Nov 25, 2025 | Learn the basics of the KDB-X module system.                                                              |

@@ -188,7 +188,7 @@ If partitions exist, construct paths for each partition:
 Segmented databases introduce one additional wrinkle: the root contains a file `par.txt` listing the paths of all underlying partitioned databases. We can handle this by reading the file and recursively calling our function for each listed path:
 
 ```q
-if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
 ```
 
 ### Final Cleanup
@@ -203,7 +203,7 @@ paths where 0<(count key@) each paths
 // Get all paths to a table within a database
 allTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     paths:$[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]];
     paths where 0<(count key@) each paths
@@ -774,13 +774,13 @@ To maintain consistency across the database, it is often necessary to retrofit o
 **1. Identifying Missing Columns**
 
 Given:
-- `goodTdir`: the directory of the template table (with the complete schema)
+- `good`: template table (with the complete schema)
 - `tdir`: the directory of a table we want to fix
 
-We determine which columns are missing by comparing their `.d` files:
+We determine which columns are missing by comparing their columns:
 
 ```q
-goodCols:getColNames goodTdir
+goodCols:cols good
 missing:goodCols except getColNames tdir
 ```
 
@@ -790,36 +790,13 @@ This produces the list of columns that exist in the good table but not in the ta
 
 Each missing column must be added with a correctly typed default value.
 
-We infer the column’s type from the template table’s metadata:
+We can generate an empty default of the correct type using `0#` on a good column:
 
 ```q
-t:"*"^meta[goodTdir][cname;`t]
+0#good col
 ```
 
-Here:
-- ``meta[goodTdir][cname;`t]`` returns the column’s type character
-- `"*"` is used as a fallback when the type is null (`" "`), which represents a general list
-
-We then construct an empty value of the correct type:
-
-```q
-t$()
-```
-
-**3. Handling Nested Columns**
-
-Nested columns (lists of lists) require special handling. These are identified by:
-
-- an uppercase type character (`"A"` – `"Z"`), or
-- `"*"` for general nested lists
-
-For these cases, the default value must itself be **enlisted**, producing a list of empty lists:
-
-```q
-$[(t="*") or t within "AZ";enlist;] t$()
-```
-
-**4. Reorder Columns**
+**3. Reorder Columns**
 
 To maintain consistency, the columns of the table that had the missing column(s) are reordered to match the ordering of the good table:
 
@@ -827,32 +804,30 @@ To maintain consistency, the columns of the table that had the missing column(s)
 reorder1Cols[tdir;goodCols]
 ```
 
-**5. Adding Missing Columns to a Single Table**
+**4. Adding Missing Columns to a Single Table**
 
 We can now combine the above logic into a helper that adds all missing columns to a single table directory:
 
 ```q
 // Add missing columns to a single database table
-add1MissingCols:{[tdir;goodTdir]
-    goodCols:getColNames goodTdir;
+add1MissingCols:{[tdir;good]
+    goodCols:cols good;
     if[count missing:goodCols except getColNames tdir;
-        {[d;g;c] 
-            add1Col[d;c;] $[(t="*") or t within "AZ";enlist;] (t:"*"^meta[g][c;`t])$()
-        }[tdir;goodTdir;] each missing;
+        {[d;g;c] add1Col[d;c;0#g c]}[tdir;good;] each missing;
         reorder1Cols[tdir;goodCols]
     ]
- };
+ }
 ```
 
-**6. Applying Across All Partitions**
+**5. Applying Across All Partitions**
 
 Finally, we wrap this helper to apply it across all partitions of a table — excluding the template partition itself:
 
 ```q
 // Add missing columns across all partitions of a table
-addMissingCols:{[db;tname;goodTdir]
-    add1MissingCols[;goodTdir] peach allTablePaths[db;tname] except goodTdir;
- };
+addMissingCols:{[db:`s;tname:`s;goodTdir:`s]
+    add1MissingCols[;0#get goodTdir] peach allTablePaths[db;tname] except goodTdir;
+ }
 ```
 
 ```q
@@ -910,7 +885,7 @@ Previously, `allTablePaths` filtered out non-existing tables, which prevents tab
 ```q
 buildTablePaths:{[db;tname]
     if[0=count files:key db; :`$()];
-    if[any files like "par.txt"; :raze (.z.s[;tname] hsym@) each `$read0 .Q.dd[db;`par.txt]];
+    if[any files like "par.txt"; :raze .z.s[;tname] each hsym `$read0 .Q.dd[db;`par.txt]];
     files@:where files like "[0-9]*";
     $[count files; (.Q.dd[db;] ,[;tname]@) each files; enlist .Q.dd[db;tname]]
  };
