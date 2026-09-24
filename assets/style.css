@@ -221,6 +221,7 @@ main {
     position: relative;
     padding-bottom: 56.25%; /* 16:9 aspect ratio */
     height: 0;
+    margin-bottom: 1rem;
 }
 
 .video-container iframe {
@@ -303,11 +304,11 @@ main {
     border-top-color: #1d4ed8;
 }
 
-.books-card {
+.quill-card {
     border-top: 3px solid #8b5cf6;
 }
 
-.books-card:hover {
+.quill-card:hover {
     border-top-color: #6d28d9;
 }
 
@@ -752,26 +753,6 @@ html.dark-theme .recent-note p {
     color: var(--text-light);
     font-size: 0.95rem;
     line-height: 1.6;
-}
-
-/* Coming Soon Box (Books Page) */
-.what-to-expect {
-    background: var(--bg);
-    border-radius: var(--radius-xl);
-    padding: var(--spacing-2xl);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
-    max-width: 600px;
-    margin: var(--spacing-xl) auto;
-    text-align: left;
-}
-
-.what-to-expect h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: var(--spacing-lg);
-    color: var(--text);
-    text-align: center;
 }
 
 .expect-list {
