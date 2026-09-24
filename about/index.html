@@ -4,170 +4,26 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>About - jkane17</title>
+        <meta name="description" content="About Jonathan Kane – a developer and writer interested in Q &amp; KDB+, Rust, performance and programming language design." />
+        <link rel="canonical" href="https://jkane17.github.io/about/" />
+        <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+        <meta property="og:type" content="profile" />
+        <meta property="og:site_name" content="jkane17" />
+        <meta property="og:title" content="About - jkane17" />
+        <meta property="og:description" content="About Jonathan Kane – a developer and writer interested in Q &amp; KDB+, Rust, performance and programming language design." />
+        <meta property="og:url" content="https://jkane17.github.io/about/" />
+        <meta property="og:image" content="https://jkane17.github.io/assets/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Jonathan Kane – Software Engineer, Technical Writer, Lifelong Learner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script src="/assets/theme.js"></script>
         <link rel="stylesheet" href="/assets/style.css" />
         <script defer src="/assets/nav.js"></script>
-        <style>
-            .about-header {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 3rem;
-                align-items: center;
-                margin-bottom: 4rem;
-                padding: 2rem 0;
-            }
-
-            .about-content h2 {
-                font-size: 2rem;
-                font-weight: 700;
-                margin-bottom: 1rem;
-                color: var(--text);
-            }
-
-            .about-content p {
-                font-size: 1.05rem;
-                color: var(--text-light);
-                margin-bottom: 1.5rem;
-                line-height: 1.8;
-            }
-
-            .about-avatar {
-                width: 100%;
-                max-width: 300px;
-                height: 300px;
-                background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
-                border-radius: 1rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 5rem;
-                box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-            }
-
-            .section-divider {
-                margin: 4rem 0;
-                padding: 3rem 0;
-                border-top: 1px solid var(--border);
-            }
-
-            .section-title {
-                font-size: 1.75rem;
-                font-weight: 700;
-                margin-bottom: 2rem;
-                color: var(--text);
-                text-align: center;
-            }
-
-            .interests-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 2rem;
-                margin-bottom: 2rem;
-            }
-
-            .interest-item {
-                background: var(--bg);
-                border-radius: 1rem;
-                padding: 2rem;
-                border: 1px solid var(--border);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-                transition: all 0.3s ease;
-            }
-
-            .interest-item:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-                border-color: var(--primary-light);
-            }
-
-            .interest-icon {
-                font-size: 2.5rem;
-                margin-bottom: 1rem;
-            }
-
-            .interest-title {
-                font-size: 1.25rem;
-                font-weight: 700;
-                margin-bottom: 0.75rem;
-                color: var(--text);
-            }
-
-            .interest-description {
-                color: var(--text-light);
-                font-size: 0.95rem;
-                line-height: 1.6;
-            }
-
-            .cta-section {
-                background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-                border-radius: 1rem;
-                padding: 3rem;
-                text-align: center;
-                color: white;
-                margin-top: 3rem;
-            }
-
-            .cta-section h3 {
-                font-size: 1.75rem;
-                font-weight: 700;
-                margin-bottom: 1rem;
-            }
-
-            .cta-section p {
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 1.05rem;
-                margin-bottom: 2rem;
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-
-            .cta-button {
-                display: inline-block;
-                padding: 0.875rem 2rem;
-                background: white;
-                color: var(--primary);
-                text-decoration: none;
-                border-radius: 0.75rem;
-                font-weight: 700;
-                transition: all 0.3s ease;
-            }
-
-            .cta-button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-            }
-
-            @media (max-width: 768px) {
-                .about-header {
-                    grid-template-columns: 1fr;
-                    gap: 2rem;
-                }
-
-                .about-avatar {
-                    order: -1;
-                }
-
-                .about-content h2 {
-                    font-size: 1.75rem;
-                }
-
-                .interests-grid {
-                    grid-template-columns: 1fr;
-                    gap: 1.5rem;
-                }
-
-                .cta-section {
-                    padding: 2rem;
-                }
-
-                .cta-section h3 {
-                    font-size: 1.5rem;
-                }
-            }
-        </style>
     </head>
     <body>
-        <nav-component></nav-component>
+        <!-- @include partials/nav.html -->
 
         <div class="container">
             <section class="about-header">
@@ -185,14 +41,14 @@
                         understand how things work.
                     </p>
                 </div>
-                <div class="about-avatar">💻</div>
+                <div class="about-avatar" aria-hidden="true">💻</div>
             </section>
 
             <section class="section-divider">
                 <h2 class="section-title">What I'm Interested In</h2>
                 <div class="interests-grid">
                     <div class="interest-item">
-                        <div class="interest-icon">🔵</div>
+                        <div class="interest-icon" aria-hidden="true">🔵</div>
                         <h3 class="interest-title">Q & KDB+</h3>
                         <p class="interest-description">
                             Exploring the elegant design of the Q programming language and building
@@ -201,7 +57,7 @@
                     </div>
 
                     <div class="interest-item">
-                        <div class="interest-icon">🦀</div>
+                        <div class="interest-icon" aria-hidden="true">🦀</div>
                         <h3 class="interest-title">Rust & Systems</h3>
                         <p class="interest-description">
                             Building reliable, performant systems with Rust. Learning about memory
@@ -210,7 +66,7 @@
                     </div>
 
                     <div class="interest-item">
-                        <div class="interest-icon">📚</div>
+                        <div class="interest-icon" aria-hidden="true">📚</div>
                         <h3 class="interest-title">Technical Writing</h3>
                         <p class="interest-description">
                             Sharing knowledge through detailed guides, tutorials, and long-form
@@ -219,7 +75,7 @@
                     </div>
 
                     <div class="interest-item">
-                        <div class="interest-icon">🧪</div>
+                        <div class="interest-icon" aria-hidden="true">🧪</div>
                         <h3 class="interest-title">Experimentation</h3>
                         <p class="interest-description">
                             Building side projects and experiments to test ideas, learn new
@@ -228,7 +84,7 @@
                     </div>
 
                     <div class="interest-item">
-                        <div class="interest-icon">⚡</div>
+                        <div class="interest-icon" aria-hidden="true">⚡</div>
                         <h3 class="interest-title">Performance</h3>
                         <p class="interest-description">
                             Fascinated by optimisation, profiling, and understanding how to write
@@ -237,7 +93,7 @@
                     </div>
 
                     <div class="interest-item">
-                        <div class="interest-icon">🔬</div>
+                        <div class="interest-icon" aria-hidden="true">🔬</div>
                         <h3 class="interest-title">Language Design</h3>
                         <p class="interest-description">
                             Exploring programming language theory, design patterns, and what makes
@@ -256,9 +112,7 @@
                 <a href="/blog/" class="cta-button">Visit Blog →</a>
             </section>
 
-            <footer-component></footer-component>
+            <!-- @include partials/footer.html -->
         </div>
-
-        <script src="/assets/footer.js"></script>
     </body>
 </html>

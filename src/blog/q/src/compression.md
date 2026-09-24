@@ -1,6 +1,6 @@
 # An Introduction to Compression in Q/KDB+
 
-![Cover Image](./images/compression.png "Cover Image")
+![Cover Image](./images/compression.webp "Cover Image")
 
 In the realm of computer science, compression refers to the process of reducing the size of a data object, such as a file, to save disk space and accelerate data transfer. In Q/KDB+, compression is both efficient and seamless: compressed data can be written to and read from disk without any additional effort on the user's part. The language's built-in methods for file handling automatically support both compressed and uncompressed formats, ensuring a smooth and transparent user experience.
 

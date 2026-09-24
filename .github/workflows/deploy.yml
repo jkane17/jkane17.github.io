@@ -4,17 +4,26 @@ on:
   push:
     branches:
       - main
+  # Allow re-running a deploy by hand from the Actions tab
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-progress deploy finish rather than cancelling it part way
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install mdBook
         run: |
@@ -23,18 +32,33 @@ jobs:
             | tar xz
           sudo mv mdbook /usr/local/bin
 
-      - name: Build blog books
-        run: |
-          mkdir -p blog
-          for d in src/blog/*; do
-            if [ -f "$d/book.toml" ]; then
-              name=$(basename "$d")
-              mdbook build -d "blog/$name" "$d"
-            fi
-          done
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          python-version: "3.12"
+
+      # Pillow renders the blog posts' link-preview images
+      - name: Install Python dependencies
+        run: pip install pillow
+
+      # Builds pages and blog books into _site/ (the same script local_test.sh uses).
+      # Only _site/ is published, not sources, scripts or repo config.
+      - name: Build site
+        run: python3 build.py
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,18 +1,18 @@
 #!/bin/bash
 
+# Run from the repo root so relative paths work wherever the script is invoked from
+cd "$(dirname "$0")" || exit 1
+
 # Color output
 readonly GREEN='\033[0;32m'
 readonly BLUE='\033[0;34m'
 readonly RED='\033[0;31m'
 readonly NC='\033[0m'  # No Color
 
-# Array of blog directories to build
-declare -a BLOGS=()
-
-# Cleanup function to remove built sites
+# Cleanup function to remove the built site
 cleanup() {
-    echo -e "\n${BLUE}Cleaning up built sites...${NC}"
-    rm -rf blog/*/
+    echo -e "\n${BLUE}Cleaning up built site...${NC}"
+    rm -rf _site
     echo -e "${GREEN}✓ Cleanup complete${NC}"
     exit 0
 }
@@ -20,55 +20,29 @@ cleanup() {
 # Trap signals for cleanup
 trap cleanup SIGINT SIGTERM
 
-# Check if mdbook is installed
-if ! command -v mdbook &> /dev/null; then
-    echo -e "${RED}Error: mdbook is not installed${NC}"
-    echo "Install it with: cargo install mdbook"
+# Build the site exactly as the deploy workflow does
+echo -e "${BLUE}Building site...${NC}"
+if ! python3 build.py; then
+    echo -e "\n${RED}✗ Build failed${NC}" >&2
     exit 1
 fi
-
-# Find all mdbook projects
-echo -e "${BLUE}Discovering mdbooks...${NC}"
-for d in src/blog/*/; do
-    if [ -f "$d/book.toml" ]; then
-        BLOGS+=("$d")
-    fi
-done
-
-if [ ${#BLOGS[@]} -eq 0 ]; then
-    echo -e "${BLUE}No mdbooks found in src/blog/${NC}"
-    exit 0
-fi
-
-# Build all blogs
-echo -e "${BLUE}Building ${#BLOGS[@]} mdbooks...${NC}"
-mkdir -p blog
-
-build_count=0
-failed_books=()
-
-for blog_dir in "${BLOGS[@]}"; do
-    name=$(basename "$blog_dir")
-    echo -e "${BLUE}Building $name...${NC}"
-    
-    if mdbook build -d "blog/$name" "$blog_dir" 2>&1 | grep -v "^warning:"; then
-        echo -e "${GREEN}✓ Built $name${NC}"
-        ((build_count++))
-    else
-        echo -e "${RED}✗ Failed to build $name${NC}"
-        failed_books+=("$name")
-    fi
-done
-
-if [ ${#failed_books[@]} -gt 0 ]; then
-    echo -e "\n${RED}✗ Build failed for: ${failed_books[*]}${NC}" >&2
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Build complete! ($build_count of ${#BLOGS[@]} built)${NC}"
+echo -e "${GREEN}✓ Build complete${NC}"
 
 # Serve
 echo -e "${BLUE}Starting local server at http://localhost:8000${NC}"
 echo -e "${BLUE}Press Ctrl+C to stop and clean up${NC}\n"
-cd "$(dirname "$0")"
-python3 -m http.server 8000 --directory .
+# Like `python3 -m http.server`, but tells the browser to re-check every file so a
+# rebuilt page is never shown with stale cached scripts or styles
+python3 - <<'EOF'
+import functools
+import http.server
+
+
+class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
+
+http.server.test(HandlerClass=functools.partial(NoCacheHandler, directory="_site"), port=8000)
+EOF

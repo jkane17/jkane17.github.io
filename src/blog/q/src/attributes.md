@@ -1,6 +1,6 @@
 # KDB+ Attributes
 
-![Cover Image](./images/attributes.png "Cover Image")
+![Cover Image](./images/attributes.webp "Cover Image")
 
 KDB+ provides four attributes — *sorted*, *unique*, *parted*, and *grouped* — that can be applied to lists and table columns to significantly enhance query performance. However, understanding when these attributes are preserved, lost, or best applied can be subtle and often overlooked. This blog explores how these attributes behave under common operations, where they are most effectively used, and some special behaviours — particularly of the *sorted* attribute. Whether you’re optimising an RDB or HDB, mastering attribute behaviour is key to writing efficient, high-performance KDB+ code.
 

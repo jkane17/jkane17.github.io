@@ -1,6 +1,6 @@
 # An Introduction to Interacting with REST APIs in Q/KDB+
 
-![Cover Image](./images/rest_apis_introduction.png "Cover Image")
+![Cover Image](./images/rest_apis_introduction.webp "Cover Image")
 
 In today's interconnected world, many websites and services provide programmatic access to their data through REST APIs. REST (Representational State Transfer) APIs allow different systems to securely exchange data over the internet. The Q programming language includes built-in HTTP request capabilities and, in this blog, we’ll explore how to interact with REST APIs using Q.
 

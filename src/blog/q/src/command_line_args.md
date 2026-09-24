@@ -1,6 +1,6 @@
 # Command Line Arguments in Q/KDB+
 
-![Cover Image](./images/command_line_args.png "Cover Image")
+![Cover Image](./images/command_line_args.webp "Cover Image")
 
 In Q/KDB+, command line arguments allow users to customise the behaviour of a session when it is started. By passing specific arguments, you can configure memory usage, port bindings, and even pre-load scripts, among other settings. This can be especially useful in automated environments or when dealing with large data sets that require specific resources.
 

@@ -4,12 +4,26 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Blog - jkane17</title>
+        <meta name="description" content="Long-form posts and technical deep dives by Jonathan Kane, covering Q/KDB+ internals, performance and programming." />
+        <link rel="canonical" href="https://jkane17.github.io/blog/" />
+        <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="jkane17" />
+        <meta property="og:title" content="Blog - jkane17" />
+        <meta property="og:description" content="Long-form posts and technical deep dives by Jonathan Kane, covering Q/KDB+ internals, performance and programming." />
+        <meta property="og:url" content="https://jkane17.github.io/blog/" />
+        <meta property="og:image" content="https://jkane17.github.io/assets/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Jonathan Kane – Software Engineer, Technical Writer, Lifelong Learner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script src="/assets/theme.js"></script>
         <link rel="stylesheet" href="/assets/style.css" />
-        <script defer src="/assets/theme.js"></script>
         <script defer src="/assets/nav.js"></script>
     </head>
     <body>
-        <nav-component></nav-component>
+        <!-- @include partials/nav.html -->
 
         <div class="container">
             <section class="blog-intro">
@@ -35,8 +49,8 @@
                     <h2 class="topics-title">Browse by Topic</h2>
                     <div class="blog-categories">
                         <a href="/blog/q/" class="blog-category">
-                            <div class="category-icon">🔵</div>
-                            <h2 class="category-title">Q/KDB</h2>
+                            <div class="category-icon" aria-hidden="true">🔵</div>
+                            <h3 class="category-title">Q/KDB</h3>
                             <p class="category-description">
                                 Explore the Q programming language and KDB+ database. Posts covering
                                 language features, memory allocation, command-line arguments, and
@@ -45,15 +59,15 @@
                             <span class="category-cta">Explore Q Posts →</span>
                         </a>
 
-                        <a href="#" class="blog-category">
-                            <div class="category-icon">📚</div>
-                            <h2 class="category-title">More Topics Coming Soon</h2>
+                        <div class="blog-category">
+                            <div class="category-icon" aria-hidden="true">📚</div>
+                            <h3 class="category-title">More Topics Coming Soon</h3>
                             <p class="category-description">
                                 I'm working on expanding coverage to additional programming topics
                                 and languages. Stay tuned for more in-depth articles and guides.
                             </p>
-                            <span class="category-cta">Check Back Soon →</span>
-                        </a>
+                            <span class="category-cta">Check back soon</span>
+                        </div>
                     </div>
                 </section>
 
@@ -66,64 +80,81 @@
                 </div>
             </main>
 
-            <footer-component></footer-component>
+            <!-- @include partials/footer.html -->
         </div>
 
-        <script src="/assets/footer.js"></script>
         <script>
-            // Load latest posts from /blog/q/introduction.html
+            const POSTS_SOURCE = "/blog/q/introduction.html";
+            const LATEST_COUNT = 3;
+
+            function showPostsMessage(list, text) {
+                const p = document.createElement("p");
+                p.style.color = "var(--text-light)";
+                p.textContent = text;
+                list.replaceChildren(p);
+            }
+
+            function createPostItem(post) {
+                const item = document.createElement("a");
+                item.className = "blog-post-item";
+                item.href = post.href;
+
+                const header = document.createElement("div");
+                header.className = "post-header";
+
+                const title = document.createElement("h3");
+                title.className = "post-title";
+                title.textContent = post.title;
+
+                const date = document.createElement("span");
+                date.className = "post-date";
+                date.textContent = post.date;
+
+                const snippet = document.createElement("p");
+                snippet.className = "post-snippet";
+                snippet.textContent = post.description;
+
+                header.append(title, date);
+                item.append(header, snippet);
+                return item;
+            }
+
+            // Load latest posts from the table on the Q blog's introduction page
             async function loadLatestPosts() {
+                const postsList = document.getElementById("latestPostsList");
                 try {
-                    const response = await fetch("/blog/q/introduction.html");
-                    const html = await response.text();
+                    const response = await fetch(POSTS_SOURCE);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, "text/html");
-                    const table = doc.querySelector("table");
-
-                    if (!table) {
-                        console.warn("Could not find posts table");
-                        return;
-                    }
-
-                    const rows = Array.from(table.querySelectorAll("tbody tr")).slice(0, 3);
-                    const postsList = document.getElementById("latestPostsList");
-                    postsList.innerHTML = "";
-
-                    rows.forEach((row) => {
+                    const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+                    const posts = [];
+                    doc.querySelectorAll("table tbody tr").forEach((row) => {
                         const cells = row.querySelectorAll("td");
-                        if (cells.length < 3) return;
-
-                        const titleCell = cells[0];
-                        const dateCell = cells[1];
-                        const descCell = cells[2];
-                        const link = titleCell.querySelector("a");
-
-                        if (!link) return;
-
-                        const postItem = document.createElement("a");
-                        postItem.className = "blog-post-item";
-                        postItem.href = `/blog/q/${link.getAttribute("href")}`;
-                        postItem.innerHTML = `
-            <div class="post-header">
-              <h3 class="post-title">${link.textContent}</h3>
-              <span class="post-date">${dateCell.textContent.trim()}</span>
-            </div>
-            <p class="post-snippet">${descCell.textContent.trim()}</p>
-          `;
-
-                        postsList.appendChild(postItem);
+                        const link = cells[0]?.querySelector("a");
+                        if (cells.length < 3 || !link) return;
+                        posts.push({
+                            title: link.textContent.trim(),
+                            // Resolve relative to the source page, not this one
+                            href: new URL(link.getAttribute("href"), response.url).pathname,
+                            date: cells[1].textContent.trim(),
+                            time: Date.parse(cells[1].textContent),
+                            description: cells[2].textContent.trim(),
+                        });
                     });
 
-                    if (postsList.children.length === 0) {
-                        postsList.innerHTML =
-                            '<p style="color: var(--text-light);">No posts found.</p>';
+                    // Newest first; keep the table's order if any date can't be parsed
+                    if (posts.every((post) => !isNaN(post.time))) {
+                        posts.sort((a, b) => b.time - a.time);
                     }
+
+                    if (posts.length === 0) {
+                        showPostsMessage(postsList, "No posts found.");
+                        return;
+                    }
+                    postsList.replaceChildren(...posts.slice(0, LATEST_COUNT).map(createPostItem));
                 } catch (error) {
                     console.error("Error loading posts:", error);
-                    const postsList = document.getElementById("latestPostsList");
-                    postsList.innerHTML =
-                        '<p style="color: var(--text-light);">Error loading posts.</p>';
+                    showPostsMessage(postsList, "Error loading posts.");
                 }
             }
 

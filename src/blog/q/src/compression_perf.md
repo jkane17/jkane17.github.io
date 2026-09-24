@@ -1,6 +1,6 @@
 # Measuring Compression Performance in Q/KDB+
 
-![Cover Image](./images/compression_perf.png "Cover Image")
+![Cover Image](./images/compression_perf.webp "Cover Image")
 
 Compression performance in Q/KDB+ is influenced by several critical factors, including the choice of compression parameters — logical block size (LBS), compression algorithm, and algorithm level. These parameters significantly impact the compression factor (how effectively data is compressed) and influence the speed of reading and writing compressed data. Since these parameters are user-configurable, selecting the optimal combination for a specific use case is essential.
 

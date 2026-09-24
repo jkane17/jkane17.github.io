@@ -4,12 +4,27 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>jkane17 - Software Engineer & Technical Writer</title>
+        <meta name="description" content="Jonathan Kane – software engineer and technical writer. Deep dives into Q/KDB+, performance and programming, plus Quill, a TUI IDE for Q." />
+        <link rel="canonical" href="https://jkane17.github.io/" />
+        <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="jkane17" />
+        <meta property="og:title" content="jkane17 - Software Engineer &amp; Technical Writer" />
+        <meta property="og:description" content="Jonathan Kane – software engineer and technical writer. Deep dives into Q/KDB+, performance and programming, plus Quill, a TUI IDE for Q." />
+        <meta property="og:url" content="https://jkane17.github.io/" />
+        <meta property="og:image" content="https://jkane17.github.io/assets/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Jonathan Kane – Software Engineer, Technical Writer, Lifelong Learner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script src="/assets/theme.js"></script>
         <link rel="stylesheet" href="/assets/style.css" />
-        <script defer src="/assets/theme.js"></script>
         <script defer src="/assets/nav.js"></script>
+        <script defer src="/assets/video.js"></script>
     </head>
     <body>
-        <nav-component></nav-component>
+        <!-- @include partials/nav.html -->
 
         <div class="container">
             <header class="hero">
@@ -30,7 +45,7 @@
 
                     <div class="cards">
                         <article class="card blog-card">
-                            <div class="card-icon">📖</div>
+                            <div class="card-icon" aria-hidden="true">📖</div>
                             <h3>Latest Blog Posts</h3>
                             <p>
                                 Deep dives into programming, Q/KDB, Rust, and technical topics that
@@ -40,7 +55,7 @@
                         </article>
 
                         <article class="card quill-card">
-                            <div class="card-icon">🪶</div>
+                            <div class="card-icon" aria-hidden="true">🪶</div>
                             <h3>Quill</h3>
                             <p>A TUI IDE for the Q programming language.</p>
                             <a href="/quill/" class="card-link">Explore Quill →</a>
@@ -48,28 +63,40 @@
                     </div>
 
                     <div class="video-container">
-                        <iframe
-                            src="https://www.youtube.com/embed/h_ZHVG27tj8"
-                            title="Optimising Compression Performance in kdb+"
-                            allowfullscreen
+                        <a
+                            class="video-facade"
+                            href="https://www.youtube.com/watch?v=h_ZHVG27tj8"
+                            data-video-id="h_ZHVG27tj8"
+                            data-title="Optimising Compression Performance in kdb+"
+                            aria-label="Play video: Optimising Compression Performance in kdb+"
                         >
-                        </iframe>
+                            <img src="https://i.ytimg.com/vi/h_ZHVG27tj8/maxresdefault.jpg" alt="" loading="lazy" />
+                            <svg class="video-play" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+                                <circle class="video-play-bg" cx="36" cy="36" r="36" />
+                                <path d="M29 23.5v25l20-12.5z" fill="#fff" />
+                            </svg>
+                        </a>
                     </div>
 
                     <div class="video-container">
-                        <iframe
-                            src="https://www.youtube.com/embed/_hFNaZRcB-c?si=3lW6l29R99_ov0DI"
-                            title="Introducing Quill - A TUI IDE for Q"
-                            allowfullscreen
+                        <a
+                            class="video-facade"
+                            href="https://www.youtube.com/watch?v=_hFNaZRcB-c"
+                            data-video-id="_hFNaZRcB-c"
+                            data-title="Introducing Quill - A TUI IDE for Q"
+                            aria-label="Play video: Introducing Quill - A TUI IDE for Q"
                         >
-                        </iframe>
+                            <img src="https://i.ytimg.com/vi/_hFNaZRcB-c/maxresdefault.jpg" alt="" loading="lazy" />
+                            <svg class="video-play" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+                                <circle class="video-play-bg" cx="36" cy="36" r="36" />
+                                <path d="M29 23.5v25l20-12.5z" fill="#fff" />
+                            </svg>
+                        </a>
                     </div>
                 </section>
             </main>
 
-            <footer-component></footer-component>
+            <!-- @include partials/footer.html -->
         </div>
-
-        <script src="/assets/footer.js"></script>
     </body>
 </html>

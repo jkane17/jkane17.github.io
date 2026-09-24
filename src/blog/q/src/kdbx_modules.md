@@ -1,6 +1,6 @@
 # KDB-X Modules
 
-![Cover Image](./images/kdbx_modules.png "Cover Image")
+![Cover Image](./images/kdbx_modules.webp "Cover Image")
 
 Most modern programming languages provide a module system to support clean encapsulation, code reuse, and easy distribution of functionality. Q/KDB+, however, historically developed without such a system. Its smaller open-source ecosystem, combined with its primarily closed-source usage inside large financial institutions, meant that developers typically relied on manually copying small `.q` files directly into their projects.
 

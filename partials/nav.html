@@ -1,0 +1,50 @@
+<nav class="main-nav">
+    <div class="nav-container">
+        <button
+            class="hamburger-menu"
+            id="hamburgerMenu"
+            aria-label="Toggle navigation menu"
+            aria-controls="navLinks"
+            aria-expanded="false"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="/" class="nav-link" data-path="/"><span aria-hidden="true">🏠</span> Home</a></li>
+            <li><a href="/blog/" class="nav-link" data-path="/blog/"><span aria-hidden="true">📝</span> Blog</a></li>
+            <li><a href="/quill/" class="nav-link" data-path="/quill/"><span aria-hidden="true">🪶</span> Quill</a></li>
+            <li><a href="/about/" class="nav-link" data-path="/about/"><span aria-hidden="true">👤</span> About</a></li>
+        </ul>
+        <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="Colour theme">
+            <button
+                class="theme-button"
+                data-theme="light"
+                title="Light theme"
+                aria-label="Light theme"
+                aria-pressed="false"
+            >
+                <span aria-hidden="true">☀️</span>
+            </button>
+            <button
+                class="theme-button"
+                data-theme="system"
+                title="System theme"
+                aria-label="System theme"
+                aria-pressed="false"
+            >
+                <span aria-hidden="true">🖥️</span>
+            </button>
+            <button
+                class="theme-button"
+                data-theme="dark"
+                title="Dark theme"
+                aria-label="Dark theme"
+                aria-pressed="false"
+            >
+                <span aria-hidden="true">🌙</span>
+            </button>
+        </div>
+    </div>
+</nav>

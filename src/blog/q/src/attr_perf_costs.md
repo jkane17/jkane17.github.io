@@ -1,6 +1,6 @@
 # Performance Costs of KDB+ Attributes
 
-![Cover Image](./images/attr_perf_costs.png "Cover Image")
+![Cover Image](./images/attr_perf_costs.webp "Cover Image")
 
 In my [previous blog](attr_perf_benefits.md), we explored how the four KDB+ attributes - _sorted_, _unique_, _parted_, and _grouped_ - can significantly improve query performance by enabling optimised search and aggregation strategies. However, these performance gains are not without cost.
 
@@ -110,7 +110,7 @@ The overhead introduced by the _unique_ attribute depends solely on the count of
 
 We measured this by applying the _unique_ attribute to lists of increasing count (1 to 10,000 elements), and plotted the results:
 
-![Impact of List Count on Unique Attribute Overhead](../images/unique_attr_overhead.png "Impact of List Count on Unique Attribute Overhead")
+![Impact of List Count on Unique Attribute Overhead](./images/unique_attr_overhead.png "Impact of List Count on Unique Attribute Overhead")
 
 The resulting step-wise growth pattern occurs because KDB+ uses a buddy memory allocation system. When the current memory block is insufficient for the hash map, the system allocates a new block twice as large, causing jumps in overhead.
 
@@ -185,7 +185,7 @@ The overhead of the _parted_ attribute depends primarily on the count of unique 
 
 To analyse this, we tested 10,000-element lists with varying counts of unique values, from 1 to 10,000.
 
-![Impact of Unique Value Count on Parted Attribute Overhead](../images/parted_attr_overhead.png "Impact of Unique Value Count on Parted Attribute Overhead")
+![Impact of Unique Value Count on Parted Attribute Overhead](./images/parted_attr_overhead.png "Impact of Unique Value Count on Parted Attribute Overhead")
 
 As with the _unique_ attribute, we observe a step pattern, which results from KDB+ allocating memory in powers of 2 (buddy allocation system).
 
@@ -269,7 +269,7 @@ The overhead of the _grouped_ attribute depends on both the total count of the l
 
 To measure the overhead, we tested lists of 10,000 and 20,000 elements with varying counts of unique values. For comparability, the 20,000-element list was tested only up to 10,000 unique values.
 
-![Impact of List Count & Unique Value Count on Grouped Attribute Overhead](../images/grouped_attr_overhead.png "Impact of List Count & Unique Value Count on Grouped Attribute Overhead")
+![Impact of List Count & Unique Value Count on Grouped Attribute Overhead](./images/grouped_attr_overhead.png "Impact of List Count & Unique Value Count on Grouped Attribute Overhead")
 
 The chart shows two lines — one for each total list count. For a given count of unique values, the larger list incurs higher overhead, confirming that the _grouped_ attribute scales with both list count and the count of unique elements.
 

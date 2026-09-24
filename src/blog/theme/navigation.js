@@ -11,18 +11,16 @@ function addNavigation() {
   const navContainer = document.createElement('div');
   navContainer.className = 'site-nav-icons';
   
-  // Helper function to create navigation button
+  // Helper function to create a navigation link styled as a toolbar icon.
+  // A real link (not a button) so middle-click and "open in new tab" work.
   function createNavButton(title, ariaLabel, href, svgPath) {
-    const button = document.createElement('button');
-    button.className = 'icon-button site-nav-button';
-    button.type = 'button';
-    button.title = title;
-    button.setAttribute('aria-label', ariaLabel);
-    button.innerHTML = `<span class="fa-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="${svgPath}"/></svg></span>`;
-    button.addEventListener('click', () => {
-      window.location.href = href;
-    });
-    return button;
+    const link = document.createElement('a');
+    link.className = 'icon-button site-nav-button';
+    link.href = href;
+    link.title = title;
+    link.setAttribute('aria-label', ariaLabel);
+    link.innerHTML = `<span class="fa-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path d="${svgPath}"/></svg></span>`;
+    return link;
   }
   
   // Create Home button

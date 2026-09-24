@@ -1,6 +1,6 @@
 # Performance Benefits of KDB+ Attributes
 
-![Cover Image](./images/attr_perf_benefits.png "Cover Image")
+![Cover Image](./images/attr_perf_benefits.webp "Cover Image")
 
 Attributes in KDB+ are powerful performance optimisations that can dramatically accelerate queries on large datasets. In this blog, we'll dive into the tangible performance benefits they offer - measuring real-world improvements in speed and efficiency. If you're new to attributes or want a refresher on their mechanics and use cases, check out my [previous blog post](./attributes.md)  for a detailed introduction.
 

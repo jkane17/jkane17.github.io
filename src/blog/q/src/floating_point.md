@@ -1,6 +1,6 @@
 # Floating-Point Datatypes in Q/KDB+
 
-![Cover Image](./images/floating_point.png "Cover Image")
+![Cover Image](./images/floating_point.webp "Cover Image")
 
 Floating-point numbers are essential for representing real-world values that require fractional precision. These numbers are used to model quantities such as measurements, scientific data, financial calculations, and approximations of irrational numbers like \\(\pi\\). Unlike integers, which represent whole numbers, floating-point numbers allow for the representation of both very small and very large numbers by using a decimal point and an exponent.
 

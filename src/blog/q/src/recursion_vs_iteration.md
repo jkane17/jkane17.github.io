@@ -1,6 +1,6 @@
 # Recursion vs Iteration in Q/KDB+
 
-![Cover Image](./images/recursion_vs_iteration.png "Cover Image")
+![Cover Image](./images/recursion_vs_iteration.webp "Cover Image")
 
 Mathematically, recursion and iteration both describe the repeated application of a rule to successive results. In programming, they often produce identical outputs and can frequently be used to express the same algorithms.
 

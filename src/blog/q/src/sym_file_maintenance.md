@@ -1,6 +1,6 @@
 # Sym File Maintenance in KDB+
 
-![Cover Image](./images/sym_file_maintenance.png "Cover Image")
+![Cover Image](./images/sym_file_maintenance.webp "Cover Image")
 
 The sym file is one of the most critical components of a KDB+ database. It provides significant improvements in both memory efficiency and query performance. However, to preserve these benefits, the sym file must be properly maintained. Excessively large sym files can negatively impact database load times and overall system performance, making it important to keep them as compact as reasonably possible.
 

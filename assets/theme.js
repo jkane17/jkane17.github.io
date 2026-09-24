@@ -12,12 +12,14 @@ const ThemeManager = {
     },
 
     /**
-     * Initialize theme from localStorage or system preference
+     * Get the saved theme, falling back to system if storage is unavailable
      */
-    init() {
-        const saved = localStorage.getItem(this.STORAGE_KEY) || this.THEMES.SYSTEM;
-        this.applyTheme(saved);
-        this.setupListeners();
+    getSaved() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || this.THEMES.SYSTEM;
+        } catch (e) {
+            return this.THEMES.SYSTEM;
+        }
     },
 
     /**
@@ -39,7 +41,9 @@ const ThemeManager = {
                 break;
         }
 
-        localStorage.setItem(this.STORAGE_KEY, theme);
+        try {
+            localStorage.setItem(this.STORAGE_KEY, theme);
+        } catch (e) {}
         this.updateButtons(theme);
     },
 
@@ -62,38 +66,36 @@ const ThemeManager = {
      */
     updateButtons(theme) {
         document.querySelectorAll(".theme-button").forEach((btn) => {
-            btn.classList.remove("active");
-            if (btn.dataset.theme === theme) {
-                btn.classList.add("active");
-            }
+            const isActive = btn.dataset.theme === theme;
+            btn.classList.toggle("active", isActive);
+            btn.setAttribute("aria-pressed", String(isActive));
         });
     },
 
     /**
-     * Setup event listeners for theme buttons and system changes
+     * Attach click handlers to the theme buttons and mark the active one.
+     * Called by nav.js once the page (which contains the buttons) has loaded.
      */
-    setupListeners() {
-        // Theme button clicks
+    bindButtons() {
         document.querySelectorAll(".theme-button").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-                const theme = e.target.dataset.theme;
-                this.applyTheme(theme);
-            });
+            btn.addEventListener("click", () => this.applyTheme(btn.dataset.theme));
         });
+        this.updateButtons(this.getSaved());
+    },
 
-        // System preference changes
+    /**
+     * Follow system preference changes while the theme is set to system
+     */
+    watchSystemTheme() {
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-            const saved = localStorage.getItem(this.STORAGE_KEY) || this.THEMES.SYSTEM;
-            if (saved === this.THEMES.SYSTEM) {
+            if (this.getSaved() === this.THEMES.SYSTEM) {
                 this.applySystemTheme();
             }
         });
     },
 };
 
-// Initialize when DOM is ready
-if (document.readyState !== "loading") {
-    ThemeManager.init();
-} else {
-    document.addEventListener("DOMContentLoaded", () => ThemeManager.init());
-}
+// Apply the saved theme immediately. This script is loaded without defer in <head>
+// so the theme is set before first paint, avoiding a flash of the wrong theme.
+ThemeManager.applyTheme(ThemeManager.getSaved());
+ThemeManager.watchSystemTheme();

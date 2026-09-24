@@ -1,6 +1,6 @@
 # Database Maintenance in KDB+
 
-![Cover Image](./images/maintenance.png "Cover Image")
+![Cover Image](./images/maintenance.webp "Cover Image")
 
 KDB+ requires ongoing maintenance as datasets evolve and schemas change. KX provides [`dbmaint.q`](https://github.com/KxSystems/kdb/blob/master/utils/dbmaint.q) — a widely-used utility for partitioned databases. This blog walks through the original functions and re-implements them with improved efficiency, readability, and use of more modern language features.
 
