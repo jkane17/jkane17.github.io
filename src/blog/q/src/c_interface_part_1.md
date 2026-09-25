@@ -295,7 +295,7 @@ typedef int32_t QSecond;
 typedef int32_t QTime;
 ```
 
-Each type has its own typedef name, but these names are only documentation: they resolve to the same few C types used by the numeric types. An `int32_t` by itself does not tell us whether a value is an int, a date, a month, a minute, a second, or a time. Only the type code stored in the `QObj` tells them apart.
+Each type has its own `typedef` name, but these names are only documentation: they resolve to the same few C types used by the numeric types. An `int32_t` by itself does not tell us whether a value is an int, a date, a month, a minute, a second, or a time. Only the type code stored in the `QObj` tells them apart.
 
 The table below shows each temporal type's C representation and what the number it stores means. Types that represent a point in time count from the Q epoch, `2000.01.01`. The others represent a duration or time of day.
 
@@ -374,7 +374,7 @@ The other codes have their own meanings and have no atom/list pair:
 - `77` to `97` are mapped lists, which appear when working with data on disk.
 - `98` and `99` are tables and dictionaries.
 - `100` to `112` are functions: lambdas, primitives, operators, iterators, projections, and so on.
-- `-128` is an error object, which is how kdb+ hands an error back to C (for example, from an IPC call). Errors raised from C are different: they are signalled by returning `NULL` (see [`qNewError`](#TODO: Link to error docs)).
+- `-128` is an error object, which is how kdb+ hands an error back to C (for example, from an IPC call). Errors raised from C are different: they are signalled by returning `NULL` (see [`qNewError`](https://github.com/jkane17/qlib/blob/main/doc/c/errors.md)).
 
 One value is notably absent from the primitive sequence: `3`. This type code is unused.
 
