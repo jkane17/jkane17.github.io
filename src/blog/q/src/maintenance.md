@@ -7,20 +7,22 @@ KDB+ requires ongoing maintenance as datasets evolve and schemas change. KX prov
 ## dbm KDB-X Module
 
 We’ll make this script an importable module using the KDB-X module system. To use the script as a module:
-1. Copy or download the [`dbm.q`](https://github.com/jkane17/qlib/blob/main/src/dbm.q) script and place it within your module search path (e.g. `/home/user/.kx/mod/qlib/dbm.q`).
+
+1. Copy or download the [`dbm.q`](https://github.com/jkane17/qlib/blob/main/src/q/dbm.q) script and place it within your module search path (e.g. `/home/user/.kx/mod/qlib/dbm.q`).
 2. Define the module namespace in your KDB session:
-    ```q
+   ``q
     dbm:use`qlib.dbm // Assuming dbm.q is within .../.kx/mod/qlib/
-    ```
-You can find out more information about KDB-X modules in [my other blog](./kdbx_modules.md). 
+    ``
+   You can find out more information about KDB-X modules in [my other blog](./kdbx_modules.md).
 
 ### Notable Improvements
 
 The modernised `dbm.q` provides:
-* Clearer function and variable names.
-* Supports splayed, partitioned, and segmented databases.
-* Nested column type support.
-* Parallelisation for large datasets.
+
+- Clearer function and variable names.
+- Supports splayed, partitioned, and segmented databases.
+- Nested column type support.
+- Parallelisation for large datasets.
 
 ## Creating a Test Database
 
@@ -47,7 +49,7 @@ trade:([]
 `:splayDB/trade/ set .Q.en[`:splayDB;trade];
 
 // Create a partitioned database (two partitions)
-{[db;dt;tname] 
+{[db;dt;tname]
     .Q.dd[db;dt,tname,`] set .Q.en[db;get tname]
  }[`:partDB;;`trade] each 2026.02.03 2026.02.04;
 ```
@@ -91,9 +93,10 @@ For listing column names, however, it’s enough to read from just one partition
 listCols:{[db;tname] getColNames last allTablePaths[db;tname]};
 ```
 
-where 
-* `db` - Path to database root.
-* `tname` - Table name.
+where
+
+- `db` - Path to database root.
+- `tname` - Table name.
 
 `allTablePaths[db;tname]` retrieves all paths to the table within the database. We’ll define this utility in the next section.
 
@@ -115,8 +118,8 @@ The built-in `cols` function works perfectly well when a table is already mapped
 
 When dealing with different database layouts, the path to a table depends on the type of database:
 
-* **Splayed**: each table has a single directory in the database root.
-* **Partitioned** (or **segmented**): the same table name usually appears once per partition.
+- **Splayed**: each table has a single directory in the database root.
+- **Partitioned** (or **segmented**): the same table name usually appears once per partition.
 
 Our "base" functions, such as `getColNames`, operate on a single splayed table path. To support partitioned and segmented databases, we first need a way to collect all table paths within a given database. This is the role of `allTablePaths`.
 
@@ -243,10 +246,11 @@ add1Col:{[tdir;cname;default]
 ```
 
 Line-by-line breakdown:
-1) Checks that the new column name does not already exist within the table.
-2) Get the count/length of the table.
-3) Create the new column file, filling it with the correct number of default values to match the table count.
-4) Add the new column name to the `.d` file.
+
+1. Checks that the new column name does not already exist within the table.
+2. Get the count/length of the table.
+3. Create the new column file, filling it with the correct number of default values to match the table count.
+4. Add the new column name to the `.d` file.
 
 ### The `addCol` Wrapper
 
@@ -255,6 +259,7 @@ Our wrapper function will do the following:
 **1. Validate the Column Name**
 
 A name is valid if it:
+
 - adheres to Q name formatting (no spaces, special chars, etc.); and
 - is not a reserved word.
 
@@ -326,15 +331,15 @@ To delete a column, we only need to remove the column file and update the table 
 
 The process involves three straightforward steps:
 
-1) Confirm that the column exists
+1. Confirm that the column exists
     ```q
     cname in colNames:getColNames tdir
     ```
-2) Delete the column file:
+2. Delete the column file:
     ```q
     hdel .Q.dd[tdir;cname]
     ```
-3) Update the `.d` file
+3. Update the `.d` file
     ```q
     @[tdir;`.d;:;colNames except cname]
     ```
@@ -344,8 +349,9 @@ The process involves three straightforward steps:
 The original `dbmaint.q` script did not handle nested column types, which require a bit of extra care.
 
 In KDB+, nested columns can be splayed as long as they contain only simple lists (e.g. strings, longs). When a nested column is splayed, it’s actually stored as two files:
-* one named after the column itself, and
-* another with the same name suffixed by the `#` character.
+
+- one named after the column itself, and
+- another with the same name suffixed by the `#` character.
 
 For example, our `trade` table contains two nested columns — `company` (a list of strings) and `moves` (a list of longs):
 
@@ -405,6 +411,7 @@ q)delCol[`:partDB;`trade;`moves]
 Copying a column involves three steps:
 
 **1. Verify that the column can be copied**
+
 - The source column must exist.
 - The destination column must not already exist.
 
@@ -413,6 +420,7 @@ Copying a column involves three steps:
 ```
 
 **2. Copy the underlying column files**
+
 - For simple columns, this is a single file.
 - For nested columns, the corresponding hash file must also be copied.
 - The column copy itself is performed at the filesystem level:
@@ -444,12 +452,13 @@ copy:{[src;dst] system $[isWindows; "copy /v /z "; "cp "]," " sv convertPath eac
 For nested columns, also copy the hash file:
 
 ```q
-if[(hname:`$string[srcCol],"#") in key tdir; 
+if[(hname:`$string[srcCol],"#") in key tdir;
     copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
  ];
 ```
 
 **3. Update the table’s metadata (`.d` file)**
+
 ```q
 @[tdir;`.d;,;dstCol]
 ```
@@ -463,7 +472,7 @@ The full `copy1Col` function:
 copy1Col:{[tdir;srcCol;dstCol]
     if[(srcCol in colNames) and not dstCol in colNames:getColNames tdir;
         copy . .Q.dd[tdir;] each srcCol,dstCol;
-        if[(hname:`$string[srcCol],"#") in key tdir; 
+        if[(hname:`$string[srcCol],"#") in key tdir;
             copy . .Q.dd[tdir;] each hname,`$string[dstCol],"#"
         ];
         @[tdir;`.d;,;dstCol]
@@ -476,7 +485,7 @@ copy1Col:{[tdir;srcCol;dstCol]
 The wrapper performs name validation and applies the operation across all table partitions:
 
 ```q
-copyCol:{[db;tname;srcCol;dstCol] 
+copyCol:{[db;tname;srcCol;dstCol]
     validateName dstCol;
     copy1Col[;srcCol;dstCol] peach allTablePaths[db;tname];
  };
@@ -508,7 +517,7 @@ We therefore apply `has1Col` to every partition directory and confirm that the r
 
 ```q
 // Does the given column exist in all partitions of the table?
-hasCol:{[db;tname;cname] 
+hasCol:{[db;tname;cname]
     $[count paths:allTablePaths[db;tname]; all has1Col[;cname] peach paths; 0b]
  };
 ```
@@ -557,7 +566,7 @@ rename . .Q.dd[tdir;] each old,new;
 For nested columns:
 
 ```q
-if[(hname:`$string[old],"#") in key tdir; 
+if[(hname:`$string[old],"#") in key tdir;
     rename . .Q.dd[tdir;] each hname,`$string[new],"#"
  ];
 ```
@@ -581,7 +590,7 @@ The full `rename1Col` function:
 rename1Col:{[tdir;old;new]
     if[(old in colNames) and not new in colNames:getColNames tdir
         rename . .Q.dd[tdir;] each old,new;
-        if[(hname:`$string[old],"#") in key tdir; 
+        if[(hname:`$string[old],"#") in key tdir;
             rename . .Q.dd[tdir;] each hname,`$string[new],"#"
         ];
         @[tdir;`.d;:;.[colNames;where colNames=old;:;new]]
@@ -593,7 +602,7 @@ Apply across all partitions:
 
 ```q
 // Rename a column across all partitions of a table.
-renameCol:{[db;tname;old;new] 
+renameCol:{[db;tname;old;new]
     validateName new;
     rename1Col[;old;new] peach allTablePaths[db;tname];
  };
@@ -738,7 +747,7 @@ fnCol:{[db;tname;cname;fn] fn1Col[;cname;fn] peach allTablePaths[db;tname];};
 q)get `:splayDB`trade`size
 1 2 3 4 5
 
-q)fnCol[`:splayDB;`trade;`size;100*] 
+q)fnCol[`:splayDB;`trade;`size;100*]
 
 q)get `:splayDB`trade`size
 100 200 300 400 500
@@ -774,6 +783,7 @@ To maintain consistency across the database, it is often necessary to retrofit o
 **1. Identifying Missing Columns**
 
 Given:
+
 - `good`: template table (with the complete schema)
 - `tdir`: the directory of a table we want to fix
 
@@ -866,6 +876,7 @@ add1Tab:{[db;domain;tdir;schema] @[tdir;`;:;.Q.ens[db;0#schema;domain]];};
 ```
 
 Here:
+
 - `schema` is a table definition (column names and types)
 - `0#schema` ensures the schema is empty
 - `.Q.ens` enumerates any symbol columns against the chosen domain
@@ -879,6 +890,7 @@ Writing this empty table to `tdir` creates the table’s on-disk structure.
 To create a new table across all partitions, we need to generate table paths even when the table does not yet exist.
 
 Previously, `allTablePaths` filtered out non-existing tables, which prevents table creation. To solve this, we split the logic into two functions:
+
 - `buildTablePaths`: constructs all possible table paths
 - `allTablePaths`: filters those paths to only existing tables
 
@@ -986,12 +998,13 @@ rename1Tab:{[old;new] if[()~key new; rename[old;new]]};
 **4. Applying the Rename Across All Partitions**
 
 To rename a table consistently across a partitioned database, we:
-1) Validate the new name
-2) Build old/new table paths for each partition
-3) Apply the rename in parallel
+
+1. Validate the new name
+2. Build old/new table paths for each partition
+3. Apply the rename in parallel
 
 ```q
-renameTab:{[db;old;new] 
+renameTab:{[db;old;new]
     validateName new;
     .[rename1Tab;] peach flip buildTablePaths[db;] each old,new;
  };

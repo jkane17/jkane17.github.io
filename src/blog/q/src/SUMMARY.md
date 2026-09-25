@@ -2,6 +2,7 @@
 
 [Introduction](./introduction.md)
 
+[C Interface for Q - Part 1](./c_interface_part_1.md)
 [Sym File Maintenance in KDB+](./sym_file_maintenance.md)
 [Recursion vs Iteration in Q/KDB+](./recursion_vs_iteration.md)
 [Database Maintenance in KDB+](./maintenance.md)

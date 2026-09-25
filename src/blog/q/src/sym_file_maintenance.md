@@ -6,7 +6,7 @@ The sym file is one of the most critical components of a KDB+ database. It provi
 
 This blog examines the considerations involved in database design to minimise sym file growth. It also explores practical techniques for reducing the size of an existing sym file when it becomes excessively large.
 
-This post builds on the concepts introduced in my [previous blog](./maintenance.md) on general KDB+ database maintenance. If you are unfamiliar with those fundamentals, I recommend reading that post first, as many of the practices discussed there form the foundation for effective sym file maintenance. Additionally, the code described throughout this blog is available within the [`dbm.q` module](https://github.com/jkane17/qlib/blob/main/src/dbm.q).
+This post builds on the concepts introduced in my [previous blog](./maintenance.md) on general KDB+ database maintenance. If you are unfamiliar with those fundamentals, I recommend reading that post first, as many of the practices discussed there form the foundation for effective sym file maintenance. Additionally, the code described throughout this blog is available within the [`dbm.q` module](https://github.com/jkane17/qlib/blob/main/src/q/dbm.q).
 
 > [!WARNING]
 > Operations on sym files can fail for many reasons. To avoid data loss, always back up your database before performing any of the operations described in this blog.
@@ -172,7 +172,7 @@ In this section we look at how to convert a column from **symbol to string** and
 
 ### From Symbol to String
 
-A column can usually be cast from one type to another using `castCol` provided by [`dbm.q`](https://github.com/jkane17/qlib/blob/main/src/dbm.q). However, converting a column from **symbol to string** requires a slightly different approach.
+A column can usually be cast from one type to another using `castCol` provided by [`dbm.q`](https://github.com/jkane17/qlib/blob/main/src/q/dbm.q). However, converting a column from **symbol to string** requires a slightly different approach.
 
 Instead of casting directly, we use `fnCol` to apply the `string` function to the column values.
 
@@ -793,7 +793,7 @@ This function allows us to re-enumerate a single column. While uncommon, it can 
 
 #### Re-enumerating a Table
 
-In most databases, the same domain is used for all symbol columns within a table. 
+In most databases, the same domain is used for all symbol columns within a table.
 
 We can therefore define `reenumerateTab` to re-enumerate all enumeration-type columns (returned by `listEnumCols` from `dbm.q`) across all partitions of a table:
 
@@ -808,7 +808,7 @@ For databases that use a single global domain (the most common case), we can ext
 
 ```q
 // Re-enumerate every table in the database
-reenumerateAll:{[db;newDomainFile] 
+reenumerateAll:{[db;newDomainFile]
     reenumerateTab[db;;newDomainFile] peach listTabs db;
  };
 ```
@@ -818,6 +818,7 @@ reenumerateAll:{[db;newDomainFile]
 After re-enumeration, the updated column files reference the new domain file(s). However, these files are not yet located in the database root directory.
 
 The final step is therefore to:
+
 1. Remove or archive the existing sym file(s).
 2. Move the rebuilt sym file(s) into the database root.
 
@@ -835,6 +836,7 @@ Once the new sym file is in place, the database can be restarted and will load t
 Renaming a domain is not a common operation, but it can be useful in situations such as changes to naming conventions or schema refactoring.
 
 Renaming a domain requires two main steps:
+
 1. Create a copy of the existing domain file using the new name.
 2. Re-enumerate any columns currently enumerated against the old domain so that they reference the new domain.
 
@@ -855,6 +857,7 @@ We will therefore introduce `reenumerateColFrom`, `reenumerateTabFrom`, and `ree
 **`reenumerateColFrom`**
 
 Compared with `reenumerateCol`, this function has two differences:
+
 1. It takes an additional parameter `currDomainName`.
 2. It checks that the column is currently enumerated against this domain before performing the re-enumeration.
 
@@ -922,7 +925,7 @@ reenumerateTabFrom:{[db;tname;currDomainName;newDomainFile]
 
 ```q
 // Re-enumerate every table in the database from a given domain
-reenumerateAllFrom:{[db;currDomainName;newDomainFile] 
+reenumerateAllFrom:{[db;currDomainName;newDomainFile]
     reenumerateTabFrom[db;;currDomainName;newDomainFile] peach listTabs db;
  };
 ```

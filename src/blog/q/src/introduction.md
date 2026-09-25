@@ -6,6 +6,7 @@ Welcome to the Q/KDB+ Blog. Here you'll find articles exploring various aspects 
 
 | Title                                                                                      | Published    | Description                                                                                               |
 | ------------------------------------------------------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------- |
+| **[C Interface for Q - Part 1](./c_interface_part_1.md)**                                  | Sep 24, 2026 | A revised interface between Q and C.                                                                      |
 | **[Sym File Maintenance in KDB+](./sym_file_maintenance.md)**                              | Mar 9, 2026  | If your sym file is in need of maintenance, look no further.                                              |
 | **[Recursion vs Iteration in Q/KDB+](./recursion_vs_iteration.md)**                        | Feb 12, 2026 | Examine the intricate details of recursion and iteration in Q/KDB+.                                       |
 | **[Database Maintenance in KDB+](./maintenance.md)**                                       | Feb 04, 2026 | An in-depth look into how to maintain you datase.                                                         |

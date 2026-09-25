@@ -23,12 +23,13 @@ We’ll start by defining a function to register command-line arguments. This fu
 args:([name:1#`] val:1#(); default:1#(); description:1#());
 
 // Register a command line argument to be parsed.
-register:{[name;default;description] 
+register:{[name;default;description]
     `args upsert ([name;default;description]);
  };
 ```
 
 Here:
+
 - `name` - the argument name (provided as `-name` on the command line).
 - `val` - the parsed value (set later when parsing).
 - `default` - the default value if the argument is not supplied (see my [previous blog](./command_line_args.md) for details on how `.Q.def` handles defaults).
@@ -87,7 +88,7 @@ q)clap.register[`myArg; 0; "My argument of long type"]
 q)clap.args
 name| val default description
 ----| -----------------------
-    |  
+    |
 ```
 
 The table is still empty. This illustrates a key behaviour of the module system: **exported values are copies, not references**. The module's private data remains private unless you expose explicit accessors.
@@ -128,7 +129,7 @@ q)clap.register[`myArg; 0; "My argument of long type"]
 q)clap.getArgs[]
 name| val default description
 ----| -----------------------
-    |  
+    |
 ```
 
 We still see an empty table. The problem is inside the `register` function itself.
@@ -166,14 +167,14 @@ q)clap:.Q.m.reuse `qlib.clap
 q)clap.getArgs[]                                         // Empty initially
 name| val default description
 ----| -----------------------
-    |                        
+    |
 
 q)clap.register[`myArg; 0; "My argument of long type"]
 
 q)clap.getArgs[]                                         // We now see the registered argument
-name | val default description               
+name | val default description
 -----| --------------------------------------
-     |     ()      ()                        
+     |     ()      ()
 myArg|     0       "My argument of long type"
 ```
 
@@ -211,12 +212,13 @@ Then:
 q)clap:use`qlib.clap
 
 q)clap.raw[]
-p     | "5000" 
-myArg1| "10"   
+p     | "5000"
+myArg1| "10"
 myArg2| "hello
 ```
 
 To parse arguments, we need to:
+
 1. Convert each supplied value to the correct type (falling back to the default when not supplied).
 2. Update the `val` column in the `args` table.
 
@@ -244,16 +246,17 @@ q)clap.register[`myArg3; 0.0; "Not given argument of float type"]
 q)clap.parse[]
 
 q)clap.getArgs[]
-name  | val      default description                       
+name  | val      default description
 ------| ---------------------------------------------------
-      | ()       ()      ()                                
-myArg1| 10       0       "Given argument of long type"     
+      | ()       ()      ()
+myArg1| 10       0       "Given argument of long type"
 myArg3| 0f       0f      "Not given argument of float type"
-p     | ,"5000"  ()      ()                                
+p     | ,"5000"  ()      ()
 myArg2| ,"hello" ()      ()
 ```
 
 The results reflect:
+
 - `myArg1` → value from the command line (`10`)
 - `myArg3` → default value (`0f`)
 - `myArg2` and `p` → present but unregistered, so they remain raw enlisted strings
@@ -287,7 +290,7 @@ q)clap.get`p
 q)clap.get`nonExistingArg    // Returns ()
 ```
 
-I’ve added many more features to the *clap* module, which you can find here: [jkane17/qlib](https://github.com/jkane17/qlib/tree/main).
+I’ve added many more features to the _clap_ module, which you can find here: [jkane17/qlib](https://github.com/jkane17/qlib).
 
 ## Sharing Your Modules
 
