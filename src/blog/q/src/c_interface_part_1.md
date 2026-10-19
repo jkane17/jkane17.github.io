@@ -1,6 +1,6 @@
 # C Interface for Q - Part 1
 
-![Cover Image](./images/c_interface_part_1.jpeg "Cover Image")
+![Cover Image](./images/c_interface.jpeg "Cover Image")
 
 Q is fast, but sometimes you need to reach outside it: to call an existing C library, to speed up a hot loop, or to talk to a Q process from a C program. kdb+ supports all of this through its C API. A C function can be compiled into a shared library and loaded into a Q process with `2:`, and a standalone C program can create Q values and exchange them with Q processes by linking against KX's C API library.
 
@@ -19,7 +19,7 @@ This series uses the C interface from [QLib](https://github.com/jkane17/qlib), w
 
 The wrappers are thin: a `QObj` has exactly the same memory layout as a `K`, and most functions call their `k.h` counterpart directly. So everything in this series also applies to code written against `k.h`, just with different names.
 
-In this first part, we look at the Q object itself: how it is laid out in memory, the types of value it can hold, and how to create and read atoms and lists. In Part 2 (link not available yet), we move on to more complex types like mixed lists, dictionaries, and tables.
+In this first part, we look at the Q object itself: how it is laid out in memory, the types of value it can hold, and how to create and read atoms and lists. In [Part 2](https://jkane17.github.io/blog/q/c_interface_part_2.html), we move on to more complex types like mixed lists, dictionaries, and tables.
 
 ### Building the Examples
 
@@ -476,7 +476,7 @@ There are two exceptions to these patterns, both of which follow from how the ty
 - `qNewSymbol` takes a `const QChar *`, a C string, rather than a `QSymbol`. It interns the string and stores the resulting symbol.
 - `qGetGuid` returns a `const QGuid *` pointing to the GUID inside the object, rather than a `QGuid` value.
 
-Accessor functions do not convert between types, and they only check the type with an `assert`. Calling the wrong accessor, for example `qGetLong` on a date atom, aborts the program in a debug build. With `NDEBUG` defined, it silently reinterprets whatever is stored in the union. If you are not sure what an object holds, check its type first (see Type Check Functions in Part 2 (link does not exist yet)).
+Accessor functions do not convert between types, and they only check the type with an `assert`. Calling the wrong accessor, for example `qGetLong` on a date atom, aborts the program in a debug build. With `NDEBUG` defined, it silently reinterprets whatever is stored in the union. If you are not sure what an object holds, check its type first (see Type Check Functions in [Part 2](https://jkane17.github.io/blog/q/c_interface_part_2.html#type-check-functions)).
 
 When you have finished with an object, release it with `qDecRef`. For an object that was just created, `refs` is `0`, so `qDecRef` frees it.
 
@@ -597,7 +597,7 @@ Since lists have multiple values, they are accessed by index using accessor func
 QTYPE qGetTYPEAtIndex(const QObj *obj, QSize index);
 ```
 
-For example, an `int` list can be accessed using `qGetIntAtIndex`. As with atoms, there are exceptions to the pattern: `qGetGuidAtIndex` returns a `const QGuid *`, and `qGetMixedAtIndex` returns a `QObj *` (see Mixed Lists in Part 2 (link does not exist yet)).
+For example, an `int` list can be accessed using `qGetIntAtIndex`. As with atoms, there are exceptions to the pattern: `qGetGuidAtIndex` returns a `const QGuid *`, and `qGetMixedAtIndex` returns a `QObj *` (see Mixed Lists in [Part 2](https://jkane17.github.io/blog/q/c_interface_part_2.html#mixed-lists)).
 
 Index accessors check both the type and the index with `assert`. An index past the end of the list aborts a debug build, and is undefined behaviour with `NDEBUG` defined, so loop up to `obj->length`.
 
@@ -771,4 +771,4 @@ In this part, we have looked at how Q values are represented in C and how to cre
 
 ### Next Time
 
-So far, every value we have created has been self-contained: an atom, or a list of plain C values. In Part 2 (link does not exist yet), we look at more complex types: mixed lists, dictionaries, tables, and keyed tables. This brings two new ideas: **ownership**, meaning which code is responsible for releasing an object once it is placed inside another, and **error handling**, meaning how to find out why a creation function returned `NULL`.
+So far, every value we have created has been self-contained: an atom, or a list of plain C values. In [Part 2](https://jkane17.github.io/blog/q/c_interface_part_2.html), we look at more complex types: mixed lists, dictionaries, tables, and keyed tables. This brings two new ideas: **ownership**, meaning which code is responsible for releasing an object once it is placed inside another, and **error handling**, meaning how to find out why a creation function returned `NULL`.
