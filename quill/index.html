@@ -32,24 +32,32 @@
                 <section class="blog-intro">
                     <p class="project-back-link"><a href="/projects/" class="card-link">← All projects</a></p>
                     <h1>Quill</h1>
-                    <p>Quill is a TUI IDE for the Q programming language.</p>
+                    <p>A terminal IDE for Q: edit code, query running processes, and explore results
+                        without leaving your terminal.</p>
+                    <div class="quill-page-links">
+                        <a href="#downloads-title" class="card-link">Jump to downloads ↓</a>
+                        <a href="#setup-title" class="card-link">Getting started ↓</a>
+                    </div>
                 </section>
 
-                <div class="video-container">
-                    <a
-                        class="video-facade"
-                        href="https://www.youtube.com/watch?v=_hFNaZRcB-c"
-                        data-video-id="_hFNaZRcB-c"
-                        data-title="Introducing Quill - A TUI IDE for Q"
-                        aria-label="Play video: Introducing Quill - A TUI IDE for Q"
-                    >
-                        <img src="https://i.ytimg.com/vi/_hFNaZRcB-c/maxresdefault.jpg" alt="" loading="lazy" />
-                        <svg class="video-play" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
-                            <circle class="video-play-bg" cx="36" cy="36" r="36" />
-                            <path d="M29 23.5v25l20-12.5z" fill="#fff" />
-                        </svg>
+                <figure class="quill-preview">
+                    <a href="/assets/quill-query.png" aria-label="View the Quill screenshot at full size">
+                        <img src="/assets/quill-query.png" width="1878" height="956"
+                            alt="Quill with a highlighted Q script above query results from a process on localhost:5000." />
                     </a>
-                </div>
+                    <figcaption>Edit Q and inspect query results in one workspace. Select the screenshot for a full-size view.</figcaption>
+                </figure>
+
+                <section class="quill-section" aria-labelledby="features-title">
+                    <h2 id="features-title">What you can do</h2>
+                    <ul class="quill-features">
+                        <li><strong>Edit Q:</strong> syntax highlighting, tabs, and search and replace.</li>
+                        <li><strong>Run queries:</strong> start a Q REPL or connect to an existing process.</li>
+                        <li><strong>Explore results:</strong> browse tables, plot graphs, and export data.</li>
+                        <li><strong>Find help:</strong> built-in Q reference, guides, and a command palette.</li>
+                    </ul>
+                    <p><a href="https://github.com/jkane17/quill-releases#features">Explore all features and shortcuts →</a></p>
+                </section>
 
                 <section class="quill-downloads" aria-labelledby="downloads-title">
                     <h2 id="downloads-title">Download</h2>
@@ -71,6 +79,44 @@
                         · <a id="quill-release-notes" href="https://github.com/jkane17/quill-releases/releases/tag/v0.1.0-beta.3">Release notes</a>
                         · <a href="https://github.com/jkane17/quill-releases/releases">All releases</a>
                     </p>
+                </section>
+                <section class="quill-section" aria-labelledby="setup-title">
+                    <h2 id="setup-title">Getting started</h2>
+                    <p>Use a terminal on Linux, macOS, or Windows through WSL. Bring your own
+                        licensed Q installation; Quill does not include Q or kdb+.</p>
+                    <ol class="quill-setup">
+                        <li>Download the archive for your platform above.</li>
+                        <li>
+                            Extract it and launch Quill. Replace <code>VERSION</code> and
+                            <code>TARGET</code> below with the values in your downloaded filename.
+                            <pre tabindex="0" aria-label="Extract and launch Quill commands"><code>tar xzf quill-VERSION-TARGET.tar.gz
+./quill-VERSION-TARGET/quill</code></pre>
+                        </li>
+                        <li>Press <kbd>Ctrl+H</kbd> for shortcuts, or <kbd>F4</kbd> to browse
+                            the built-in documentation.</li>
+                    </ol>
+                    <p>On macOS, downloaded archives may be quarantined. See the
+                        <a href="https://github.com/jkane17/quill-releases#downloading">download guide</a>
+                        for macOS instructions and archive checksums.</p>
+                </section>
+
+                <section class="quill-section" aria-labelledby="demo-title">
+                    <h2 id="demo-title">Watch Quill in action</h2>
+                    <div class="video-container">
+                        <a
+                            class="video-facade"
+                            href="https://www.youtube.com/watch?v=_hFNaZRcB-c"
+                            data-video-id="_hFNaZRcB-c"
+                            data-title="Introducing Quill - A TUI IDE for Q"
+                            aria-label="Play video: Introducing Quill - A TUI IDE for Q"
+                        >
+                            <img src="https://i.ytimg.com/vi/_hFNaZRcB-c/maxresdefault.jpg" alt="" loading="lazy" />
+                            <svg class="video-play" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+                                <circle class="video-play-bg" cx="36" cy="36" r="36" />
+                                <path d="M29 23.5v25l20-12.5z" fill="#fff" />
+                            </svg>
+                        </a>
+                    </div>
                 </section>
             </main>
 

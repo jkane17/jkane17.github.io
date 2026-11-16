@@ -303,6 +303,70 @@ main.page-content {
     color: var(--button-text);
 }
 
+.quill-page-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.quill-preview,
+.quill-section {
+    margin-bottom: var(--spacing-3xl);
+    min-width: 0;
+}
+
+.quill-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.quill-preview figcaption {
+    margin-top: var(--spacing-sm);
+    font-size: 0.95rem;
+    color: var(--text-light);
+}
+
+.quill-section h2,
+.quill-section p,
+.quill-features,
+.quill-setup {
+    margin-bottom: var(--spacing-lg);
+}
+
+.quill-features,
+.quill-setup {
+    padding-left: var(--spacing-lg);
+}
+
+.quill-features li,
+.quill-setup li {
+    margin-bottom: var(--spacing-sm);
+}
+
+.quill-setup pre {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    overflow-x: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.quill-setup code,
+.quill-setup kbd {
+    font-family: ui-monospace, monospace;
+}
+
+#downloads-title,
+#setup-title {
+    scroll-margin-top: 5rem;
+}
+
 .quill-downloads {
     text-align: center;
     margin-bottom: var(--spacing-3xl);

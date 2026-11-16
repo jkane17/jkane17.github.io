@@ -12,6 +12,7 @@
 - **Add a page:** create a top-level directory with an `index.html` (e.g. `projects/index.html`). It is published automatically.
 - **QLib modules:** `/qlib/` refreshes its module cards from QLib's public README on each visit using `assets/qlib.js`. The HTML includes a fallback overview for offline use, fetch failures, or disabled JavaScript. The introductory description is maintained locally; the README remains the source for full details.
 - **Quill downloads:** `assets/quill.js` refreshes `/quill/` from the public GitHub releases API, selecting the most recently published release including pre-releases. Buttons use that release's assets and licence. The HTML retains version-labelled fallback downloads if JavaScript or GitHub is unavailable; update these periodically. Platform labels are mapped in the script.
+- **Quill screenshot:** `assets/quill-query.png` comes from `images/query_process.png` in the public `jkane17/quill-releases` repository. Keep the page overview and setup instructions aligned with that repository’s README.
 - **Shared markup:** put it in `partials/` and include it with `<!-- @include partials/name.html -->` on its own line. The nav and footer work this way.
 - **Nav links:** each link in `partials/nav.html` needs `class="nav-link" data-path="/section/"`. The build marks the current page's link as active.
 - **Assets:** reference files as `/assets/...` in `src`/`href` attributes. The build appends a content hash (`?v=1a2b3c4d`) so browsers always fetch the current version after a deploy.
