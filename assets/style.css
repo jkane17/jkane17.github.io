@@ -310,10 +310,25 @@ main {
     line-height: 1.7;
 }
 
+a:where(:not([class])),
 .card-link {
     color: var(--primary);
     font-weight: 600;
     text-decoration: none;
+}
+
+a:where(:not([class])) {
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-fast);
+}
+
+a:where(:not([class])):hover,
+a:where(:not([class])):focus-visible {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.card-link {
     display: inline-flex;
     align-items: center;
     transition: all var(--transition-normal);
