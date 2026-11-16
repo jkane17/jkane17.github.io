@@ -16,6 +16,14 @@
     --bg: #ffffff;
     --border: #e5e7eb;
 
+    /* Text and filled controls need different contrast in each theme. */
+    --link: #4f46e5;
+    --link-hover: #4338ca;
+    --button-bg: #4f46e5;
+    --button-text: #ffffff;
+    --button-on-light-text: #4f46e5;
+    --cta-gradient: linear-gradient(135deg, #4f46e5 0%, #be185d 100%);
+
     /* Primary tints (derived, so they follow the theme's --primary) */
     --primary-tint: color-mix(in srgb, var(--primary) 10%, transparent);
     --primary-tint-strong: color-mix(in srgb, var(--primary) 15%, transparent);
@@ -66,6 +74,8 @@ html.dark-theme {
     --bg-light: #1f2937;
     --bg: #111827;
     --border: #374151;
+    --link: #a5b4fc;
+    --link-hover: #c7d2fe;
     --bg-gradient: linear-gradient(135deg, #111827 0%, #1f2937 100%);
     --note-bg: linear-gradient(135deg, #92400e 0%, #b45309 100%);
     --note-border: #fcd34d;
@@ -244,8 +254,8 @@ main {
 }
 
 .projects-action .cta-button {
-    background: var(--primary);
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
 }
 
 .quill-downloads {
@@ -297,8 +307,8 @@ main {
 }
 
 .download-buttons .cta-button {
-    background: var(--primary);
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
 }
 
 .card {
@@ -342,7 +352,7 @@ main {
 
 a:where(:not([class])),
 .card-link {
-    color: var(--primary);
+    color: var(--link);
     font-weight: 600;
     text-decoration: none;
 }
@@ -354,7 +364,7 @@ a:where(:not([class])) {
 
 a:where(:not([class])):hover,
 a:where(:not([class])):focus-visible {
-    color: var(--primary-dark);
+    color: var(--link-hover);
     text-decoration: underline;
 }
 
@@ -366,7 +376,7 @@ a:where(:not([class])):focus-visible {
 }
 
 .card-link:hover {
-    color: var(--primary-dark);
+    color: var(--link-hover);
     transform: translateX(4px);
 }
 
@@ -406,7 +416,7 @@ a:where(:not([class])):focus-visible {
 }
 
 .footer a:hover {
-    color: var(--primary);
+    color: var(--link);
 }
 
 /* Social Links in Footer */
@@ -433,8 +443,8 @@ a:where(:not([class])):focus-visible {
 }
 
 .social-link:hover {
-    background: var(--primary);
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
     transform: translateY(-3px);
 }
 
@@ -521,14 +531,14 @@ a:where(:not([class])):focus-visible {
 }
 
 .nav-link:hover {
-    color: var(--primary);
+    color: var(--link);
     background-color: var(--primary-tint);
     transform: translateY(-2px);
     box-shadow: 0 8px 16px var(--primary-glow);
 }
 
 .nav-link.active {
-    color: var(--primary);
+    color: var(--link);
     font-weight: 600;
     background-color: var(--primary-tint-strong);
 }
@@ -630,7 +640,7 @@ a:where(:not([class])):focus-visible {
 
 .theme-button.active {
     background-color: var(--primary-tint-strong);
-    color: var(--primary);
+    color: var(--link);
 }
 
 @media (max-width: 640px) {
@@ -713,13 +723,13 @@ a.blog-category:hover {
 .category-cta {
     display: inline-flex;
     align-items: center;
-    color: var(--primary);
+    color: var(--link);
     font-weight: 600;
     transition: all var(--transition-normal);
 }
 
 a.blog-category:hover .category-cta {
-    color: var(--primary-dark);
+    color: var(--link-hover);
     transform: translateX(4px);
 }
 
@@ -839,7 +849,7 @@ div.blog-category .category-cta {
 }
 
 .cta-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    background: var(--cta-gradient);
     border-radius: 1rem;
     padding: 3rem;
     text-align: center;
@@ -854,7 +864,7 @@ div.blog-category .category-cta {
 }
 
 .cta-section p {
-    color: rgba(255, 255, 255, 0.9);
+    color: white;
     font-size: 1.05rem;
     margin-bottom: 2rem;
     max-width: 600px;
@@ -873,7 +883,7 @@ div.blog-category .category-cta {
     display: inline-block;
     padding: 0.875rem 2rem;
     background: white;
-    color: var(--primary);
+    color: var(--button-on-light-text);
     text-decoration: none;
     border-radius: 0.75rem;
     font-weight: 700;
