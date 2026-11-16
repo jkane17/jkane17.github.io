@@ -220,6 +220,57 @@ main {
     margin-bottom: var(--spacing-xl);
 }
 
+.projects-action {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.qlib-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.qlib-section h2,
+.qlib-section > p {
+    margin-bottom: var(--spacing-lg);
+}
+
+.project-links {
+    padding-left: var(--spacing-xl);
+    line-height: 1.7;
+}
+
+.project-links li {
+    margin-bottom: var(--spacing-sm);
+}
+
+.projects-action .cta-button {
+    background: var(--primary);
+    color: white;
+}
+
+.quill-downloads {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.quill-downloads h2,
+.quill-downloads p {
+    margin-bottom: var(--spacing-lg);
+}
+
+.download-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.download-buttons .cta-button {
+    background: var(--primary);
+    color: white;
+}
+
 .card {
     background: var(--bg);
     border-radius: var(--radius-xl);
@@ -244,6 +295,7 @@ main {
     margin-bottom: var(--spacing-lg);
 }
 
+.card h2,
 .card h3 {
     font-size: 1.5rem;
     font-weight: 700;
@@ -274,11 +326,13 @@ main {
 }
 
 /* Card Type Variants */
-.blog-card {
+.blog-card,
+.qlib-card {
     border-top: 3px solid #3b82f6;
 }
 
-.blog-card:hover {
+.blog-card:hover,
+.qlib-card:hover {
     border-top-color: #1d4ed8;
 }
 
@@ -560,6 +614,11 @@ main {
     max-width: 600px;
     margin: 0 auto;
     line-height: 1.8;
+}
+
+.blog-intro .project-back-link {
+    max-width: none;
+    text-align: left;
 }
 
 /* Category Cards */

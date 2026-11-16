@@ -22,14 +22,38 @@
         <link rel="stylesheet" href="/assets/style.css" />
         <script defer src="/assets/nav.js"></script>
         <script defer src="/assets/video.js"></script>
+        <script defer src="/assets/quill.js"></script>
     </head>
     <body>
         <!-- @include partials/nav.html -->
 
         <div class="container">
             <section class="blog-intro">
+                <p class="project-back-link"><a href="/projects/" class="card-link">← All projects</a></p>
                 <h1>Quill</h1>
                 <p>Quill is a TUI IDE for the Q programming language.</p>
+            </section>
+
+            <section class="quill-downloads" aria-labelledby="downloads-title">
+                <h2 id="downloads-title">Download Quill</h2>
+                <p>Quill is free to download and is closed source. Use is subject to the Quill licence.</p>
+                <p id="quill-release-status" role="status">Downloads for v0.1.0-beta.3 (pre-release).</p>
+                <div class="download-buttons" id="quill-download-buttons">
+                    <a class="cta-button" href="https://github.com/jkane17/quill-releases/releases/download/v0.1.0-beta.3/quill-0.1.0-beta.3-x86_64-unknown-linux-musl.tar.gz">Download for Linux x86-64</a>
+                    <a class="cta-button" href="https://github.com/jkane17/quill-releases/releases/download/v0.1.0-beta.3/quill-0.1.0-beta.3-aarch64-unknown-linux-musl.tar.gz">Download for Linux ARM64</a>
+                    <a class="cta-button" href="https://github.com/jkane17/quill-releases/releases/download/v0.1.0-beta.3/quill-0.1.0-beta.3-aarch64-apple-darwin.tar.gz">Download for macOS Apple Silicon</a>
+                    <a class="cta-button" href="https://github.com/jkane17/quill-releases/releases/download/v0.1.0-beta.3/quill-0.1.0-beta.3-x86_64-apple-darwin.tar.gz">Download for macOS Intel</a>
+                </div>
+                <p>Windows users can run the Linux build through WSL. Quill does not include Q.</p>
+                <div class="download-buttons">
+                    <a class="cta-button" id="quill-licence-download" href="https://github.com/jkane17/quill-releases/releases/download/v0.1.0-beta.3/LICENSE">Download licence</a>
+                    <a class="cta-button" href="https://github.com/jkane17/quill-releases">Documentation on GitHub</a>
+                </div>
+                <p>
+                    <a href="https://github.com/jkane17/quill-releases/blob/main/LICENSE">Read the licence</a>
+                    · <a id="quill-release-notes" href="https://github.com/jkane17/quill-releases/releases/tag/v0.1.0-beta.3">Release notes</a>
+                    · <a href="https://github.com/jkane17/quill-releases/releases">All releases</a>
+                </p>
             </section>
 
             <div class="video-container">

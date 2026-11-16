@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>QLib - jkane17</title>
+        <meta name="description" content="QLib is a modular library for Q, with reusable Q modules and a C interface." />
+        <link rel="canonical" href="https://jkane17.github.io/qlib/" />
+        <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="jkane17" />
+        <meta property="og:title" content="QLib - jkane17" />
+        <meta property="og:description" content="QLib is a modular library for Q, with reusable Q modules and a C interface." />
+        <meta property="og:url" content="https://jkane17.github.io/qlib/" />
+        <meta property="og:image" content="https://jkane17.github.io/assets/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Jonathan Kane – Software Engineer, Technical Writer, Lifelong Learner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <script src="/assets/theme.js"></script>
+        <link rel="stylesheet" href="/assets/style.css" />
+        <script defer src="/assets/nav.js"></script>
+        <script defer src="/assets/qlib.js"></script>
+    </head>
+    <body>
+        <!-- @include partials/nav.html -->
+
+        <div class="container">
+            <main>
+                <section class="blog-intro">
+                    <p class="project-back-link"><a href="/projects/" class="card-link">← All projects</a></p>
+                    <h1>QLib</h1>
+                    <p>A modular library for the Q programming language.</p>
+                    <p>QLib brings together reusable Q modules and a C interface for creating,
+                        inspecting, and managing Q objects from C or C++. The C interface wraps
+                        the kdb+ C API and builds into the shared library <code>libcdk.so</code>.</p>
+                    <a href="https://github.com/jkane17/qlib" class="card-link">View on GitHub →</a>
+                </section>
+
+                <section class="qlib-section" aria-labelledby="modules-title">
+                    <h2 id="modules-title">Q modules</h2>
+                    <p id="modules-source">Module overview from the <a href="https://github.com/jkane17/qlib#modules">QLib README</a>.</p>
+                    <div class="cards" id="qlib-modules">
+                        <article class="card qlib-card">
+                            <h3>clap</h3>
+                            <p>Command-Line Argument Parser</p>
+                            <a href="https://github.com/jkane17/qlib/blob/main/src/q/clap.q" class="card-link">View source →</a>
+                        </article>
+                        <article class="card qlib-card">
+                            <h3>dbm</h3>
+                            <p>Database Maintenance</p>
+                            <a href="https://github.com/jkane17/qlib/blob/main/src/q/dbm.q" class="card-link">View source →</a>
+                        </article>
+                        <article class="card qlib-card">
+                            <h3>fs</h3>
+                            <p>File System Operations (Work in Progress)</p>
+                            <a href="https://github.com/jkane17/qlib/blob/main/src/q/fs.q" class="card-link">View source →</a>
+                        </article>
+                        <article class="card qlib-card">
+                            <h3>unit</h3>
+                            <p>Unit Testing Framework (Work in Progress)</p>
+                            <a href="https://github.com/jkane17/qlib/blob/main/src/q/unit.q" class="card-link">View source →</a>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="qlib-section" aria-labelledby="links-title">
+                    <h2 id="links-title">Get started</h2>
+                    <ul class="project-links">
+                        <li><a href="https://github.com/jkane17/qlib#quick-start">Quick start and installation</a> — build, install, and load your first module.</li>
+                        <li><a href="https://github.com/jkane17/qlib/tree/main/doc/q">Q module documentation</a> — usage and examples.</li>
+                        <li><a href="https://github.com/jkane17/qlib/blob/main/doc/c/README.md">C interface documentation</a> — work with Q objects from C and C++.</li>
+                        <li><a href="https://github.com/jkane17/qlib/issues">Issues and contributions</a> — report a bug or suggest a module.</li>
+                    </ul>
+                </section>
+            </main>
+
+            <!-- @include partials/footer.html -->
+        </div>
+    </body>
+</html>

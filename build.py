@@ -50,9 +50,11 @@ def expand_includes(html, source):
 
 def mark_active_nav_link(html, url_path):
     # Nav links are written as class="nav-link" data-path="/section/" in partials/nav.html
+    nav_path = "/projects/" if url_path in {"/quill/", "/qlib/"} else url_path
+    current = "page" if nav_path == url_path else "location"
     return html.replace(
-        f'class="nav-link" data-path="{url_path}"',
-        f'class="nav-link active" aria-current="page" data-path="{url_path}"',
+        f'class="nav-link" data-path="{nav_path}"',
+        f'class="nav-link active" aria-current="{current}" data-path="{nav_path}"',
     )
 
 
@@ -208,12 +210,26 @@ def add_post_previews(book_src, book_out, book_url):
         print(f"  preview  {slug}{'' if image_url else ' (no image)'}")
 
 
+def add_analytics():
+    """Include analytics on both regular pages and generated mdBook pages."""
+    for page in sorted(OUT.rglob("*.html")):
+        if page.is_relative_to(OUT / "assets"):
+            continue
+        script = version_assets(
+            '<script defer src="/assets/analytics.js"></script>', page.relative_to(OUT)
+        )
+        content = page.read_text()
+        if "</body>" in content:
+            page.write_text(content.replace("</body>", script + "\n</body>", 1))
+
+
 def main():
     shutil.rmtree(OUT, ignore_errors=True)
     OUT.mkdir()
     print(f"Building site into {OUT.relative_to(ROOT)}/")
     build_pages()
     build_books()
+    add_analytics()
     print("Done.")
 
 
