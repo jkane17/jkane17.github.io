@@ -26,94 +26,96 @@
         <!-- @include partials/nav.html -->
 
         <div class="container">
-            <section class="about-header">
-                <div class="about-content">
-                    <h2>About Me</h2>
+            <main id="main-content" class="page-content" tabindex="-1">
+                <section class="about-header">
+                    <div class="about-content">
+                        <h1>About Me</h1>
+                        <p>
+                            I'm a passionate developer and writer exploring the intersections of
+                            programming language design, systems programming, and technical education. I
+                            believe in learning by doing and sharing what I discover along the way.
+                        </p>
+                        <p>
+                            Through blogs and technical write-ups, I dive deep into topics that
+                            fascinate me — from low-level performance optimisation to high-level
+                            language design patterns. I'm driven by curiosity and the desire to
+                            understand how things work.
+                        </p>
+                    </div>
+                    <div class="about-avatar" aria-hidden="true">💻</div>
+                </section>
+
+                <section class="section-divider">
+                    <h2 class="section-title">What I'm Interested In</h2>
+                    <div class="interests-grid">
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🔵</div>
+                            <h3 class="interest-title">Q & KDB+</h3>
+                            <p class="interest-description">
+                                Exploring the elegant design of the Q programming language and building
+                                high-performance data systems with KDB+.
+                            </p>
+                        </div>
+
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🦀</div>
+                            <h3 class="interest-title">Rust & Systems</h3>
+                            <p class="interest-description">
+                                Building reliable, performant systems with Rust. Learning about memory
+                                safety, concurrency, and systems-level design.
+                            </p>
+                        </div>
+
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">📚</div>
+                            <h3 class="interest-title">Technical Writing</h3>
+                            <p class="interest-description">
+                                Sharing knowledge through detailed guides, tutorials, and long-form
+                                analysis of complex technical concepts.
+                            </p>
+                        </div>
+
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🧪</div>
+                            <h3 class="interest-title">Experimentation</h3>
+                            <p class="interest-description">
+                                Building side projects and experiments to test ideas, learn new
+                                technologies, and solve interesting problems.
+                            </p>
+                        </div>
+
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">⚡</div>
+                            <h3 class="interest-title">Performance</h3>
+                            <p class="interest-description">
+                                Fascinated by optimisation, profiling, and understanding how to write
+                                code that performs well at scale.
+                            </p>
+                        </div>
+
+                        <div class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🔬</div>
+                            <h3 class="interest-title">Language Design</h3>
+                            <p class="interest-description">
+                                Exploring programming language theory, design patterns, and what makes
+                                certain languages elegant and expressive.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="cta-section">
+                    <h2>Explore My Work</h2>
                     <p>
-                        I'm a passionate developer and writer exploring the intersections of
-                        programming language design, systems programming, and technical education. I
-                        believe in learning by doing and sharing what I discover along the way.
+                        Read my articles about programming and technology, explore detailed guides, or
+                        dive into my coding projects and experiments.
                     </p>
-                    <p>
-                        Through blogs and technical write-ups, I dive deep into topics that
-                        fascinate me — from low-level performance optimisation to high-level
-                        language design patterns. I'm driven by curiosity and the desire to
-                        understand how things work.
-                    </p>
-                </div>
-                <div class="about-avatar" aria-hidden="true">💻</div>
-            </section>
-
-            <section class="section-divider">
-                <h2 class="section-title">What I'm Interested In</h2>
-                <div class="interests-grid">
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">🔵</div>
-                        <h3 class="interest-title">Q & KDB+</h3>
-                        <p class="interest-description">
-                            Exploring the elegant design of the Q programming language and building
-                            high-performance data systems with KDB+.
-                        </p>
+                    <div class="cta-actions">
+                        <a href="/blog/" class="cta-button">Visit Blog →</a>
+                        <a href="/projects/" class="cta-button">View Projects →</a>
                     </div>
-
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">🦀</div>
-                        <h3 class="interest-title">Rust & Systems</h3>
-                        <p class="interest-description">
-                            Building reliable, performant systems with Rust. Learning about memory
-                            safety, concurrency, and systems-level design.
-                        </p>
-                    </div>
-
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">📚</div>
-                        <h3 class="interest-title">Technical Writing</h3>
-                        <p class="interest-description">
-                            Sharing knowledge through detailed guides, tutorials, and long-form
-                            analysis of complex technical concepts.
-                        </p>
-                    </div>
-
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">🧪</div>
-                        <h3 class="interest-title">Experimentation</h3>
-                        <p class="interest-description">
-                            Building side projects and experiments to test ideas, learn new
-                            technologies, and solve interesting problems.
-                        </p>
-                    </div>
-
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">⚡</div>
-                        <h3 class="interest-title">Performance</h3>
-                        <p class="interest-description">
-                            Fascinated by optimisation, profiling, and understanding how to write
-                            code that performs well at scale.
-                        </p>
-                    </div>
-
-                    <div class="interest-item">
-                        <div class="interest-icon" aria-hidden="true">🔬</div>
-                        <h3 class="interest-title">Language Design</h3>
-                        <p class="interest-description">
-                            Exploring programming language theory, design patterns, and what makes
-                            certain languages elegant and expressive.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="cta-section">
-                <h3>Explore My Work</h3>
-                <p>
-                    Read my articles about programming and technology, explore detailed guides, or
-                    dive into my coding projects and experiments.
-                </p>
-                <div class="cta-actions">
-                    <a href="/blog/" class="cta-button">Visit Blog →</a>
-                    <a href="/projects/" class="cta-button">View Projects →</a>
-                </div>
-            </section>
+                </section>
+            </main>
 
             <!-- @include partials/footer.html -->
         </div>

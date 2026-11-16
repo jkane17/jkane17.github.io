@@ -108,6 +108,30 @@ body {
     position: relative;
 }
 
+/* Visible on keyboard focus, above the sticky navigation. */
+.skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 200;
+    padding: 0.75rem 1rem;
+    background: var(--button-bg);
+    color: var(--button-text);
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    transform: translateY(calc(-100% - 1rem));
+}
+
+.skip-link:focus {
+    transform: none;
+    outline: 3px solid var(--link);
+    outline-offset: 3px;
+}
+
+#main-content {
+    scroll-margin-top: 5rem;
+}
+
 /* Hero Section */
 .hero {
     text-align: center;
@@ -145,6 +169,14 @@ body {
 main {
     flex: 1;
     margin: 2rem 0;
+}
+
+/* Preserve the existing flex layout of pages that had no main wrapper. */
+main.page-content {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    margin: 0;
 }
 
 .featured h2 {
@@ -775,7 +807,7 @@ div.blog-category .category-cta {
     padding: 2rem 0;
 }
 
-.about-content h2 {
+.about-content h1 {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 1rem;
@@ -865,7 +897,7 @@ div.blog-category .category-cta {
     margin-top: 3rem;
 }
 
-.cta-section h3 {
+.cta-section h2 {
     font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 1rem;
@@ -913,7 +945,7 @@ div.blog-category .category-cta {
         order: -1;
     }
 
-    .about-content h2 {
+    .about-content h1 {
         font-size: 1.75rem;
     }
 
@@ -926,7 +958,7 @@ div.blog-category .category-cta {
         padding: 2rem;
     }
 
-    .cta-section h3 {
+    .cta-section h2 {
         font-size: 1.5rem;
     }
 }
