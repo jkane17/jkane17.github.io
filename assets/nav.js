@@ -1,36 +1,24 @@
-// The nav is built into each page by build.py (see partials/nav.html),
-// including the active link, so only its behaviour is set up here.
-// This script is deferred, so the DOM is ready when it runs.
-initHamburgerMenu();
-ThemeManager.bindButtons();
+// Opening and closing the mobile menu is handled natively by <details>.
+// JavaScript adds Escape-to-close and closes the menu after selecting a link.
+const mobileNav = document.getElementById("mobileNav");
+const hamburgerMenu = document.getElementById("hamburgerMenu");
 
-// Hamburger menu functionality
-function initHamburgerMenu() {
-    const hamburgerMenu = document.getElementById("hamburgerMenu");
-    const navLinks = document.getElementById("navLinks");
-
-    if (!hamburgerMenu || !navLinks) return;
-
-    const isOpen = () => hamburgerMenu.getAttribute("aria-expanded") === "true";
-
-    function setMenuOpen(open) {
-        hamburgerMenu.classList.toggle("active", open);
-        navLinks.classList.toggle("active", open);
-        hamburgerMenu.setAttribute("aria-expanded", String(open));
-    }
-
-    hamburgerMenu.addEventListener("click", () => setMenuOpen(!isOpen()));
-
-    // Close menu when a link is clicked (a no-op on desktop, where it's never open)
-    navLinks.querySelectorAll(".nav-link").forEach((link) => {
-        link.addEventListener("click", () => setMenuOpen(false));
+if (mobileNav && hamburgerMenu) {
+    mobileNav.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", () => { mobileNav.open = false; });
     });
 
-    // Close menu on Escape and return focus to the toggle button
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && isOpen()) {
-            setMenuOpen(false);
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && mobileNav.open) {
+            mobileNav.open = false;
             hamburgerMenu.focus();
         }
     });
+
+    // Return to a closed mobile menu after changing between layout sizes.
+    window.matchMedia("(max-width: 768px)").addEventListener("change", () => {
+        mobileNav.open = false;
+    });
 }
+
+ThemeManager.bindButtons();

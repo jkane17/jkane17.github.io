@@ -1,22 +1,18 @@
 <nav class="main-nav">
     <div class="nav-container">
-        <button
-            class="hamburger-menu"
-            id="hamburgerMenu"
-            aria-label="Toggle navigation menu"
-            aria-controls="navLinks"
-            aria-expanded="false"
-        >
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-        <ul class="nav-links" id="navLinks">
-            <li><a href="/" class="nav-link" data-path="/"><span aria-hidden="true">🏠</span> Home</a></li>
-            <li><a href="/blog/" class="nav-link" data-path="/blog/"><span aria-hidden="true">📝</span> Blog</a></li>
-            <li><a href="/projects/" class="nav-link" data-path="/projects/"><span aria-hidden="true">🛠️</span> Projects</a></li>
-            <li><a href="/about/" class="nav-link" data-path="/about/"><span aria-hidden="true">👤</span> About</a></li>
+        <ul class="nav-links desktop-nav-links">
+            <!-- @include partials/nav-items.html -->
         </ul>
+        <details class="mobile-nav" id="mobileNav">
+            <summary class="hamburger-menu" id="hamburgerMenu" aria-label="Navigation menu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </summary>
+            <ul class="nav-links" id="navLinks">
+                <!-- @include partials/nav-items.html -->
+            </ul>
+        </details>
         <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="Colour theme">
             <button
                 class="theme-button"

@@ -44,7 +44,7 @@ def expand_includes(html, source):
         partial = ROOT / rel
         if not partial.is_file():
             sys.exit(f"error: {source}: included file not found: {rel}")
-        lines = partial.read_text().rstrip("\n").split("\n")
+        lines = expand_includes(partial.read_text(), rel).rstrip("\n").split("\n")
         return "\n".join(indent + line if line else line for line in lines)
 
     return INCLUDE.sub(replace, html)
