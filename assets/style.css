@@ -194,6 +194,19 @@ main.page-content {
     margin-bottom: 1rem;
 }
 
+.home-videos {
+    margin-top: var(--spacing-3xl);
+}
+
+.home-videos h3 {
+    font-size: 1.25rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.home-videos .video-container {
+    margin-bottom: var(--spacing-2xl);
+}
+
 .video-container iframe {
     position: absolute;
     width: 100%;

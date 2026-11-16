@@ -32,33 +32,37 @@
                     <h1>Hi, I'm Jonathan Kane</h1>
                     <p class="tagline">Software Engineer • Technical Writer • Lifelong Learner</p>
                     <p class="intro">
-                        Welcome to my corner of the web. Explore my blogs and coding projects. I
-                        write about programming, technical deep dives, and the things I learn along
-                        the way.
+                        I explore Q/KDB+ internals, investigate performance, and build developer
+                        tools. Here you'll find practical articles, detailed experiments, and
+                        projects including Quill and QLib.
                     </p>
                 </div>
             </header>
 
             <main id="main-content" tabindex="-1">
-                <section class="featured">
-                    <h2>Featured Content</h2>
+                <section class="latest-section" aria-labelledby="latest-title">
+                    <h2 class="latest-title" id="latest-title">Latest Articles</h2>
+                    <div class="blog-posts-list">
+                        <!-- @latest-posts -->
+                    </div>
+                    <a href="/blog/" class="card-link">Browse all articles →</a>
+                </section>
+
+                <section class="featured" aria-labelledby="projects-title">
+                    <h2 id="projects-title">Projects</h2>
 
                     <div class="cards">
-                        <article class="card blog-card">
-                            <div class="card-icon" aria-hidden="true">📖</div>
-                            <h3>Latest Blog Posts</h3>
-                            <p>
-                                Deep dives into programming, Q/KDB, Rust, and technical topics that
-                                interest me.
-                            </p>
-                            <a href="/blog/" class="card-link">Read Articles →</a>
-                        </article>
-
                         <article class="card quill-card">
                             <div class="card-icon" aria-hidden="true">🪶</div>
                             <h3>Quill</h3>
                             <p>A TUI IDE for the Q programming language.</p>
                             <a href="/quill/" class="card-link">Explore Quill →</a>
+                        </article>
+                        <article class="card qlib-card">
+                            <div class="card-icon" aria-hidden="true">📦</div>
+                            <h3>QLib</h3>
+                            <p>Reusable Q modules and a C interface for working with Q objects.</p>
+                            <a href="/qlib/" class="card-link">Explore QLib →</a>
                         </article>
                     </div>
 
@@ -66,6 +70,11 @@
                         <a href="/projects/" class="cta-button">View all projects →</a>
                     </div>
 
+                </section>
+
+                <section class="featured home-videos" aria-labelledby="videos-title">
+                    <h2 id="videos-title">Videos</h2>
+                    <h3>Optimising Compression Performance in kdb+</h3>
                     <div class="video-container">
                         <a
                             class="video-facade"
@@ -82,6 +91,7 @@
                         </a>
                     </div>
 
+                    <h3>Introducing Quill — A TUI IDE for Q</h3>
                     <div class="video-container">
                         <a
                             class="video-facade"

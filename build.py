@@ -264,7 +264,7 @@ class PostTableParser(HTMLParser):
 
 
 def add_latest_posts():
-    """Render the latest three Q posts into the blog index without browser JS."""
+    """Render the latest three Q posts into the homepage and blog index."""
     parser = PostTableParser()
     parser.feed((OUT / "blog/q/introduction.html").read_text())
     posts = parser.posts
@@ -288,13 +288,14 @@ def add_latest_posts():
             f'    <p class="post-snippet">{html.escape(description)}</p>\n'
             '</a>'
         )
-    page = OUT / "blog/index.html"
-    content = page.read_text()
     marker = "<!-- @latest-posts -->"
-    if content.count(marker) != 1:
-        sys.exit("error: /blog/index.html must contain exactly one @latest-posts marker")
     rendered = "\n                        ".join("\n".join(cards).splitlines())
-    page.write_text(content.replace(marker, rendered))
+    for rel in ("index.html", "blog/index.html"):
+        page = OUT / rel
+        content = page.read_text()
+        if content.count(marker) != 1:
+            sys.exit(f"error: /{rel} must contain exactly one @latest-posts marker")
+        page.write_text(content.replace(marker, rendered))
     print(f"  latest  {len(cards)} posts")
 
 
