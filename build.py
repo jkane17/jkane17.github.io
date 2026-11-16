@@ -24,7 +24,9 @@ import re
 import shutil
 import subprocess
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "_site"
@@ -223,12 +225,86 @@ def add_analytics():
             page.write_text(content.replace("</body>", script + "\n</body>", 1))
 
 
+class PostTableParser(HTMLParser):
+    """Read rendered table text, including inline Markdown formatting/entities."""
+
+    def __init__(self):
+        super().__init__()
+        self.posts = []
+        self.cells = []
+        self.cell = None
+        self.href = None
+        self.title = None
+        self.in_link = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self.cells, self.href, self.title = [], None, None
+        elif tag == "td":
+            self.cell = ""
+        elif tag == "a" and self.cell is not None and not self.cells:
+            self.href = dict(attrs).get("href")
+            self.title = ""
+            self.in_link = True
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell += data
+        if self.in_link:
+            self.title += data
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self.in_link = False
+        elif tag == "td" and self.cell is not None:
+            self.cells.append(self.cell.strip())
+            self.cell = None
+        elif tag == "tr" and len(self.cells) >= 3 and self.href:
+            self.posts.append((self.title.strip(), self.href, self.cells[1], self.cells[2]))
+
+
+def add_latest_posts():
+    """Render the latest three Q posts into the blog index without browser JS."""
+    parser = PostTableParser()
+    parser.feed((OUT / "blog/q/introduction.html").read_text())
+    posts = parser.posts
+    if not posts:
+        sys.exit("error: no posts found in /blog/q/introduction.html")
+    try:
+        posts = sorted(posts, key=lambda post: datetime.datetime.strptime(post[2], "%b %d, %Y"), reverse=True)
+    except ValueError:
+        # Preserve table order if a date cannot be parsed, as the browser did.
+        pass
+
+    cards = []
+    for title, href, date, description in posts[:3]:
+        href = urljoin("/blog/q/introduction.html", href)
+        cards.append(
+            f'<a class="blog-post-item" href="{html.escape(href)}">\n'
+            '    <div class="post-header">\n'
+            f'        <h3 class="post-title">{html.escape(title)}</h3>\n'
+            f'        <span class="post-date">{html.escape(date)}</span>\n'
+            '    </div>\n'
+            f'    <p class="post-snippet">{html.escape(description)}</p>\n'
+            '</a>'
+        )
+    page = OUT / "blog/index.html"
+    content = page.read_text()
+    marker = "<!-- @latest-posts -->"
+    if content.count(marker) != 1:
+        sys.exit("error: /blog/index.html must contain exactly one @latest-posts marker")
+    rendered = "\n                        ".join("\n".join(cards).splitlines())
+    page.write_text(content.replace(marker, rendered))
+    print(f"  latest  {len(cards)} posts")
+
+
 def main():
     shutil.rmtree(OUT, ignore_errors=True)
     OUT.mkdir()
     print(f"Building site into {OUT.relative_to(ROOT)}/")
     build_pages()
     build_books()
+    add_latest_posts()
     add_analytics()
     print("Done.")
 

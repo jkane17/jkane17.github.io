@@ -38,8 +38,7 @@
                 <section class="latest-section">
                     <h2 class="latest-title">Latest Posts</h2>
                     <div class="blog-posts-list" id="latestPostsList">
-                        <!-- Dynamically populated from /blog/q/introduction.html -->
-                        <p style="color: var(--text-light)">Loading posts...</p>
+                        <!-- @latest-posts -->
                     </div>
                 </section>
 
@@ -83,82 +82,5 @@
             <!-- @include partials/footer.html -->
         </div>
 
-        <script>
-            const POSTS_SOURCE = "/blog/q/introduction.html";
-            const LATEST_COUNT = 3;
-
-            function showPostsMessage(list, text) {
-                const p = document.createElement("p");
-                p.style.color = "var(--text-light)";
-                p.textContent = text;
-                list.replaceChildren(p);
-            }
-
-            function createPostItem(post) {
-                const item = document.createElement("a");
-                item.className = "blog-post-item";
-                item.href = post.href;
-
-                const header = document.createElement("div");
-                header.className = "post-header";
-
-                const title = document.createElement("h3");
-                title.className = "post-title";
-                title.textContent = post.title;
-
-                const date = document.createElement("span");
-                date.className = "post-date";
-                date.textContent = post.date;
-
-                const snippet = document.createElement("p");
-                snippet.className = "post-snippet";
-                snippet.textContent = post.description;
-
-                header.append(title, date);
-                item.append(header, snippet);
-                return item;
-            }
-
-            // Load latest posts from the table on the Q blog's introduction page
-            async function loadLatestPosts() {
-                const postsList = document.getElementById("latestPostsList");
-                try {
-                    const response = await fetch(POSTS_SOURCE);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const doc = new DOMParser().parseFromString(await response.text(), "text/html");
-                    const posts = [];
-                    doc.querySelectorAll("table tbody tr").forEach((row) => {
-                        const cells = row.querySelectorAll("td");
-                        const link = cells[0]?.querySelector("a");
-                        if (cells.length < 3 || !link) return;
-                        posts.push({
-                            title: link.textContent.trim(),
-                            // Resolve relative to the source page, not this one
-                            href: new URL(link.getAttribute("href"), response.url).pathname,
-                            date: cells[1].textContent.trim(),
-                            time: Date.parse(cells[1].textContent),
-                            description: cells[2].textContent.trim(),
-                        });
-                    });
-
-                    // Newest first; keep the table's order if any date can't be parsed
-                    if (posts.every((post) => !isNaN(post.time))) {
-                        posts.sort((a, b) => b.time - a.time);
-                    }
-
-                    if (posts.length === 0) {
-                        showPostsMessage(postsList, "No posts found.");
-                        return;
-                    }
-                    postsList.replaceChildren(...posts.slice(0, LATEST_COUNT).map(createPostItem));
-                } catch (error) {
-                    console.error("Error loading posts:", error);
-                    showPostsMessage(postsList, "Error loading posts.");
-                }
-            }
-
-            loadLatestPosts();
-        </script>
     </body>
 </html>

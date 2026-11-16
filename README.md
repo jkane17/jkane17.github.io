@@ -8,6 +8,7 @@
 
 - **Preview locally:** `./local_test.sh` builds the site, serves it at http://localhost:8000 and removes `_site/` on Ctrl+C. Requires `mdbook` and, for blog preview images, Pillow (`pip install pillow`).
 - **Blog link previews:** each post gets its own preview tags automatically. The title and description come from the posts table in the book's `introduction.md`, and the image comes from the post's first image. A new post only needs its row in that table.
+- **Latest posts:** the build fills the blog index with the three newest articles from the rendered Q blog introduction table. The list works without JavaScript; rebuild after updating the table.
 - **Add a page:** create a top-level directory with an `index.html` (e.g. `projects/index.html`). It is published automatically.
 - **QLib modules:** `/qlib/` refreshes its module cards from QLib's public README on each visit using `assets/qlib.js`. The HTML includes a fallback overview for offline use, fetch failures, or disabled JavaScript. The introductory description is maintained locally; the README remains the source for full details.
 - **Quill downloads:** `assets/quill.js` refreshes `/quill/` from the public GitHub releases API, selecting the most recently published release including pre-releases. Buttons use that release's assets and licence. The HTML retains version-labelled fallback downloads if JavaScript or GitHub is unavailable; update these periodically. Platform labels are mapped in the script.
