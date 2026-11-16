@@ -817,6 +817,13 @@ div.blog-category .category-cta {
     margin-right: auto;
 }
 
+.cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-md);
+}
+
 .cta-button {
     display: inline-block;
     padding: 0.875rem 2rem;
