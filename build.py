@@ -203,6 +203,18 @@ def build_books(books):
         add_book_navigation(OUT / "blog" / name)
         prepare_book_images(OUT / "blog" / name)
         add_post_previews(book.parent / "src", OUT / "blog" / name, posts)
+        add_article_support(OUT / "blog" / name, posts)
+
+
+def add_article_support(book_out, posts):
+    """Invite support after individual articles, never in indexes or the print book."""
+    invitation = (ROOT / "partials/support-note.html").read_text()
+    for post in posts:
+        page = book_out / f"{post.slug}.html"
+        content = page.read_text()
+        if content.count("</main>") != 1:
+            sys.exit(f"error: {page.relative_to(OUT)}: expected one main landmark")
+        page.write_text(content.replace("</main>", invitation + "\n</main>", 1))
 
 
 class ImageTagParser(HTMLParser):

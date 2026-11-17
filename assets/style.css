@@ -874,6 +874,84 @@ div.blog-category .category-cta {
     margin: 0;
 }
 
+/* Support page */
+.footer-support {
+    margin-top: var(--spacing-sm);
+}
+
+.footer .footer-support a {
+    color: var(--link);
+    font-weight: 600;
+}
+
+.footer .footer-support a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.support-note {
+    margin: var(--spacing-xl) 0;
+    padding: var(--spacing-lg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius-md);
+}
+
+.support-note p {
+    margin: 0;
+}
+
+@media print {
+    .support-note {
+        display: none;
+    }
+}
+
+.support-action {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.support-action .support-button {
+    display: inline-block;
+}
+
+.support-action p {
+    max-width: 600px;
+    margin: 0 auto var(--spacing-lg);
+    color: var(--text-light);
+}
+
+.support-button {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    background: var(--button-bg);
+    color: var(--button-text);
+    padding: 0.875rem 1rem;
+    font: inherit;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.support-button:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.support-action a:focus-visible {
+    outline: 3px solid var(--link);
+    outline-offset: 3px;
+}
+
+.support-purpose h2,
+.support-purpose ul,
+.support-purpose p {
+    margin-bottom: var(--spacing-lg);
+}
+
 /* About Page */
 .about-header {
     display: grid;

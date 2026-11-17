@@ -8,3 +8,25 @@
     max-width: 100%;
     height: auto;
 }
+
+.support-note {
+    margin: 2em 0;
+    padding: 1em;
+    border: 1px solid var(--table-border-color);
+    border-left: 3px solid var(--links);
+    border-radius: 0.4em;
+}
+
+.support-note p {
+    margin: 0;
+}
+
+.support-note a {
+    font-weight: 600;
+}
+
+@media print {
+    .support-note {
+        display: none;
+    }
+}
