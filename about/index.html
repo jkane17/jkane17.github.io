@@ -4,14 +4,14 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>About - jkane17</title>
-        <meta name="description" content="About Jonathan Kane – a developer and writer interested in Q &amp; KDB+, Rust, performance and programming language design." />
+        <meta name="description" content="About Jonathan Kane, creator of Quill and QLib and author of articles on Q/KDB+ internals, performance, and working with Q from C." />
         <link rel="canonical" href="https://jkane17.github.io/about/" />
         <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
         <meta property="og:type" content="profile" />
         <meta property="og:site_name" content="jkane17" />
         <meta property="og:title" content="About - jkane17" />
-        <meta property="og:description" content="About Jonathan Kane – a developer and writer interested in Q &amp; KDB+, Rust, performance and programming language design." />
+        <meta property="og:description" content="About Jonathan Kane, creator of Quill and QLib and author of articles on Q/KDB+ internals, performance, and working with Q from C." />
         <meta property="og:url" content="https://jkane17.github.io/about/" />
         <meta property="og:image" content="https://jkane17.github.io/assets/og-image.png" />
         <meta property="og:image:width" content="1200" />
@@ -31,84 +31,78 @@
                     <div class="about-content">
                         <h1>About Me</h1>
                         <p>
-                            I'm a passionate developer and writer exploring the intersections of
-                            programming language design, systems programming, and technical education. I
-                            believe in learning by doing and sharing what I discover along the way.
+                            I'm Jonathan Kane, a software engineer and technical writer. I build
+                            tools for Q developers and write about how Q and KDB+ work, from memory
+                            allocation and database attributes to compression and the C interface.
                         </p>
                         <p>
-                            Through blogs and technical write-ups, I dive deep into topics that
-                            fascinate me — from low-level performance optimisation to high-level
-                            language design patterns. I'm driven by curiosity and the desire to
-                            understand how things work.
+                            My projects include <a href="/quill/">Quill</a>, a terminal IDE for Q,
+                            and <a href="/qlib/">QLib</a>, a collection of reusable Q modules and
+                            a C interface. My <a href="/blog/">articles</a> explore the details behind the code through
+                            examples, experiments, and performance measurements.
+                        </p>
+                        <p>
+                            I'm also interested in Rust, systems programming, and language design.
                         </p>
                     </div>
-                    <div class="about-avatar" aria-hidden="true">💻</div>
+                    <aside class="about-projects" aria-labelledby="building-title">
+                        <h2 id="building-title">What I'm Building</h2>
+                        <h3><a href="/quill/">Quill →</a></h3>
+                        <p>Edit Q, connect to running processes, and explore query results in your terminal.</p>
+                        <h3><a href="/qlib/">QLib →</a></h3>
+                        <p>Reusable modules for Q and tools for working with Q objects from C or C++.</p>
+                    </aside>
                 </section>
 
                 <section class="section-divider">
-                    <h2 class="section-title">What I'm Interested In</h2>
+                    <h2 class="section-title">What I Write About</h2>
                     <div class="interests-grid">
-                        <div class="interest-item">
-                            <div class="interest-icon" aria-hidden="true">🔵</div>
-                            <h3 class="interest-title">Q & KDB+</h3>
+                        <article class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🔍</div>
+                            <h3 class="interest-title">Q Internals</h3>
                             <p class="interest-description">
-                                Exploring the elegant design of the Q programming language and building
-                                high-performance data systems with KDB+.
+                                Understanding how Q allocates memory and what that means for the
+                                objects you create.
                             </p>
-                        </div>
+                            <a href="/blog/q/analysis_of_q_memory_allocation.html" class="card-link">Explore Q memory allocation →</a>
+                        </article>
 
-                        <div class="interest-item">
-                            <div class="interest-icon" aria-hidden="true">🦀</div>
-                            <h3 class="interest-title">Rust & Systems</h3>
-                            <p class="interest-description">
-                                Building reliable, performant systems with Rust. Learning about memory
-                                safety, concurrency, and systems-level design.
-                            </p>
-                        </div>
-
-                        <div class="interest-item">
-                            <div class="interest-icon" aria-hidden="true">📚</div>
-                            <h3 class="interest-title">Technical Writing</h3>
-                            <p class="interest-description">
-                                Sharing knowledge through detailed guides, tutorials, and long-form
-                                analysis of complex technical concepts.
-                            </p>
-                        </div>
-
-                        <div class="interest-item">
-                            <div class="interest-icon" aria-hidden="true">🧪</div>
-                            <h3 class="interest-title">Experimentation</h3>
-                            <p class="interest-description">
-                                Building side projects and experiments to test ideas, learn new
-                                technologies, and solve interesting problems.
-                            </p>
-                        </div>
-
-                        <div class="interest-item">
+                        <article class="interest-item">
                             <div class="interest-icon" aria-hidden="true">⚡</div>
-                            <h3 class="interest-title">Performance</h3>
+                            <h3 class="interest-title">Performance Trade-offs</h3>
                             <p class="interest-description">
-                                Fascinated by optimisation, profiling, and understanding how to write
-                                code that performs well at scale.
+                                Measuring the benefits and costs of KDB+ attributes, rather than
+                                assuming an optimisation will always help.
                             </p>
-                        </div>
+                            <a href="/blog/q/attr_perf_benefits.html" class="card-link">Read about attribute performance →</a>
+                        </article>
 
-                        <div class="interest-item">
-                            <div class="interest-icon" aria-hidden="true">🔬</div>
-                            <h3 class="interest-title">Language Design</h3>
+                        <article class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">📦</div>
+                            <h3 class="interest-title">Compression</h3>
                             <p class="interest-description">
-                                Exploring programming language theory, design patterns, and what makes
-                                certain languages elegant and expressive.
+                                Comparing compression algorithms and settings through practical
+                                measurements in Q/KDB+.
                             </p>
-                        </div>
+                            <a href="/blog/q/compression_perf.html" class="card-link">Measure compression performance →</a>
+                        </article>
+
+                        <article class="interest-item">
+                            <div class="interest-icon" aria-hidden="true">🔧</div>
+                            <h3 class="interest-title">Working with Q from C</h3>
+                            <p class="interest-description">
+                                Creating and reading Q objects from C, starting with atoms and lists
+                                before moving on to collections and ownership.
+                            </p>
+                            <a href="/blog/q/c_interface_part_1.html" class="card-link">Start the C interface series →</a>
+                        </article>
                     </div>
                 </section>
 
                 <section class="cta-section">
                     <h2>Explore My Work</h2>
                     <p>
-                        Read my articles about programming and technology, explore detailed guides, or
-                        dive into my coding projects and experiments.
+                        Browse the full article collection, or take a closer look at Quill and QLib.
                     </p>
                     <div class="cta-actions">
                         <a href="/blog/" class="cta-button">Visit Blog →</a>

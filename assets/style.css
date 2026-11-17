@@ -898,17 +898,32 @@ div.blog-category .category-cta {
     line-height: 1.8;
 }
 
-.about-avatar {
-    width: 100%;
-    max-width: 300px;
-    height: 300px;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
-    border-radius: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 5rem;
-    box-shadow: 0 8px 24px var(--primary-glow);
+.about-projects {
+    padding: var(--spacing-xl);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--primary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+}
+
+.about-projects h2 {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.about-projects h3 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.about-projects p {
+    color: var(--text-light);
+    margin-bottom: var(--spacing-lg);
+}
+
+.about-projects p:last-child {
+    margin-bottom: 0;
 }
 
 .section-divider {
@@ -933,6 +948,8 @@ div.blog-category .category-cta {
 }
 
 .interest-item {
+    display: flex;
+    flex-direction: column;
     background: var(--bg);
     border-radius: var(--radius-xl);
     padding: var(--spacing-xl);
@@ -955,6 +972,8 @@ div.blog-category .category-cta {
 }
 
 .interest-description {
+    flex: 1;
+    margin-bottom: var(--spacing-lg);
     color: var(--text-light);
     font-size: 0.95rem;
     line-height: 1.6;
@@ -1016,10 +1035,6 @@ div.blog-category .category-cta {
     .about-header {
         grid-template-columns: 1fr;
         gap: 2rem;
-    }
-
-    .about-avatar {
-        order: -1;
     }
 
     .about-content h1 {
