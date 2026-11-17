@@ -9,8 +9,8 @@
 - Adds a content hash to /assets/ URLs (e.g. /assets/nav.js?v=1a2b3c4d) so browsers
   never mix a cached old script or stylesheet with a newly deployed page.
 - Builds every mdBook under src/blog/ into _site/blog/<name>/.
-- Adds link-preview (Open Graph) tags to each blog post, using the post's title and
-  description from the book's introduction.md table and its first image as the
+- Generates article lists, sidebar summaries, RSS and a sitemap from posts.json.
+- Adds link-preview (Open Graph) tags to each blog post, using its metadata and first image as the
   preview picture (rendered to a 1200x630 JPEG, since not all sites accept WebP).
 
 Used by both the deploy workflow and local_test.sh.
@@ -19,13 +19,18 @@ Used by both the deploy workflow and local_test.sh.
 import datetime
 import hashlib
 import html
+import json
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from email.utils import format_datetime
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "_site"
@@ -110,23 +115,96 @@ def build_pages():
         print(f"  page  {url_path}")
 
 
-def build_books():
+@dataclass(frozen=True)
+class Post:
+    book: str
+    slug: str
+    title: str
+    date: str
+    description: str
+    published: datetime.date
+
+    @property
+    def path(self):
+        return f"/blog/{self.book}/{self.slug}.html"
+
+
+def load_posts(book):
+    """Validate the publication list before writing any build output."""
+    source = book.parent / "posts.json"
+    try:
+        rows = json.loads(source.read_text())
+    except (OSError, ValueError) as error:
+        sys.exit(f"error: {source}: {error}")
+    if not isinstance(rows, list) or not rows:
+        sys.exit(f"error: {source}: expected a non-empty list of posts")
+    posts, slugs = [], set()
+    fields = {"slug", "title", "date", "description"}
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != fields or any(
+            not isinstance(value, str) or not value.strip() or "\n" in value or "\r" in value
+            for value in row.values()
+        ):
+            sys.exit(f"error: {source}: each post needs non-empty slug, title, date and description strings")
+        slug = row["slug"]
+        if not re.fullmatch(r"[\w-]+", slug) or slug in {"index", "introduction", "SUMMARY", "print", "toc", "404"}:
+            sys.exit(f"error: {source}: invalid or reserved slug: {slug}")
+        if slug in slugs:
+            sys.exit(f"error: {source}: duplicate slug: {slug}")
+        if not (book.parent / "src" / f"{slug}.md").is_file():
+            sys.exit(f"error: {source}: missing article: {slug}.md")
+        try:
+            published = datetime.datetime.strptime(row["date"], "%b %d, %Y").date()
+        except ValueError:
+            sys.exit(f"error: {source}: invalid date for {slug}; use e.g. Nov 17, 2026")
+        slugs.add(slug)
+        posts.append(Post(book=book.parent.name, published=published, **row))
+    # Stable ordering preserves the metadata order for articles published the same day.
+    return sorted(posts, key=lambda post: post.published, reverse=True)
+
+
+def markdown_text(text):
+    """Treat metadata as plain text inside generated Markdown links and tables."""
+    return re.sub(r"([\\`*_{}\[\]()#+.!|~-])", r"\\\1", html.escape(text, quote=False))
+
+
+def prepare_book_source(staged, posts):
+    summary = "\n".join(f"[{markdown_text(p.title)}](./{p.slug}.md)" for p in posts)
+    table = "| Title | Published | Description |\n| --- | --- | --- |\n"
+    table += "\n".join(
+        f"| **[{markdown_text(p.title)}](./{p.slug}.md)** | {p.date} | {markdown_text(p.description)} |"
+        for p in posts
+    )
+    for name, replacement in (("SUMMARY.md", summary), ("introduction.md", table)):
+        page = staged / "src" / name
+        content = page.read_text()
+        if content.count("<!-- @posts -->") != 1:
+            sys.exit(f"error: {name}: expected one @posts marker")
+        page.write_text(content.replace("<!-- @posts -->", replacement))
+
+
+def build_books(books):
     if shutil.which("mdbook") is None:
         sys.exit("error: mdbook is not installed (install it with: cargo install mdbook)")
-    for book in sorted((ROOT / "src" / "blog").glob("*/book.toml")):
+    for book, posts in books.items():
         name = book.parent.name
-        result = subprocess.run(
-            ["mdbook", "build", "-d", str(OUT / "blog" / name), str(book.parent)],
-            capture_output=True,
-            text=True,
-        )
+        # Generate Markdown in a temporary copy, never rewrite tracked sources during a build.
+        with tempfile.TemporaryDirectory(prefix="site-book-") as temp:
+            staged = Path(temp) / name
+            shutil.copytree(book.parent, staged)
+            prepare_book_source(staged, posts)
+            result = subprocess.run(
+                ["mdbook", "build", "-d", str(OUT / "blog" / name), str(staged)],
+                capture_output=True,
+                text=True,
+            )
         if result.returncode != 0:
             sys.stderr.write(result.stdout + result.stderr)
             sys.exit(f"error: failed to build book '{name}'")
         print(f"  book  /blog/{name}/")
         add_book_navigation(OUT / "blog" / name)
         prepare_book_images(OUT / "blog" / name)
-        add_post_previews(book.parent / "src", OUT / "blog" / name, f"{SITE_URL}/blog/{name}/")
+        add_post_previews(book.parent / "src", OUT / "blog" / name, posts)
 
 
 class ImageTagParser(HTMLParser):
@@ -185,9 +263,6 @@ def add_book_navigation(book_out):
         page.write_text(content)
 
 
-# A row of the posts table in introduction.md:
-# | **[Title](./post.md)** | Mar 9, 2026 | Description |
-POST_ROW = re.compile(r"^\|\s*\*\*\[(.+?)\]\(\./([\w-]+)\.md\)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$", re.MULTILINE)
 FIRST_IMAGE = re.compile(r"!\[[^\]]*\]\(\./(images/[^\s)]+)")
 PREVIEW_SIZE = (1200, 630)
 
@@ -222,34 +297,27 @@ def preview_tags(title, description, url, image_url, published):
     return "\n        ".join(lines)
 
 
-def add_post_previews(book_src, book_out, book_url):
-    intro = book_src / "introduction.md"
-    if not intro.is_file():
-        return
-    for title, slug, date, description in POST_ROW.findall(intro.read_text()):
+def add_post_previews(book_src, book_out, posts):
+    for post in posts:
+        title, slug, description = post.title, post.slug, post.description
         page = book_out / f"{slug}.html"
         source = book_src / f"{slug}.md"
-        if not page.is_file() or not source.is_file():
-            sys.exit(f"error: {intro.relative_to(ROOT)} lists '{slug}' but the post was not found")
+        if not page.is_file():
+            sys.exit(f"error: generated post not found: {page}")
 
         image_url = None
         cover = FIRST_IMAGE.search(source.read_text())
         if cover:
             preview = book_out / "images" / f"{slug}.preview.jpg"
             render_preview_image(book_src / cover.group(1), preview)
-            image_url = f"{book_url}images/{preview.name}"
-
-        try:
-            published = datetime.datetime.strptime(date.strip(), "%b %d, %Y").date().isoformat()
-        except ValueError:
-            published = None
+            image_url = f"{SITE_URL}/blog/{post.book}/images/{preview.name}"
 
         page_html = page.read_text()
         # Replace the book-wide description with the post's own, then add the preview tags
         page_html, n = re.subn(
             r'<meta name="description" content="[^"]*">',
-            f'<meta name="description" content="{html.escape(description)}">\n        '
-            + preview_tags(title, description, f"{book_url}{slug}.html", image_url, published),
+            lambda _: f'<meta name="description" content="{html.escape(description)}">\n        '
+            + preview_tags(title, description, SITE_URL + post.path, image_url, post.published.isoformat()),
             page_html,
             count=1,
         )
@@ -272,60 +340,11 @@ def add_analytics():
             page.write_text(content.replace("</body>", script + "\n</body>", 1))
 
 
-class PostTableParser(HTMLParser):
-    """Read rendered table text, including inline Markdown formatting/entities."""
-
-    def __init__(self):
-        super().__init__()
-        self.posts = []
-        self.cells = []
-        self.cell = None
-        self.href = None
-        self.title = None
-        self.in_link = False
-
-    def handle_starttag(self, tag, attrs):
-        if tag == "tr":
-            self.cells, self.href, self.title = [], None, None
-        elif tag == "td":
-            self.cell = ""
-        elif tag == "a" and self.cell is not None and not self.cells:
-            self.href = dict(attrs).get("href")
-            self.title = ""
-            self.in_link = True
-
-    def handle_data(self, data):
-        if self.cell is not None:
-            self.cell += data
-        if self.in_link:
-            self.title += data
-
-    def handle_endtag(self, tag):
-        if tag == "a":
-            self.in_link = False
-        elif tag == "td" and self.cell is not None:
-            self.cells.append(self.cell.strip())
-            self.cell = None
-        elif tag == "tr" and len(self.cells) >= 3 and self.href:
-            self.posts.append((self.title.strip(), self.href, self.cells[1], self.cells[2]))
-
-
-def add_latest_posts():
-    """Render the latest three Q posts into the homepage and blog index."""
-    parser = PostTableParser()
-    parser.feed((OUT / "blog/q/introduction.html").read_text())
-    posts = parser.posts
-    if not posts:
-        sys.exit("error: no posts found in /blog/q/introduction.html")
-    try:
-        posts = sorted(posts, key=lambda post: datetime.datetime.strptime(post[2], "%b %d, %Y"), reverse=True)
-    except ValueError:
-        # Preserve table order if a date cannot be parsed, as the browser did.
-        pass
-
+def add_latest_posts(posts):
+    """Render the latest three posts into the homepage and blog index."""
     cards = []
-    for title, href, date, description in posts[:3]:
-        href = urljoin("/blog/q/introduction.html", href)
+    for post in posts[:3]:
+        title, href, date, description = post.title, post.path, post.date, post.description
         cards.append(
             f'<a class="blog-post-item" href="{html.escape(href)}">\n'
             '    <div class="post-header">\n'
@@ -346,17 +365,64 @@ def add_latest_posts():
     print(f"  latest  {len(cards)} posts")
 
 
+def write_discovery_files(books, posts):
+    """Publish summary RSS and canonical page URLs, excluding mdBook utility pages."""
+    atom = "http://www.w3.org/2005/Atom"
+    ET.register_namespace("atom", atom)
+    rss = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(rss, "channel")
+    for key, value in (
+        ("title", "Jonathan Kane — Articles"),
+        ("link", SITE_URL + "/blog/"),
+        ("description", "Articles on Q/KDB+, performance and programming by Jonathan Kane."),
+        ("language", "en"),
+    ):
+        ET.SubElement(channel, key).text = value
+    ET.SubElement(channel, f"{{{atom}}}link", href=SITE_URL + "/feed.xml", rel="self", type="application/rss+xml")
+    for post in posts:
+        item = ET.SubElement(channel, "item")
+        ET.SubElement(item, "title").text = post.title
+        ET.SubElement(item, "link").text = SITE_URL + post.path
+        ET.SubElement(item, "guid", isPermaLink="true").text = SITE_URL + post.path
+        ET.SubElement(item, "description").text = post.description
+        published = datetime.datetime.combine(post.published, datetime.time(), tzinfo=datetime.timezone.utc)
+        ET.SubElement(item, "pubDate").text = format_datetime(published, usegmt=True)
+    ET.indent(rss)
+    ET.ElementTree(rss).write(OUT / "feed.xml", encoding="utf-8", xml_declaration=True)
+
+    sitemap = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    paths = {"/", *(f"/{page.name}/" for page in page_dirs())}
+    paths.update(f"/blog/{book.parent.name}/" for book in books)
+    paths.update(post.path for post in posts)
+    for path in sorted(paths):
+        ET.SubElement(ET.SubElement(sitemap, "url"), "loc").text = SITE_URL + path
+    ET.indent(sitemap)
+    ET.ElementTree(sitemap).write(OUT / "sitemap.xml", encoding="utf-8", xml_declaration=True)
+    (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}/sitemap.xml\n")
+
+    # Feed-reader autodiscovery adds no visible changes to the pages.
+    feed_link = '<link rel="alternate" type="application/rss+xml" title="Jonathan Kane — Articles" href="/feed.xml">'
+    for page in OUT.rglob("*.html"):
+        content = page.read_text()
+        if "</head>" in content:
+            page.write_text(content.replace("</head>", feed_link + "\n</head>", 1))
+    print(f"  discovery  {len(posts)} feed entries, {len(paths)} sitemap URLs")
+
+
 def main():
     try:
         import PIL  # noqa: F401
     except ImportError:
         sys.exit("error: Pillow is required for article image dimensions and previews (python3 -m pip install pillow)")
+    books = {book: load_posts(book) for book in sorted((ROOT / "src/blog").glob("*/book.toml"))}
+    posts = sorted((post for items in books.values() for post in items), key=lambda post: post.published, reverse=True)
     shutil.rmtree(OUT, ignore_errors=True)
     OUT.mkdir()
     print(f"Building site into {OUT.relative_to(ROOT)}/")
     build_pages()
-    build_books()
-    add_latest_posts()
+    build_books(books)
+    add_latest_posts(posts)
+    write_discovery_files(books, posts)
     add_analytics()
     print("Done.")
 

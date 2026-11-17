@@ -7,9 +7,9 @@
 `build.py` builds the whole site into `_site/`. The deploy workflow and `local_test.sh` both use it.
 
 - **Preview locally:** `./local_test.sh` builds the site, serves it at http://localhost:8000 and removes `_site/` on Ctrl+C. It automatically uses `.venv/bin/python` when available, otherwise `python3`. Requires `mdbook` and Pillow for article image dimensions and link-preview images. On a fresh checkout, set up the environment once with `python3 -m venv .venv` and `.venv/bin/python -m pip install pillow` (some Linux distributions also require the `python3-venv` package). No activation is needed when running the preview script.
-- **Blog link previews:** each post gets its own preview tags automatically. The title and description come from the posts table in the book's `introduction.md`, and the image comes from the post's first image. A new post only needs its row in that table.
+- **Blog link previews:** each post gets its own preview tags automatically. The title, description, and publication date come from the book’s `posts.json`; the preview image comes from the post’s first image.
 - **Article images:** the build reads local image dimensions and writes `width`/`height` into the generated HTML. The first image loads eagerly; later images use native lazy loading. The print page loads every image eagerly. The C-interface articles use an optimized WebP cover; the original JPEG is retained for existing external links.
-- **Latest posts:** the build fills the homepage and blog index with the three newest articles from the rendered Q blog introduction table. The list works without JavaScript; rebuild after updating the table.
+- **Latest posts:** the build fills the homepage and blog index with the three newest articles from `posts.json`. The list works without JavaScript; rebuild after updating metadata.
 - **Blog navigation and themes:** the build adds Home and All articles icons to the top-right mdBook toolbar; their markup lives in `partials/blog-nav.html`. The main site's theme carries into articles before rendering: light uses Light, dark uses Navy, and system uses Auto. mdBook's Rust, Coal, and Ayu choices remain available; selecting a blog palette updates the corresponding site mode and preserves that palette on subsequent article visits.
 - **Add a page:** create a top-level directory with an `index.html` (e.g. `projects/index.html`). It is published automatically.
 - **QLib modules:** `/qlib/` refreshes its module cards from QLib's public README on each visit using `assets/qlib.js`. The HTML includes a fallback overview for offline use, fetch failures, or disabled JavaScript. The introductory description is maintained locally; the README remains the source for full details.
@@ -18,6 +18,42 @@
 - **Shared markup:** put it in `partials/` and include it with `<!-- @include partials/name.html -->` on its own line. The nav and footer work this way.
 - **Nav links:** each link in `partials/nav.html` needs `class="nav-link" data-path="/section/"`. The build marks the current page's link as active.
 - **Assets:** reference files as `/assets/...` in `src`/`href` attributes. The build appends a content hash (`?v=1a2b3c4d`) so browsers always fetch the current version after a deploy.
+
+## Publishing Articles
+
+`src/blog/q/posts.json` is the publication list and source of article metadata.
+To publish an article, add its Markdown file under `src/blog/q/src/` and one entry:
+
+```json
+{
+  "slug": "my_article",
+  "title": "My Article",
+  "date": "Nov 17, 2026",
+  "description": "A short plain-text summary of the article."
+}
+```
+
+The slug must match the Markdown filename without `.md`. Titles and descriptions
+are plain text, not Markdown. Dates use English month abbreviations. The build
+sorts newest first; entries on the same date keep their order in the JSON file.
+Files not listed remain unpublished drafts.
+
+The `<!-- @posts -->` markers in `introduction.md` and `SUMMARY.md` are filled in a
+temporary copy during the build. Keep those markers; edit the surrounding
+introduction text as usual. Use `build.py` or `local_test.sh` rather than running
+`mdbook build` directly, so metadata generation is included.
+
+The same data generates article preview tags, `/feed.xml` (RSS summaries), and
+article URLs in `/sitemap.xml`. The sitemap also lists main-site pages and blog
+indexes, excluding duplicate and utility pages. `/robots.txt` advertises it;
+HTML pages include RSS autodiscovery. Feed and sitemap URLs point to the published
+site even when previewed locally.
+
+Run metadata validation tests with:
+
+```bash
+.venv/bin/python -m unittest discover -s tests
+```
 
 ## Web Analytics
 
