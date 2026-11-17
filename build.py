@@ -125,7 +125,21 @@ def build_books():
             sys.stderr.write(result.stdout + result.stderr)
             sys.exit(f"error: failed to build book '{name}'")
         print(f"  book  /blog/{name}/")
+        add_book_navigation(OUT / "blog" / name)
         add_post_previews(book.parent / "src", OUT / "blog" / name, f"{SITE_URL}/blog/{name}/")
+
+
+def add_book_navigation(book_out):
+    """Add toolbar links and version the early theme bridge script."""
+    navigation = (ROOT / "partials/blog-nav.html").read_text()
+    for page in book_out.rglob("*.html"):
+        content = page.read_text()
+        toolbar = '<div class="right-buttons">'
+        if "<main>" in content and content.count(toolbar) != 1:
+            sys.exit(f"error: {page.relative_to(OUT)}: expected one mdBook toolbar")
+        content = content.replace(toolbar, toolbar + "\n" + navigation, 1)
+        content = version_assets(content, page.relative_to(OUT))
+        page.write_text(content)
 
 
 # A row of the posts table in introduction.md:
