@@ -184,8 +184,6 @@ def prepare_book_source(staged, posts):
 
 
 def build_books(books):
-    if shutil.which("mdbook") is None:
-        sys.exit("error: mdbook is not installed (install it with: cargo install mdbook)")
     for book, posts in books.items():
         name = book.parent.name
         # Generate Markdown in a temporary copy, never rewrite tracked sources during a build.
@@ -413,7 +411,14 @@ def main():
     try:
         import PIL  # noqa: F401
     except ImportError:
-        sys.exit("error: Pillow is required for article image dimensions and previews (python3 -m pip install pillow)")
+        sys.exit("error: Pillow is required for article images (python3 -m pip install -r requirements.txt)")
+    expected_mdbook = (ROOT / ".mdbook-version").read_text().strip()
+    if shutil.which("mdbook") is None:
+        sys.exit(f"error: install mdBook with: cargo install mdbook --version {expected_mdbook} --locked")
+    version = subprocess.run(["mdbook", "--version"], capture_output=True, text=True)
+    if version.returncode or version.stdout.strip() != f"mdbook v{expected_mdbook}":
+        sys.exit(f"error: expected mdbook v{expected_mdbook}, found {version.stdout.strip()!r}; "
+                 f"install with: cargo install mdbook --version {expected_mdbook} --locked --force")
     books = {book: load_posts(book) for book in sorted((ROOT / "src/blog").glob("*/book.toml"))}
     posts = sorted((post for items in books.values() for post in items), key=lambda post: post.published, reverse=True)
     shutil.rmtree(OUT, ignore_errors=True)

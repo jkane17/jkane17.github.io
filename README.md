@@ -6,7 +6,7 @@
 
 `build.py` builds the whole site into `_site/`. The deploy workflow and `local_test.sh` both use it.
 
-- **Preview locally:** `./local_test.sh` builds the site, serves it at http://localhost:8000 and removes `_site/` on Ctrl+C. It automatically uses `.venv/bin/python` when available, otherwise `python3`. Requires `mdbook` and Pillow for article image dimensions and link-preview images. On a fresh checkout, set up the environment once with `python3 -m venv .venv` and `.venv/bin/python -m pip install pillow` (some Linux distributions also require the `python3-venv` package). No activation is needed when running the preview script.
+- **Preview locally:** `./local_test.sh` builds the site, serves it at http://localhost:8000 and removes `_site/` on Ctrl+C. It automatically uses `.venv/bin/python` when available, otherwise `python3`. Requires mdBook **0.5.3** (pinned in `.mdbook-version`) and Pillow **13.0.0** (pinned in `requirements.txt`) for article image dimensions and link-preview images. The build checks the mdBook version to keep local output aligned with deployment. On a fresh checkout, set up the environment once with `python3 -m venv .venv` and `.venv/bin/python -m pip install -r requirements.txt` (some Linux distributions also require the `python3-venv` package). No activation is needed when running the preview script.
 - **Blog link previews:** each post gets its own preview tags automatically. The title, description, and publication date come from the book’s `posts.json`; the preview image comes from the post’s first image.
 - **Article images:** the build reads local image dimensions and writes `width`/`height` into the generated HTML. The first image loads eagerly; later images use native lazy loading. The print page loads every image eagerly. The C-interface articles use an optimized WebP cover; the original JPEG is retained for existing external links.
 - **Latest posts:** the build fills the homepage and blog index with the three newest articles from `posts.json`. The list works without JavaScript; rebuild after updating metadata.
@@ -49,11 +49,40 @@ indexes, excluding duplicate and utility pages. `/robots.txt` advertises it;
 HTML pages include RSS autodiscovery. Feed and sitemap URLs point to the published
 site even when previewed locally.
 
-Run metadata validation tests with:
+Run the validation tests with:
 
 ```bash
 .venv/bin/python -m unittest discover -s tests
 ```
+
+## Validation and Deployment
+
+Install the pinned mdBook version with:
+
+```bash
+cargo install mdbook --version 0.5.3 --locked
+```
+
+`local_test.sh` validates the generated site before starting the server. To run the
+same checks as CI without starting a server:
+
+```bash
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python build.py
+.venv/bin/python validate_site.py
+```
+
+Validation checks local link and asset targets (including anchors and URLs for the
+published hostname), page titles, descriptions, language, main landmarks, primary
+headings on main-site pages, duplicate IDs, image alt attributes, unexpanded build
+markers, RSS, and sitemap URLs. mdBook's TOC and combined print page have explicit
+exceptions for their different structure. External sites are not fetched, and this
+is not a substitute for browser or visual accessibility testing.
+
+Pull requests to `main` run the tests, build, and generated-site validation with
+read-only repository permissions. Pushes to `main` and manual runs on `main` deploy
+only after those checks pass. Pull requests do not upload or deploy Pages artifacts.
+The deploy job alone receives Pages write and identity-token permissions.
 
 ## Web Analytics
 

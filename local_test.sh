@@ -32,6 +32,11 @@ if ! "$SITE_PYTHON" build.py; then
     echo -e "\n${RED}✗ Build failed${NC}" >&2
     exit 1
 fi
+echo -e "${BLUE}Validating site...${NC}"
+if ! "$SITE_PYTHON" validate_site.py; then
+    echo -e "\n${RED}✗ Validation failed${NC}" >&2
+    exit 1
+fi
 echo -e "${GREEN}✓ Build complete${NC}"
 
 # Serve
