@@ -3,6 +3,12 @@
 # Run from the repo root so relative paths work wherever the script is invoked from
 cd "$(dirname "$0")" || exit 1
 
+# Use the project's environment directly; no shell activation is needed.
+SITE_PYTHON=python3
+if [ -x .venv/bin/python ]; then
+    SITE_PYTHON="$PWD/.venv/bin/python"
+fi
+
 # Color output
 readonly GREEN='\033[0;32m'
 readonly BLUE='\033[0;34m'
@@ -22,7 +28,7 @@ trap cleanup SIGINT SIGTERM
 
 # Build the site exactly as the deploy workflow does
 echo -e "${BLUE}Building site...${NC}"
-if ! python3 build.py; then
+if ! "$SITE_PYTHON" build.py; then
     echo -e "\n${RED}✗ Build failed${NC}" >&2
     exit 1
 fi
@@ -33,7 +39,7 @@ echo -e "${BLUE}Starting local server at http://localhost:8000${NC}"
 echo -e "${BLUE}Press Ctrl+C to stop and clean up${NC}\n"
 # Like `python3 -m http.server`, but tells the browser to re-check every file so a
 # rebuilt page is never shown with stale cached scripts or styles
-python3 - <<'EOF'
+"$SITE_PYTHON" - <<'EOF'
 import functools
 import http.server
 

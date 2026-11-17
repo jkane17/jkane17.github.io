@@ -19,14 +19,13 @@ Used by both the deploy workflow and local_test.sh.
 import datetime
 import hashlib
 import html
-import os
 import re
 import shutil
 import subprocess
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin, urlsplit
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "_site"
@@ -126,7 +125,51 @@ def build_books():
             sys.exit(f"error: failed to build book '{name}'")
         print(f"  book  /blog/{name}/")
         add_book_navigation(OUT / "blog" / name)
+        prepare_book_images(OUT / "blog" / name)
         add_post_previews(book.parent / "src", OUT / "blog" / name, f"{SITE_URL}/blog/{name}/")
+
+
+class ImageTagParser(HTMLParser):
+    def handle_starttag(self, tag, attrs):
+        self.attrs = dict(attrs)
+
+
+def prepare_book_images(book_out):
+    """Reserve image space and defer below-the-cover images without changing charts."""
+    from PIL import Image
+
+    dimensions = {}
+    for page in book_out.rglob("*.html"):
+        image_count = 0
+
+        def prepare(match):
+            nonlocal image_count
+            image_count += 1
+            parser = ImageTagParser()
+            parser.feed(match.group())
+            attrs = parser.attrs
+            url = urlsplit(attrs.get("src", ""))
+            if not url.scheme and not url.netloc and url.path:
+                image = (OUT / unquote(url.path).lstrip("/") if url.path.startswith("/")
+                         else page.parent / unquote(url.path)).resolve()
+                if not image.is_file():
+                    sys.exit(f"error: {page.relative_to(OUT)}: image not found: {url.path}")
+                if image.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif"}:
+                    if image not in dimensions:
+                        with Image.open(image) as im:
+                            dimensions[image] = im.size
+                    width, height = dimensions[image]
+                    # Respect any author-specified display dimensions.
+                    if "width" not in attrs and "height" not in attrs:
+                        attrs.update(width=str(width), height=str(height))
+            attrs["loading"] = "eager" if image_count == 1 or page.name == "print.html" else "lazy"
+            return "<img " + " ".join(
+                key if value is None else f'{key}="{html.escape(value, quote=True)}"'
+                for key, value in attrs.items()
+            ) + ">"
+
+        content = re.sub(r"<img\b[^>]*>", prepare, page.read_text(), flags=re.IGNORECASE)
+        page.write_text(content)
 
 
 def add_book_navigation(book_out):
@@ -180,16 +223,6 @@ def preview_tags(title, description, url, image_url, published):
 
 
 def add_post_previews(book_src, book_out, book_url):
-    try:
-        import PIL  # noqa: F401
-        have_pillow = True
-    except ImportError:
-        # Required in CI so deployed posts always get preview images
-        if os.environ.get("CI"):
-            sys.exit("error: Pillow is required to render blog preview images (pip install pillow)")
-        print("  warning: Pillow not installed, skipping blog preview images (pip install pillow)")
-        have_pillow = False
-
     intro = book_src / "introduction.md"
     if not intro.is_file():
         return
@@ -201,7 +234,7 @@ def add_post_previews(book_src, book_out, book_url):
 
         image_url = None
         cover = FIRST_IMAGE.search(source.read_text())
-        if cover and have_pillow:
+        if cover:
             preview = book_out / "images" / f"{slug}.preview.jpg"
             render_preview_image(book_src / cover.group(1), preview)
             image_url = f"{book_url}images/{preview.name}"
@@ -314,6 +347,10 @@ def add_latest_posts():
 
 
 def main():
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        sys.exit("error: Pillow is required for article image dimensions and previews (python3 -m pip install pillow)")
     shutil.rmtree(OUT, ignore_errors=True)
     OUT.mkdir()
     print(f"Building site into {OUT.relative_to(ROOT)}/")

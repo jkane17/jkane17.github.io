@@ -1,6 +1,6 @@
 # C Interface for Q - Part 2
 
-![Cover Image](./images/c_interface.jpeg "Cover Image")
+![Cover Image](./images/c_interface.webp "Cover Image")
 
 In [Part 1](https://jkane17.github.io/blog/q/c_interface_part_1.html), we looked at the Q object (`QObj`) and at the simplest values it can hold: atoms, and lists of plain C values such as longs or chars. Each of those values was self-contained, with all of its data stored inside a single object.
 

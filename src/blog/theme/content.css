@@ -2,3 +2,9 @@
 :root {
     --content-max-width: 960px;
 }
+
+/* Intrinsic dimensions reserve space; retain the aspect ratio on narrow screens. */
+.content main img {
+    max-width: 100%;
+    height: auto;
+}

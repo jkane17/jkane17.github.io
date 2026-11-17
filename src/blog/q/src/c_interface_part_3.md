@@ -1,6 +1,6 @@
 # C Interface for Q - Part 3
 
-![Cover Image](./images/c_interface.jpeg "Cover Image")
+![Cover Image](./images/c_interface.webp "Cover Image")
 
 TODO: Intro
 

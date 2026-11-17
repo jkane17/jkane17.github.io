@@ -1,6 +1,6 @@
 # C Interface for Q - Part 1
 
-![Cover Image](./images/c_interface.jpeg "Cover Image")
+![Cover Image](./images/c_interface.webp "Cover Image")
 
 Q is fast, but sometimes you need to reach outside it: to call an existing C library, to speed up a hot loop, or to talk to a Q process from a C program. kdb+ supports all of this through its C API. A C function can be compiled into a shared library and loaded into a Q process with `2:`, and a standalone C program can create Q values and exchange them with Q processes by linking against KX's C API library.
 
